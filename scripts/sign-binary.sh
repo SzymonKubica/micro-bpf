@@ -18,5 +18,6 @@ echo "Generating the manifest file"
 ./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool create -f suit -i suit.tmp -o $coaproot_dir/suit_manifest
 echo "./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool create -f suit -i suit.tmp -o $coaproot_dir/suit_manifest"
 echo "Signing the manifest file"
-./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool sign -k RIOT/keys/default.pem -m $coaproot_dir/suit_manifest -o $coaproot_dir/suit_manifest.signed
-echo "./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool sign -k RIOT/keys/default.pem -m $coaproot_dir/suit_manifest -o $coaproot_dir/suit_manifest.signed"
+./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool sign -k ~/.local/share/RIOT/keys/default.pem -m $coaproot_dir/suit_manifest -o $coaproot_dir/suit_manifest.signed
+# The actual suit key is created when building the elf file and located under .local/share/RIOT
+echo "./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool sign -k ~/.local/share/RIOT/keys/default.pem -m $coaproot_dir/suit_manifest -o $coaproot_dir/suit_manifest.signed"

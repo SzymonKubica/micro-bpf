@@ -1,0 +1,13 @@
+aiocoap==0.4.7
+cbor2==5.5.1
+cffi==1.16.0
+cryptography==41.0.7
+greenlet==3.0.3
+LinkHeader==0.4.3
+msgpack==1.0.7
+progress==1.6
+pycparser==2.21
+pyelftools==0.30
+pynvim==0.5.0
+pyserial==3.5
+stm32loader==0.7.1

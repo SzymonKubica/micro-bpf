@@ -1,4 +1,6 @@
 venv/
 *.bin
 bin/
+*.o
+suit.tmp
 

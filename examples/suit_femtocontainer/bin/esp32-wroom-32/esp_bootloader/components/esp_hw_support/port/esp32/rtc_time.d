@@ -1,0 +1,60 @@
+-I/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/examples/suit_femtocontainer/bin/esp32-wroom-32/riotbuild/: \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_hw_support/port/esp32/rtc_time.c \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/examples/suit_femtocontainer/bin/esp32-wroom-32/riotbuild/riotbuild.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_rom/include/esp_rom_sys.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/cpu/esp32/bootloader/sdkconfig.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_idf_ver.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/cpu/esp32/bootloader/sdkconfig_default_esp32.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/cpu/esp32/bootloader/sdkconfig_default_common.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/reset_reasons.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/soc.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_common/include/esp_assert.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/newlib/platform_include/assert.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_common/include/esp_bit_defs.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/include/soc/rtc_periph.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/include/soc/rtc_io_periph.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/soc_caps.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_io_channel.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_io_reg.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_io_struct.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_cntl_reg.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_cntl_struct.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/sens_struct.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/include/soc/timer_periph.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/timer_group_reg.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/timer_group_struct.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/periph_defs.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_hw_support/include/soc_log.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/log/include/esp_log.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_rom/include/esp32/rom/ets_sys.h \
+ /home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/log/include/esp_log_internal.h
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/examples/suit_femtocontainer/bin/esp32-wroom-32/riotbuild/riotbuild.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_rom/include/esp_rom_sys.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/cpu/esp32/bootloader/sdkconfig.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_idf_ver.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/cpu/esp32/bootloader/sdkconfig_default_esp32.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/cpu/esp32/bootloader/sdkconfig_default_common.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/reset_reasons.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/soc.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_common/include/esp_assert.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/newlib/platform_include/assert.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_common/include/esp_bit_defs.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/include/soc/rtc_periph.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/include/soc/rtc_io_periph.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/soc_caps.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_io_channel.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_io_reg.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_io_struct.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_cntl_reg.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/rtc_cntl_struct.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/sens_struct.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/include/soc/timer_periph.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/timer_group_reg.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/timer_group_struct.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/soc/esp32/include/soc/periph_defs.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_hw_support/include/soc_log.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/log/include/esp_log.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/esp_rom/include/esp32/rom/ets_sys.h:
+/home/szymon/Projects/ebpf-on-microcontrollers/femtocontainers-riot-update/RIOT/build/pkg/esp32_sdk/components/log/include/esp_log_internal.h:

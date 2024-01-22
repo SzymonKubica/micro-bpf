@@ -54,9 +54,9 @@ static f12r_t _bpf = {
 };
 
 static ssize_t _bpf_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
-                            void *ctx)
+                                  coap_request_ctx_t *ctx)
 {
-    char *location = ctx;
+    char *location = ctx->resource->context;
     char reply[12] = {0};
 
     printf("[BPF handler]: getting appropriate SUIT backend depending on the "
@@ -65,7 +65,7 @@ static ssize_t _bpf_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 
     // For now hard code the location to be .ram.0
     // TODO: fix later
-    location = ".ram.0";
+    // location = ".ram.0";
     suit_storage_t *storage = suit_storage_find_by_id(location);
 
     assert(storage);

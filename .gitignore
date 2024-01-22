@@ -3,4 +3,5 @@ venv/
 bin/
 *.o
 suit.tmp
+coaproot
 

@@ -138,7 +138,7 @@ static ssize_t _firmware_pull_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
     char *address = (char *) pdu->payload;
     char suit_arg[70];
     sprintf(suit_arg,"coap://[%s%%5]/suit_manifest.signed", address);
-    suit_worker_trigger(suit_arg, strlen(suit_arg));
+suit_worker_trigger(suit_arg, strlen(suit_arg));
 
     return coap_reply_simple(pdu, COAP_CODE_204, buf, len, 0, 0, 1);
 }

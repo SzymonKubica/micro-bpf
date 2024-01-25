@@ -12,3 +12,7 @@ git submodule.
  ./RIOT/dist/tools/esptools/install.sh all
 
  get_idf
+
+# If it fails to flash on stm32
+Ensure that you have not esp32 toolchain in the path which will cause some flashing
+issues.

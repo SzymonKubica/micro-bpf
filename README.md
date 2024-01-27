@@ -16,3 +16,9 @@ git submodule.
 # If it fails to flash on stm32
 Ensure that you have not esp32 toolchain in the path which will cause some flashing
 issues.
+
+# Troubleshooting:
+
+If suit fetch fails and the message is 'hdr invalid' it means that cbor is
+missing from python env and that the RIOT image was compiled without the
+proper python env initialised.

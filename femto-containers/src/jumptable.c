@@ -17,6 +17,7 @@
 #include "femtocontainer/builtin_calls.h"
 #include "femtocontainer/instruction.h"
 #include "femtocontainer/config.h"
+#include "log.h"
 
 typedef int dont_be_pedantic;
 
@@ -165,8 +166,8 @@ int f12r_run(f12r_t *femtoc, const void *ctx, int64_t *result)
     const bpf_instruction_t *instr = (const bpf_instruction_t*)f12r_text(femtoc);
     bool jump_cond = false;
 
-    printf("[f12r_run]: Starting eBPF program verification \n");
-    printf("[f12r_run]: First instruction: %d\n", instr);
+    LOG_DEBUG("[f12r_run]: Starting eBPF program verification \n");
+    LOG_DEBUG("[f12r_run]: First instruction: %d\n", instr);
     res = f12r_verify_preflight(femtoc);
     if (res < 0) {
         return res;

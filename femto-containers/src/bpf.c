@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "assert.h"
+#include "log.h"
 
 #include "femtocontainer/femtocontainer.h"
 #include "femtocontainer/instruction.h"
@@ -37,7 +38,7 @@ int f12r_execute(f12r_t *femtoc, void *ctx, size_t ctx_len, int64_t *result)
 
 int f12r_execute_ctx(f12r_t *femtoc, void *ctx, size_t ctx_len, int64_t *result)
 {
-    printf("[BPF VM]: Executing f12r VM\n");
+    LOG_DEBUG("[BPF VM]: Executing f12r VM\n");
     femtoc->arg_region.start = ctx;
     femtoc->arg_region.len = ctx_len;
     femtoc->arg_region.flag = (FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);

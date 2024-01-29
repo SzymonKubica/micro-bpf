@@ -1,3 +1,6 @@
 [submodule "RIOT"]
 	path = RIOT
 	url = https://github.com/SzymonKubica/RIOT
+[submodule "rbpf-for-microcontrollers"]
+	path = rbpf-for-microcontrollers
+	url = https://github.com/SzymonKubica/rbpf-for-microcontrollers

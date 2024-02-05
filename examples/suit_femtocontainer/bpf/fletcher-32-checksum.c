@@ -11,12 +11,18 @@ const char message[] =
     "tLhgfET2gUGU65V3edSwADMqRttI9JPVz8JS37g5QZj4Ax56rU1u0m0K8YUs57UYG5645n"
     "byNy4yqxu7";
 
+typedef struct {
+  int length;
+  __bpf_shared_ptr(void *, payload); /**< Opaque pointer to the payload */
+} context_t;
+
+
 uint32_t fletcher32_bench(void *ctx)
 {
-    (void)ctx;
-    // This message was copied from somewhere in riot to replicate their
-    // workflow exactly.
+    context_t *context = (context_t *)ctx;
 
+    uint8_t *payload = context->payload;
+    return (uint32_t) payload[0];
     // We start here to ensure that the entire body of the algorithm is counted.
     uint16_t *data = (uint16_t *)message;
 

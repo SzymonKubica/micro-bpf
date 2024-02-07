@@ -1,6 +1,6 @@
 
-if [[ $# -lt 5 ]] ; then
-    echo 'Usage: sign-binary.sh <host-network-interface> <board> <coaproot-dir> <binary-name>'
+if [[ $# -lt 4 ]] ; then
+    echo 'Usage: sign-binary.sh <host-network-interface> <board> <coaproot-dir> <binary-name> <suit-storage-slot>'
     exit 0
 fi
 
@@ -13,16 +13,16 @@ ip_address=$(ifconfig $host_interface | grep inet6 | awk "{print \$2}")
 # The target microcontorller board of the firmware. This needs to be consistent
 # with the board name of the running RIOT instance as it is checked during the
 # SUIT authentication stage.
-board=$3
+board=$2
 
 # Path to the directory from where the CoAP fileserver will serve the manifest
 # files and binary blobs
-coaproot_dir=$4
-binary_name=$5
+coaproot_dir=$3
+binary_name=$4
 
 # Should be either 0 or 1, RIOT supports two distinct SUIT storage slots and
 # only one binary can be loaded into a given slot at a time.
-suit_storage_slot=$6
+suit_storage_slot=$5
 
 # The authentication keys used when checking integrity of the SUIT update.
 # The actual suit key is created when building the elf file and located under .local/share/RIOT

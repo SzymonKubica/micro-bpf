@@ -1,19 +1,8 @@
 
 # List of things to do:
 
-- clean up the memory logging
-- equalise the interface for passing in strings
-- add command line utilities
-- plot graphs
+- add subcommand for executing bytecode in a given slot on a given vm
 
-- streamline loading workflow
-
-
-Current bytecode pulling workflow (each step is a single interaction)
-- compile eBPF bytecode
-- sign the manifest
-- pull the image (requires switching to the RIOT shell)
-- execute the code (requires sending a CoAP request)
 
 # Discussion points after the meeting
 

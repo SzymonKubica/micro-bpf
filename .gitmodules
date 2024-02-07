@@ -7,3 +7,6 @@
 [submodule "mibpf-tools"]
 	path = mibpf-tools
 	url = https://github.com/SzymonKubica/mibpf-tools
+[submodule "tools"]
+	path = tools
+	url = https://github.com/SzymonKubica/mibpf-tools

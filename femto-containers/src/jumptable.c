@@ -23,8 +23,10 @@ typedef int dont_be_pedantic;
 
 static int _check_mem(const f12r_t *femtoc, uint8_t size, const intptr_t addr, uint8_t type)
 {
+    //printf("Checking memory access\n ptr: %d, data: %x\n", addr, *(uint16_t*)addr);
     const intptr_t end = addr + size;
     for (const f12r_mem_region_t *region = &femtoc->stack_region; region; region = region->next) {
+        //printf("Checking if within memory region: [ %d, %d ]\n", region->start, region->start + region->len);
         if ((addr >= (intptr_t)(region->start)) &&
                 (end <= (intptr_t)(region->start + region->len)) &&
                 (region->flag & type)) {

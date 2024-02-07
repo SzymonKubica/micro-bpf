@@ -4,3 +4,6 @@
 [submodule "rbpf-for-microcontrollers"]
 	path = rbpf-for-microcontrollers
 	url = https://github.com/SzymonKubica/rbpf-for-microcontrollers
+[submodule "mibpf-tools"]
+	path = mibpf-tools
+	url = https://github.com/SzymonKubica/mibpf-tools

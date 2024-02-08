@@ -27,6 +27,7 @@ enum {
     /* Aux helper functions (stdlib) */
     BPF_FUNC_BPF_PRINTF = 0x01,
     BPF_FUNC_BPF_MEMCPY = 0x02,
+    BPF_FUNC_BPF_PRINT_DEBUG = 0x03,
 
     /* Key/value store functions */
     BPF_FUNC_BPF_STORE_LOCAL = 0x10,

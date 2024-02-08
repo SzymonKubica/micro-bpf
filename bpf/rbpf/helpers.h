@@ -22,6 +22,8 @@
 typedef void bpf_saul_reg_t;
 
 static void *(*bpf_printf)(const char *fmt, ...) = (void *) BPF_FUNC_BPF_PRINTF;
+// Added this one for printing a single debug value.
+static void *(*bpf_print_debug)(uint32_t value) = (void *) BPF_FUNC_BPF_PRINT_DEBUG;
 
 static int (*bpf_store_global)(uint32_t key, uint32_t value) = (void *) BPF_FUNC_BPF_STORE_GLOBAL;
 static int (*bpf_store_local)(uint32_t key, uint32_t value) = (void *) BPF_FUNC_BPF_STORE_LOCAL;

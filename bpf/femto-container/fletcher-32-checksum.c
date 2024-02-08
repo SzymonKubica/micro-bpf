@@ -7,9 +7,6 @@ typedef struct {
 } context_t;
 
 
-
-
-
 uint32_t fletcher32_bench(void *ctx)
 {
     context_t *context = (context_t *)ctx;

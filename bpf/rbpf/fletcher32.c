@@ -5,7 +5,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <bpf/bpf_helpers.h>
-#include "helpers.h"
 
 /*
  * Discussion points: eBPF seems to be limited w.r.t storing strings on the
@@ -35,9 +34,7 @@ int fletcher_32(struct __sk_buff *skb)
     struct tcphdr *tcp = data + sizeof(*eth) + sizeof(*iph);
 
     // Testing update
-
-    uint32_t now = bpf_now_ms();
-    bpf_trace_printk("", 20, now);
+    bpf_trace_printk("", 20, 1234);
 
     // Ensure that there is some data
     if (data + sizeof(*eth) + sizeof(*iph) + sizeof(*tcp) > data_end)

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    results = open("results.txt", "r")
+    results = open("results2.txt", "r")
 
     message_sizes = []
     rbpf_times = []

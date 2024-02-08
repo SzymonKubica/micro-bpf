@@ -1,7 +1,9 @@
 
 # List of things to do:
 
-- add subcommand for executing bytecode in a given slot on a given vm
+- investigate why the FC printf is broken
+- update the adjust-bytecode patching workflow to eliminate manual patching
+  when the program includes change.
 
 
 # Discussion points after the meeting

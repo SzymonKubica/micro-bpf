@@ -15,6 +15,13 @@
 
 //typedef signed ssize_t;
 
+#define PHYDAT_DIM                  (3U)
+typedef struct {
+    int16_t val[PHYDAT_DIM];    /**< the 3 generic dimensions of data */
+    uint8_t unit;               /**< the (physical) unit of the data */
+    int8_t scale;               /**< the scale factor, 10^*scale* */
+} phydat_t;
+
 
 /**
  * Opaque dummy type saul registration
@@ -37,8 +44,8 @@ static void *(*bpf_memcpy)(void *dest, const void *src, size_t n) = (void *) BPF
 /* SAUL calls */
 static bpf_saul_reg_t *(*bpf_saul_reg_find_nth)(int pos) = (void *) BPF_FUNC_BPF_SAUL_REG_FIND_NTH;
 static bpf_saul_reg_t *(*bpf_saul_reg_find_type)(uint8_t type) = (void *) BPF_FUNC_BPF_SAUL_REG_FIND_TYPE;
-//static int (*bpf_saul_reg_read)(bpf_saul_reg_t *dev, phydat_t *data) = (void *) BPF_FUNC_BPF_SAUL_REG_READ;
-//static int (*bpf_saul_reg_write)(bpf_saul_reg_t *dev, phydat_t *data) = (void *) BPF_FUNC_BPF_SAUL_REG_WRITE;
+static int (*bpf_saul_reg_read)(bpf_saul_reg_t *dev, phydat_t *data) = (void *) BPF_FUNC_BPF_SAUL_REG_READ;
+static int (*bpf_saul_reg_write)(bpf_saul_reg_t *dev, phydat_t *data) = (void *) BPF_FUNC_BPF_SAUL_REG_WRITE;
 
 /* CoAP calls */
 //static void (*bpf_gcoap_resp_init)(bpf_coap_ctx_t *ctx, unsigned resp_code) = (void *) BPF_FUNC_BPF_GCOAP_RESP_INIT;

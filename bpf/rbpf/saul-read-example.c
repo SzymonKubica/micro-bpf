@@ -15,7 +15,7 @@
  */
 
 SEC(".main")
-int saul_diode_0_write(void *ctx)
+int saul_reg_read(void *ctx)
 {
     (void)ctx;
 

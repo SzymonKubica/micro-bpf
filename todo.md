@@ -5,6 +5,9 @@
 - update the adjust-bytecode patching workflow to eliminate manual patching
   when the program includes change.
 
+- investigate why gcoap finish call is broken
+
+
 
 # Discussion points after the meeting
 

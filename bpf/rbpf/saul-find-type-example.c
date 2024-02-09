@@ -14,7 +14,6 @@ int saul_diode_0_write(void *ctx)
     phydat_t diode_payload;
 
     // Toggle all onboard LEDs in order
-    int diode_index = 0;
     int count = 0;
     int SAUL_ACT_SWITCH = 68;
     diode = bpf_saul_reg_find_type(SAUL_ACT_SWITCH);

@@ -50,18 +50,22 @@ int coap_resp(void *ctx){
 
     // Write the measurement
     stringified[0] = '1';
-    stringified[0] = '2';
-    stringified[0] = '3';
+    stringified[1] = '2';
+    stringified[2] = '3';
     //size_t str_len = bpf_fmt_u32_dec(stringified,
                                      //measurement);
 
     /* Format the packet with a 205 code */
-    bpf_gcoap_resp_init(&gcoap, (2 << 5) | 5);
+    unsigned int code = (2 << 5) | 5;
+    bpf_gcoap_resp_init(&gcoap, code);
+
 
     /* Add Text type response header */
     bpf_coap_add_format(&gcoap, 0);
+    // it seems like the bpf_coap_opt_finish is causing some memory issues.
     ssize_t pdu_len = bpf_coap_opt_finish(&gcoap,
                  COAP_OPT_FINISH_PAYLOAD);
+
 
     //bpf_print_debug(pdu_len);
     uint8_t *pkt_payload =
@@ -71,8 +75,12 @@ int coap_resp(void *ctx){
     if (pkt.payload_len >= 3) {
         bpf_memcpy(pkt_payload, stringified,
                    3);
-        return pdu_len + 3;
+        bpf_print_debug(0);
+        // Verifies that the memcpy indeed works.
+        bpf_print_debug(*pkt_payload);
+        bpf_print_debug(*(pkt_payload+1));
+        bpf_print_debug(*(pkt_payload+2));
+        return 0;
     }
-
     return  -1;
 }

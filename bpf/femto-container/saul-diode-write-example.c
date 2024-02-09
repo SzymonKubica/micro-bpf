@@ -1,6 +1,5 @@
 #include "bpf/bpfapi/helpers.h"
 #include <stdint.h>
-#include <string.h>
 
 #define PERIOD_US (1000 * 1000)
 

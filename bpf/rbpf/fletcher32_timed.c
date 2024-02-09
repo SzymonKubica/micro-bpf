@@ -56,8 +56,11 @@ int fletcher_32(struct __sk_buff *skb)
     uint32_t c0 = 0;
     uint32_t c1 = 0;
     uint32_t end = bpf_ztimer_now();
-    // Measures the packet processing time.
-    bpf_print_debug(end - start);
+
+    // Todo: think about making it into a macro so that the format variable
+    // is inserted during compile time.
+    char fmt1[] = "Packet pre-processing time: %d\n";
+    bpf_printf(fmt1, end - start);
 
     start = bpf_ztimer_now();
     for (c0 = c1 = 0; len > 0;) {
@@ -76,8 +79,8 @@ int fletcher_32(struct __sk_buff *skb)
 
     uint32_t checksum = (c1 << 16 | c0);
     end = bpf_ztimer_now();
-    // Measures the execution time.
-    bpf_print_debug(end - start);
+    char fmt2[] = "Fletcher32 execution time: %d\n";
+    bpf_printf(fmt2, end - start);
 
     return checksum;
 }

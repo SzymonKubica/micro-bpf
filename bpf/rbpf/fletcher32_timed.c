@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <bpf/bpf_helpers.h>
-#include "helpers.h"
+#include "../helpers.h"
 
 /*
  * Discussion points: eBPF seems to be limited w.r.t storing strings on the

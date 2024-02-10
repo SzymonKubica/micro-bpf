@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <linux/bpf.h>
-#include "helpers.h"
+#include "../helpers.h"
 #include <bpf/bpf_helpers.h>
 
 

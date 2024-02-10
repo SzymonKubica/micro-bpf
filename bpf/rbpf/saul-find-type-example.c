@@ -2,7 +2,7 @@
 #include <linux/bpf.h>
 
 #include <bpf/bpf_helpers.h>
-#include "helpers.h"
+#include "../helpers.h"
 
 SEC(".main")
 int saul_diode_0_write(void *ctx)

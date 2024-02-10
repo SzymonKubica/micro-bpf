@@ -2,7 +2,7 @@
 #include <linux/bpf.h>
 
 #include <bpf/bpf_helpers.h>
-#include "helpers.h"
+#include "../helpers.h"
 
 /* This example tests whether the bpf_saul_reg_read helper works correctly.
  * It till print a message to the shell: "[DEBUG] <user-button-status>"

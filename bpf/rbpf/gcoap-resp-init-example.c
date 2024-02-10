@@ -3,8 +3,8 @@
 #include <linux/bpf.h>
 
 #include <bpf/bpf_helpers.h>
-#include "helpers.h"
-#include "shared.h"
+#include "../helpers.h"
+#include "../shared.h"
 
 
 

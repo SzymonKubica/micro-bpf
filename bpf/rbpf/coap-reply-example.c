@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
-#include "helpers.h"
+#include "../helpers.h"
 
 #define SHARED_KEY 0x50
 #define COAP_OPT_FINISH_PAYLOAD  (0x0001)

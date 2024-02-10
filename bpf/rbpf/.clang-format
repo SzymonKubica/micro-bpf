@@ -1,5 +1,6 @@
 UseTab: Never
 IndentWidth: 4
 BreakBeforeBraces: Linux
-SortImports: False
+SortIncludes: false
+
 

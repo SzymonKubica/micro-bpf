@@ -25,14 +25,6 @@ struct eth_hdr {
     unsigned short h_proto;
 };
 
-#define print(format, ...)                                                     \
-do {                                                                           \
-    char fmt[] = format;                                                      \
-    bpf_printf(fmt, __VA_ARGS__);                                             \
-} while(0);
-
-
-
 SEC(".main")
 int fletcher_32(struct __sk_buff *skb)
 {

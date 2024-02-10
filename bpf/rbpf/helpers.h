@@ -16,7 +16,8 @@
 typedef signed ssize_t;
 
 // Macro allowing for printing formatted strings without having to separately
-// declare the format char[]
+// declare the format char[]. The do-while is needed in case the macro is invoked
+// after an if statement without braces.
 #define print(format, ...)                                                     \
 do {                                                                           \
     char fmt[] = format;                                                       \

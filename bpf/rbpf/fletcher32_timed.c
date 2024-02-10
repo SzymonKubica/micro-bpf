@@ -25,6 +25,12 @@ struct eth_hdr {
     unsigned short h_proto;
 };
 
+#define print(format, ...)                                                     \
+    char fmt0[] = format;                                                      \
+    bpf_printf(fmt0, __VA_ARGS__);                                           \
+
+
+
 SEC(".main")
 int fletcher_32(struct __sk_buff *skb)
 {
@@ -57,10 +63,12 @@ int fletcher_32(struct __sk_buff *skb)
     uint32_t c1 = 0;
     uint32_t end = bpf_ztimer_now();
 
+    print("Packet pre-processing time: %d [us]\n", end - start)
+
     // Todo: think about making it into a macro so that the format variable
     // is inserted during compile time.
-    char fmt1[] = "Packet pre-processing time: %d\n";
-    bpf_printf(fmt1, end - start);
+    //char fmt1[] = "Packet pre-processing time: %d [us]\n";
+    //bpf_printf(fmt1, end - start);
 
     start = bpf_ztimer_now();
     for (c0 = c1 = 0; len > 0;) {
@@ -79,7 +87,7 @@ int fletcher_32(struct __sk_buff *skb)
 
     uint32_t checksum = (c1 << 16 | c0);
     end = bpf_ztimer_now();
-    char fmt2[] = "Fletcher32 execution time: %d\n";
+    char fmt2[] = "Fletcher32 execution time: %d [us]\n";
     bpf_printf(fmt2, end - start);
 
     return checksum;

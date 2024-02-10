@@ -15,6 +15,14 @@
 
 typedef signed ssize_t;
 
+// Macro allowing for printing formatted strings without having to separately
+// declare the format char[]
+#define print(format, ...)                                                     \
+do {                                                                           \
+    char fmt[] = format;                                                       \
+    bpf_printf(fmt, __VA_ARGS__);                                              \
+} while(0);
+
 #define PHYDAT_DIM                  (3U)
 typedef struct {
     int16_t val[PHYDAT_DIM];    /**< the 3 generic dimensions of data */

@@ -5,11 +5,10 @@
   when the program includes change.
 
 - update the bpf directory structure documentation and explanations
+- clean up the c modules. (figure out how to get them loaded in)
+
 
 - test all helpers implemented so far and cross check against FC
-    - f12r_vm_gcoap_resp_init;
-    - f12r_vm_coap_opt_finish;
-    - f12r_vm_coap_add_format;
     - f12r_vm_coap_get_pdu;
 
 

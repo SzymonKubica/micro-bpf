@@ -22,17 +22,10 @@ typedef struct __attribute__((packed)) {
 } coap_hdr_t;
 
 SEC(".main")
-int coap_resp(bpf_coap_ctx_t *gcoap)
+int coap_test(bpf_coap_ctx_t *gcoap)
 {
-    uint64_t address = (uint64_t) gcoap;
-    print("Address of gcoap: %d\n", gcoap);
-    // Figure out why we need to add 128 to gcoap.
-    print("Address of after adjustment gcoap: %d\n", gcoap);
-    print("Address of pkt: %d\n", gcoap->pkt);
-    print("Address of buf: %d\n", gcoap->buf);
-    print("buf len: %d\n", gcoap->buf_len);
-    uint32_t counter = 123;
     bpf_coap_pkt_t *pkt = gcoap->pkt;
+    uint32_t counter = 123;
 
     char stringified[20];
     size_t str_len = bpf_fmt_u32_dec(stringified, counter);

@@ -18,7 +18,7 @@ typedef struct __attribute__((packed)) {
     uint16_t id;
 } coap_hdr_t;
 
-int coap_resp(bpf_coap_ctx_t *gcoap)
+int coap_test(bpf_coap_ctx_t *gcoap)
 {
     bpf_coap_pkt_t *pkt = gcoap->pkt;
     uint32_t counter = 123;

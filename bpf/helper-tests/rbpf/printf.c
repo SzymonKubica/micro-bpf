@@ -1,11 +1,7 @@
-#include <linux/bpf.h>
-#include <stdint.h>
-#include <string.h>
-#include <bpf/bpf_helpers.h>
 #include "../../helpers.h"
 
 
-SEC(".main")
+//SEC(".main")
 int test_printf(void *ctx)
 {
     // Here we use the macro to avoid defining the format string explicitly

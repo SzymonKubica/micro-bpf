@@ -70,4 +70,8 @@ static size_t (*bpf_fmt_u32_dec)(char *out, uint32_t val) = (void *) BPF_FUNC_BP
 static uint32_t (*bpf_ztimer_now)(void) = (void *) BPF_FUNC_BPF_ZTIMER_NOW;
 static void (*bpf_ztimer_periodic_wakeup)(uint32_t *last_wakeup, uint32_t period) = (void *) BPF_FUNC_BPF_ZTIMER_PERIODIC_WAKEUP;
 
+/* GPIO calls */
+static uint64_t (*bpf_gpio_read)(uint32_t port, uint32_t pin) = (void *) BPF_FUNC_GPIO_READ;
+static void (*bpf_gpio_write)(uint32_t port, uint32_t pin, uint32_t val) = (void *) BPF_FUNC_GPIO_WRITE;
+
 #endif /* BPF_APPLICATION_CALL_H */

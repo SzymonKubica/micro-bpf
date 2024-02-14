@@ -7,6 +7,8 @@
 - update the bpf directory structure documentation and explanations
 - clean up the c modules. (figure out how to get them loaded in)
 
+- allow for spawning long running vms
+
 
 - test all helpers implemented so far and cross check against FC
     - f12r_vm_coap_get_pdu;

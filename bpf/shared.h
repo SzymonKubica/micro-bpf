@@ -58,8 +58,9 @@ enum {
     BPF_FUNC_BPF_ZTIMER_PERIODIC_WAKEUP = 0x61,
 
     /* GPIO */
-    BPF_FUNC_GPIO_READ = 0x70,
-    BPF_FUNC_GPIO_WRITE = 0x71,
+    BPF_FUNC_GPIO_READ_INPUT = 0x70,
+    BPF_FUNC_GPIO_READ_RAW = 0x71,
+    BPF_FUNC_GPIO_WRITE = 0x72,
 };
 
 /* Helper structs */

@@ -25,10 +25,14 @@ int gpio_write(void *ctx)
     // After this we turn on the LED and terminate
     uint64_t mic_value = 0;
     while (!mic_value) {
-        mic_value = bpf_gpio_read(port_f, pin_2);
+        mic_value = bpf_gpio_read_input(port_f, pin_2);
     }
 
+    // Toggle the led
     uint32_t value = 128;
+    if (bpf_gpio_read_raw(port_a, pin)) {
+        value = 0;
+    }
     bpf_gpio_write(port_a, pin, value);
     return (int) value;
 }

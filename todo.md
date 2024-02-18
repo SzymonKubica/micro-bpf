@@ -9,9 +9,12 @@
 
 - allow for spawning long running vms
 
-
 - test all helpers implemented so far and cross check against FC
     - f12r_vm_coap_get_pdu;
+
+- make it possible to compile the project out of the riot tree
+
+- fix it so that it runs on native as well.
 
 
 # Done:

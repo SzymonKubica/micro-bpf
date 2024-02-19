@@ -1,8 +1,5 @@
-#include <linux/bpf.h>
+#include "../helpers.h"
 #include <stdint.h>
-
-#include "../../helpers.h"
-#include <bpf/bpf_helpers.h>
 
 #define PERIOD_US (100 * 1000)
 
@@ -19,7 +16,6 @@ inline void led_turn_off(bpf_saul_reg_t *led) { led_set_state(led, 0); }
 
 inline void led_turn_on(bpf_saul_reg_t *led) { led_set_state(led, 1); }
 
-SEC(".main")
 int fletcher32_bench(void *ctx)
 {
     (void)ctx;

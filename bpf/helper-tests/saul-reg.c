@@ -1,8 +1,5 @@
-#include <linux/bpf.h>
 #include <stdint.h>
-
-#include "../../helpers.h"
-#include <bpf/bpf_helpers.h>
+#include "../helpers.h"
 
 /* This file tests whether the saul_reg helper functions work correctly.
  * It assumes that the VM is running on a RIOT instance which has these modules
@@ -11,10 +8,8 @@
  * has access to the three on-board leds and the user button switch.
  */
 
-const int SAUL_ACT_SWITCH = 68;
-const int SAUL_SENSE_BTN = 129;
+const char fmt[] = "Button state: %d\n";
 
-SEC(".main")
 int test_saul_reg_find(void *ctx)
 {
     (void)ctx;
@@ -38,7 +33,7 @@ int test_saul_reg_find(void *ctx)
 
     // Now we want to test finding SAUL devices by their type.
     bpf_saul_reg_t *user_button;
-    user_button = bpf_saul_reg_find_type(SAUL_SENSE_BTN);
+    user_button = bpf_saul_reg_find_type(129);
     phydat_t button_state;
 
     // Read the state of the button.
@@ -47,7 +42,8 @@ int test_saul_reg_find(void *ctx)
     // it should write 1 into val[0].
     bpf_saul_reg_read(user_button, &button_state);
 
-    print("Button state: %d\n", button_state.val[0]);
+    bpf_printf("Button state: %d\n", button_state.val[0]);
+    bpf_printf(fmt, button_state.val[0]);
 
     return 0;
 }

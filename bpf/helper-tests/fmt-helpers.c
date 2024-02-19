@@ -1,13 +1,10 @@
-#include <linux/bpf.h>
 #include <stdint.h>
 #include <string.h>
-#include <bpf/bpf_helpers.h>
-#include "../../helpers.h"
+#include "../helpers.h"
 
-
-SEC(".main")
 int test_fmt(void *ctx)
 {
+
     uint32_t val = 1234;
     print("Writing %d into buffer\n", val);
 

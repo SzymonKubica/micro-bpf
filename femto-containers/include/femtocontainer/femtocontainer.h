@@ -11,6 +11,7 @@
 #define FEMTOCONTAINER_H
 
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #ifdef __cplusplus
@@ -126,13 +127,13 @@ static inline f12r_header_t *f12r_header(const f12r_t *femtoc)
 static inline void *f12r_rodata(const f12r_t *femtoc)
 {
     f12r_header_t *header = f12r_header(femtoc);
-    return (uint8_t*)header + sizeof(f12r_t) + header->data_len;
+    return (uint8_t*)header + sizeof(f12r_header_t) + header->data_len;
 }
 
 static inline void *f12r_data(const f12r_t *femtoc)
 {
     f12r_header_t *header = f12r_header(femtoc);
-    return (uint8_t*)header + sizeof(f12r_t);
+    return (uint8_t*)header + sizeof(f12r_header_t);
 }
 
 static inline void *f12r_text(const f12r_t *femtoc)

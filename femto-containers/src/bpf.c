@@ -39,6 +39,7 @@ int f12r_execute(f12r_t *femtoc, void *ctx, size_t ctx_len, int64_t *result)
 int f12r_execute_ctx(f12r_t *femtoc, void *ctx, size_t ctx_len, int64_t *result)
 {
     LOG_DEBUG("[BPF VM]: Executing f12r VM\n");
+    printf("[BPF VM]: Program address: %d\n", femtoc->application);
     femtoc->arg_region.start = ctx;
     femtoc->arg_region.len = ctx_len;
     femtoc->arg_region.flag = (FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);

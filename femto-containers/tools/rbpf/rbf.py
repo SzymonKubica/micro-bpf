@@ -218,6 +218,11 @@ class RBF(object):
         elf_text = elffile.get_section_by_name(TEXT)
         elf_data = elffile.get_section_by_name(DATA)
         elf_rodata = elffile.get_section_by_name(RODATA)
+        # Here we extract all string sections from the rodata.str and append them
+        # to the end of the rodata section
+        for section in elffile.iter_sections():
+            if section.name.startswith('.rodata'):
+                logging.info(f"Found string section {section.name}")
         if not elf_rodata:
             rodata = bytearray()
         else:

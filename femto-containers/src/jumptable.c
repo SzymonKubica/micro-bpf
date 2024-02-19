@@ -165,6 +165,8 @@ int f12r_run(f12r_t *femtoc, const void *ctx, int64_t *result)
     regmap[10] = (uint64_t)(uintptr_t)(femtoc->stack + femtoc->stack_size);
 
 
+    f12r_header_t *header = f12r_header(femtoc);
+
     const bpf_instruction_t *instr = (const bpf_instruction_t*)f12r_text(femtoc);
     bool jump_cond = false;
 
@@ -357,14 +359,18 @@ MEM_LDDW_IMM:
     CONT;
 
 MEM_LDDWD_IMM:
-    DST = (intptr_t)f12r_data(femtoc);
+    // For some reason an inlined call doesn't work
+    uint8_t *data_address = (uint8_t*)header + sizeof(f12r_header_t);
+    DST = data_address;
     DST += (uint64_t)instr->immediate;
     DST += ((uint64_t)((instr+1)->immediate)) << 32;
     instr++;
     CONT;
 
 MEM_LDDWR_IMM:
-    DST = (intptr_t)f12r_rodata(femtoc);
+    // For some reason an inlined call doesn't work
+    uint8_t *rodata_address = (uint8_t*)header + sizeof(f12r_header_t) + header->data_len;
+    DST = rodata_address;
     DST += (uint64_t)instr->immediate;
     DST += ((uint64_t)((instr+1)->immediate)) << 32;
     instr++;

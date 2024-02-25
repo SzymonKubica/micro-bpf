@@ -110,7 +110,7 @@ static ssize_t _bpf_handler(coap_pkt_t *pdu, uint8_t *buf, size_t len,
 
     f12r_setup(&_bpf);
     int64_t result = -1;
-    printf("[BPF handler]: executing VM\n");
+    LOG_DEBUG("[BPF handler]: executing VM\n");
     ztimer_acquire(ZTIMER_USEC);
     ztimer_now_t start = ztimer_now(ZTIMER_USEC);
     int res = f12r_execute_ctx(&_bpf, &bpf_ctx, sizeof(bpf_ctx), &result);

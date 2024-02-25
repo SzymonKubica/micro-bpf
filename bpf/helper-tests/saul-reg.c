@@ -8,7 +8,6 @@
  * has access to the three on-board leds and the user button switch.
  */
 
-const char fmt[] = "Button state: %d\n";
 
 int test_saul_reg_find(void *ctx)
 {
@@ -43,7 +42,6 @@ int test_saul_reg_find(void *ctx)
     bpf_saul_reg_read(user_button, &button_state);
 
     bpf_printf("Button state: %d\n", button_state.val[0]);
-    bpf_printf(fmt, button_state.val[0]);
 
     return 0;
 }

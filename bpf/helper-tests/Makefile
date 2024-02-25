@@ -1,2 +1,2 @@
-RIOTBASE ?= $(CURDIR)/../../../RIOT
+RIOTBASE ?= $(CURDIR)/../../RIOT
 include $(RIOTBASE)/makefiles/rbpf.inc.mk

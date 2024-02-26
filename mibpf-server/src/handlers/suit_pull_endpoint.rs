@@ -6,24 +6,28 @@ use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use core::fmt;
 use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
+use serde::{Deserialize, Serialize};
 
-use crate::rbpf;
 use crate::rbpf::helpers;
+use crate::{rbpf, suit_storage};
 // The riot_sys reimported through the wrappers doesn't seem to work.
 use riot_sys;
 
 pub struct SuitPullHandler {}
 
+/// The handler expects to get a request which consists of the IPv6 address of
+/// the machine running the CoAP fileserver and the name of the manifest file
+/// specifying which binary needs to be pulled.
+#[derive(Serialize, Deserialize, Debug)]
+struct SuitPullRequest<'a> {
+    pub ip_addr: &'a str,
+    pub manifest: &'a str,
+}
+
 impl coap_handler::Handler for SuitPullHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        extern "C" {
-            /// Responsible for loading the bytecode from the SUIT ram storage.
-            /// The application bytes are written into the buffer.
-            fn initiate_suit_fetch(adderss: *const u8, signed_manifest_name: *const u8);
-        }
-
         if request.code().into() != coap_numbers::code::POST {
             return coap_numbers::code::METHOD_NOT_ALLOWED;
         }
@@ -36,16 +40,15 @@ impl coap_handler::Handler for SuitPullHandler {
 
         println!("Request payload received: {}", s);
 
-        // For now the payload is in the format ip-address;suit-manifest-name
-        // TODO: use proper deserialization using serde.
-
-        let mut parts = s.split(";");
-        let ip_addr = format!("{}\0", parts.next().unwrap());
-        let suit_manifest = format!("{}\0", parts.next().unwrap());
-
-        unsafe {
-            initiate_suit_fetch(ip_addr.as_ptr(), suit_manifest.as_ptr());
+        let Ok((request_data, length)): Result<(SuitPullRequest, usize), _> =
+            serde_json_core::from_str(s)
+        else {
+            return coap_numbers::code::BAD_REQUEST;
         };
+
+        println!("Request data: {:?}", request_data);
+
+        suit_storage::suit_fetch(request_data.ip_addr, request_data.manifest);
 
         coap_numbers::code::CHANGED
     }

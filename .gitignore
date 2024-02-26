@@ -1,6 +1,7 @@
 venv/
 *.bin
 bin/
+target/
 *.o
 suit.tmp
 coaproot

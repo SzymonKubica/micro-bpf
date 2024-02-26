@@ -1,7 +1,7 @@
 #include "../helpers.h"
 #include <stdint.h>
 
-#define PERIOD_US (100 * 1000)
+#define PERIOD_US (250 * 1000)
 
 // For some reason we need to inline these functions, otherwise we
 // get memory errors when passing the bpf_saul_reg_t pointer around
@@ -28,7 +28,7 @@ int fletcher32_bench(void *ctx)
     // Toggle all onboard LEDs in order
     int led_index = 0;
     int iterations = 0;
-    int max_iterations = 30;
+    int max_iterations = 40;
     while (iterations++ < max_iterations) {
         bpf_ztimer_periodic_wakeup(&last_wakeup, PERIOD_US);
         led = bpf_saul_reg_find_nth(led_index);

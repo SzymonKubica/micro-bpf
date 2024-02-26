@@ -32,9 +32,9 @@ use riot_wrappers::msg::v2::MessageSemantics;
 
 use vm::VmTarget;
 
-riot_main_with_tokens!(main);
+riot_main!(main);
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ExecutionRequest {
     suit_location: u8,
     vm_target: u8,
@@ -48,7 +48,7 @@ impl Drop for ExecutionRequest {
 
 pub type ExecutionPort = msg::ReceivePort<ExecutionRequest, 23>;
 
-fn main(initial: thread::StartToken) -> ((), thread::TerminationToken) {
+fn main(tok: thread::StartToken) -> ((), thread::TerminationToken) {
     extern "C" {
         fn do_gnrc_msg_queue_init();
     }
@@ -61,7 +61,7 @@ fn main(initial: thread::StartToken) -> ((), thread::TerminationToken) {
     // Allows for inter-thread synchronization, not used at the moment.
     let countdown = Mutex::new(3);
 
-    initial.with_message_queue::<4, _>(|initial| {
+    tok.with_message_queue::<4, _>(|initial| {
         // Lock the stacks of the threads.
         let mut gcoapthread_stacklock = COAP_THREAD_STACK.lock();
         let mut shellthread_stacklock = SHELL_THREAD_STACK.lock();
@@ -71,9 +71,9 @@ fn main(initial: thread::StartToken) -> ((), thread::TerminationToken) {
         let (message_semantics, execution_port, execution_send): (_, ExecutionPort, _) =
             semantics.split_off();
 
-        let mut gcoapthread_mainclosure = || coap_server::gcoap_server_main(&countdown, &execution_send).unwrap();
+        let mut gcoapthread_mainclosure =
+            || coap_server::gcoap_server_main(&countdown, &execution_send).unwrap();
         let mut shellthread_mainclosure = || shell::shell_main(&countdown).unwrap();
-
 
         // Spawn the threads and then wait forever.
         thread::scope(|threadscope| {
@@ -111,9 +111,8 @@ fn main(initial: thread::StartToken) -> ((), thread::TerminationToken) {
                 shellthread.status()
             );
 
-
             // We invoke the VM after everything else is running
-            vm::vm_thread_main(&countdown, message_semantics, execution_port);
+            vm::vm_manager_main(&countdown, message_semantics, execution_port);
 
             loop {
                 thread::sleep();

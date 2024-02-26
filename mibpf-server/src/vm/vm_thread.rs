@@ -19,6 +19,9 @@ use riot_wrappers::msg::v2::MessageSemantics;
 
 use riot_sys;
 
+static VM_SLOT_0_STACK: Mutex<[u8; 600]> = Mutex::new([0; 600]);
+static VM_SLOT_1_STACK: Mutex<[u8; 600]> = Mutex::new([0; 600]);
+
 #[derive(Debug, Copy, Clone)]
 pub enum VmTarget {
     Rbpf,
@@ -32,32 +35,36 @@ pub fn vm_thread_main(
     countdown: &Mutex<u32>,
     message_semantics: msg::Processing<msg::NoConfiguredMessages, crate::ExecutionRequest, 23>,
     execution_port: crate::ExecutionPort,
-) -> Result<(), ()> {
-    // Those values should be populated from the message received through IPC
-    //
+) {
 
+    type Slot0ExecutionPort = msg::ReceivePort<ExecutionRequest, 24>;
+    type Slot1ExecutionPort = msg::ReceivePort<ExecutionRequest, 25>;
+
+    slot_0_stacklock = VM_SLOT_0_STACK.lock();
+    slot_1_stacklock = VM_SLOT_1_STACK.lock();
+
+    thread::scope(|threadscope| {});
+    unreachable!()
+}
+
+/// Responsible for executing requests to spawn VMs for a specific SUIT storage
+/// slot
+fn vm_execution_handler_per_slot(
+    message_semantics: msg::Processing<msg::NoConfiguredMessages, crate::ExecutionRequest, 23>,
+    execution_port: crate::ExecutionPort,
+    target_slot: u8,
+) {
     loop {
         let code = message_semantics
             .receive()
             .decode(&execution_port, |s, execution_request| {
                 println!("Execution request received from {:?}", s);
-                handle_execution_request(execution_request)
+                if execution_request.suit_location != target_slot {
+                    return;
+                }
+                handle_execution_request(execution_request.clone());
             })
             .unwrap_or_else(|m| {
-                // Given the above is exhaustive of the created ports, this won't happen, and we
-                // could just as well .unwrap() -- but comment out the or_else part and this turns
-                // up.
-                //
-                // This is *also* executed when the message type isn't known; if that's the case,
-                // it will panic when dropping. (You can test that by setting an unknown type_ in
-                // the above ztimer).
-                //
-                // If we don't want special handling, this branch can be removed: known messages
-                // will be ignored, but still unknowns cause a panic when the result is dropped.
-                //
-                // (If we were very sure we don't receive bad messages, and OK with leaking ones we
-                // didn't decode, we could also core::mem::forget(m) here and suffer no checking
-                // code at all.)
                 println!(
                     "A message was received that was not previously decoded; we're dropping it."
                 );

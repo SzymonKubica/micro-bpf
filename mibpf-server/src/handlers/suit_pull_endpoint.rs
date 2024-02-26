@@ -13,7 +13,9 @@ use crate::{rbpf, suit_storage};
 // The riot_sys reimported through the wrappers doesn't seem to work.
 use riot_sys;
 
-pub struct SuitPullHandler {}
+pub struct SuitPullHandler {
+    last_fetched_manifest: Option<String>,
+}
 
 /// The handler expects to get a request which consists of the IPv6 address of
 /// the machine running the CoAP fileserver and the name of the manifest file
@@ -46,9 +48,9 @@ impl coap_handler::Handler for SuitPullHandler {
             return coap_numbers::code::BAD_REQUEST;
         };
 
-        println!("Request data: {:?}", request_data);
-
         suit_storage::suit_fetch(request_data.ip_addr, request_data.manifest);
+
+        self.last_fetched_manifest = Some(String::from(request_data.manifest));
 
         coap_numbers::code::CHANGED
     }
@@ -68,5 +70,7 @@ impl coap_handler::Handler for SuitPullHandler {
 }
 
 pub fn handle_suit_pull_request() -> impl coap_handler::Handler {
-    SuitPullHandler {}
+    SuitPullHandler {
+        last_fetched_manifest: None,
+    }
 }

@@ -12,10 +12,11 @@ use riot_wrappers::{riot_main, riot_main_with_tokens};
 mod allocator;
 mod coap_server;
 mod handlers;
+mod logger;
 mod middleware;
 mod shell;
-mod vm;
 mod suit_storage;
+mod vm;
 
 // The second thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
@@ -53,6 +54,9 @@ fn main(tok: thread::StartToken) -> ((), thread::TerminationToken) {
     extern "C" {
         fn do_gnrc_msg_queue_init();
     }
+
+    // Initialise the logger
+    logger::RiotLogger::init(log::LevelFilter::Info);
 
     // Need to initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping

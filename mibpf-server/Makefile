@@ -48,8 +48,8 @@ USEPKG += femto-container
 # Include the custom module with FFI functions that are used in the rust
 # project
 USEMODULE += ffi
-DIRS += $(CURDIR)/ffi
-INCLUDES += -I$(CURDIR)/ffi/include
+DIRS += $(CURDIR)/src/ffi
+INCLUDES += -I$(CURDIR)/src/ffi/include
 
 
 # Comment this out to disable code in RIOT that does safety checking

@@ -9,7 +9,7 @@ use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
 
 use crate::rbpf;
 use crate::rbpf::helpers;
-use crate::middleware;
+use crate::vm::middleware;
 use riot_sys;
 
 struct BenchmarkHandler {

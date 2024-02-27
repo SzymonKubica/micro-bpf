@@ -1,10 +1,11 @@
-use crate::middleware;
-use crate::vm::VirtualMachine;
+use crate::vm::{middleware, VirtualMachine};
 use alloc::vec::Vec;
 use core::ops::DerefMut;
+
 use rbpf::{helpers, without_std::Error};
+
 use riot_sys;
-use riot_wrappers::{cstr::cstr, gcoap::PacketBuffer, stdio::println, ztimer::Clock};
+use riot_wrappers::{cstr::cstr, gcoap::PacketBuffer, mutex::Mutex, stdio::println, ztimer::Clock};
 
 pub struct RbpfVm {
     pub registered_helpers: Vec<middleware::HelperFunction>,
@@ -84,7 +85,7 @@ impl VirtualMachine for RbpfVm {
 
         middleware::register_helpers(&mut vm, self.registered_helpers.clone());
 
-        let mutex = riot_wrappers::mutex::Mutex::new(mem);
+        let mutex = Mutex::new(mem);
 
         // Here we need to do some hacking with locks as closures don't like
         // capturing &mut references from environment. It does make sense.

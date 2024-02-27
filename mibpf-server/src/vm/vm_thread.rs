@@ -1,25 +1,23 @@
-use crate::vm::{FemtoContainerVm, RbpfVm, VirtualMachine};
-use crate::{suit_storage, ExecutionRequest};
-use alloc::format;
-use riot_wrappers::mutex::Mutex;
+use alloc::{boxed::Box, format, string::String, vec::Vec};
+use core::{ffi::c_void, fmt};
 
-use alloc::boxed::Box;
-use alloc::string::String;
-use alloc::vec::Vec;
-use core::ffi::c_void;
-use core::fmt;
-use riot_wrappers::{cstr::cstr, stdio::println};
-
-use crate::middleware;
-use crate::rbpf;
-use crate::rbpf::helpers;
-use riot_wrappers::thread::{self, spawn};
-
-use riot_wrappers::msg::v2 as msg;
-use riot_wrappers::msg::v2::MessageSemantics;
+use riot_wrappers::{
+    cstr::cstr,
+    msg::v2::{self as msg, MessageSemantics},
+    mutex::Mutex,
+    stdio::println,
+    thread::{self, spawn},
+};
 
 use riot_sys;
 use riot_sys::msg_t;
+
+use crate::{
+    infra::suit_storage,
+    rbpf::{self, helpers},
+    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
+    ExecutionRequest,
+};
 
 static VM_SLOT_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_SLOT_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);

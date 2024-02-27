@@ -1,14 +1,21 @@
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
-use riot_wrappers::cstr::cstr;
-use riot_wrappers::msg::v2 as msg;
+
 use riot_wrappers::{
-    coap_handler::GcoapHandler, gcoap, gcoap::SingleHandlerListener, gnrc, gpio, mutex::Mutex,
-    riot_sys, stdio::println, thread, ztimer,
+    coap_handler::GcoapHandler,
+    cstr::cstr,
+    gcoap::{self, SingleHandlerListener},
+    gnrc, gpio,
+    msg::v2 as msg,
+    mutex::Mutex,
+    riot_sys,
+    stdio::println,
+    thread, ztimer,
 };
 
-use crate::handlers::{
+use coap_handler_implementations::SimpleRendered;
+use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+
+use crate::coap_server::handlers::{
     execute_fc_on_coap_pkt, execute_vm_no_data, execute_vm_on_coap_pkt, handle_benchmark,
     handle_console_write_request, handle_riot_board_query, handle_suit_pull_request,
     spawn_vm_execution,

@@ -1,18 +1,18 @@
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
-use core::convert::TryInto;
-use core::fmt;
-use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
+use alloc::{format, string::String, vec::Vec};
+use core::{convert::TryInto, fmt};
 use serde::{Deserialize, Serialize};
 
-use crate::rbpf::helpers;
-use crate::{rbpf, suit_storage};
+use coap_handler_implementations::SimpleRendered;
+use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
 // The riot_sys reimported through the wrappers doesn't seem to work.
 use riot_sys;
 
+use crate::{
+    infra::suit_storage,
+    rbpf,
+    rbpf::helpers,
+};
 pub struct SuitPullHandler {
     last_fetched_manifest: Option<String>,
 }

@@ -1,25 +1,32 @@
-use alloc::boxed::Box;
-use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
-use log::debug;
-use core::convert::TryInto;
-use core::fmt;
-use riot_wrappers::coap_message::ResponseMessage;
-use riot_wrappers::gcoap::PacketBuffer;
-use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
-use riot_wrappers::{mutex::Mutex, thread, ztimer};
+use alloc::{boxed::Box, format, string::String, vec::Vec};
+use core::{convert::TryInto, fmt};
 
-use crate::rbpf::helpers;
-use crate::vm::{FemtoContainerVm, RbpfVm, VirtualMachine};
-use crate::{middleware, ExecutionRequest};
-use crate::{rbpf, suit_storage};
-use riot_wrappers::msg::v2 as msg;
+use log::debug;
 use serde::{Deserialize, Serialize};
 // The riot_sys reimported through the wrappers doesn't seem to work.
+
 use riot_sys;
+use riot_wrappers::{
+    coap_message::ResponseMessage,
+    cstr::cstr,
+    gcoap::PacketBuffer,
+    msg::v2 as msg,
+    mutex::Mutex,
+    stdio::println,
+    thread,
+    ztimer::{self, Clock},
+};
+
+use coap_handler_implementations::SimpleRendered;
+use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+
+use rbpf::{self, helpers};
+
+use crate::{
+    infra::suit_storage,
+    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
+    ExecutionRequest,
+};
 
 /// The handler expects to receive a request that contains a vm_target
 /// and the SUIT storage location from where to load the program.

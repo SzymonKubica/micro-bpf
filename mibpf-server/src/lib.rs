@@ -20,13 +20,9 @@ use riot_wrappers::{
     thread, ztimer,
 };
 
-mod allocator;
 mod coap_server;
-mod handlers;
-mod logger;
-mod middleware;
+mod infra;
 mod shell;
-mod suit_storage;
 mod vm;
 
 use vm::VmTarget;
@@ -53,13 +49,13 @@ impl Drop for ExecutionRequest {
 
 pub type ExecutionPort = msg::ReceivePort<ExecutionRequest, 23>;
 
-fn main(tok: thread::StartToken) -> ((), thread::TerminationToken) {
+fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
     extern "C" {
         fn do_gnrc_msg_queue_init();
     }
 
     // Initialise the logger
-    logger::RiotLogger::init(log::LevelFilter::Info);
+    infra::logger::RiotLogger::init(log::LevelFilter::Info);
 
     // Need to initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping
@@ -69,13 +65,13 @@ fn main(tok: thread::StartToken) -> ((), thread::TerminationToken) {
     // Allows for inter-thread synchronization, not used at the moment.
     let countdown = Mutex::new(3);
 
-    tok.with_message_queue::<4, _>(|initial| {
+    token.with_message_queue::<4, _>(|token| {
         // Lock the stacks of the threads.
         let mut gcoapthread_stacklock = COAP_THREAD_STACK.lock();
         let mut shellthread_stacklock = SHELL_THREAD_STACK.lock();
 
         // We need message semantics for the vm thread
-        let (_, semantics) = initial.take_msg_semantics();
+        let (_, semantics) = token.take_msg_semantics();
         let (message_semantics, execution_port, execution_send): (_, ExecutionPort, _) =
             semantics.split_off();
 

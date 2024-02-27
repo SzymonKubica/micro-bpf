@@ -11,12 +11,11 @@ use riot_wrappers::gcoap::PacketBuffer;
 use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
 use riot_wrappers::{mutex::Mutex, thread, ztimer};
 
-
-use riot_wrappers::msg::v2 as msg;
-use crate::{middleware, ExecutionRequest};
-use crate::rbpf;
+use crate::{rbpf, suit_storage};
 use crate::rbpf::helpers;
 use crate::vm::{FemtoContainerVm, RbpfVm, VirtualMachine};
+use crate::{middleware, ExecutionRequest};
+use riot_wrappers::msg::v2 as msg;
 use serde::{Deserialize, Serialize};
 // The riot_sys reimported through the wrappers doesn't seem to work.
 use riot_sys;
@@ -66,7 +65,7 @@ impl VMExecutionOnCoapPktHandler {
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
         let location = format!(".ram.{0}\0", request_data.suit_location);
-        let program = read_program_from_suit_storage(&mut program_buffer, &location);
+        let program = load_program(&mut program_buffer, &location);
 
         println!(
             "Loaded program bytecode from SUIT storage location {}, program length: {}",
@@ -120,8 +119,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
-        let location = format!(".ram.{0}\0", request_data.suit_location);
-        let program = read_program_from_suit_storage(&mut program_buffer, &location);
+        let program = suit_storage::load_program(&mut program_buffer, request_data.suit_location);
 
         println!(
             "Loaded program bytecode from SUIT storage location {}, program length: {}",
@@ -201,22 +199,6 @@ pub fn spawn_vm_execution<'a>(
 
 /* Common utility functions for the handlers */
 
-/// Reads from the given suit storage into the provided program buffer
-fn read_program_from_suit_storage<'a>(program_buffer: &'a mut [u8], location: &str) -> &'a [u8] {
-    let mut length = 0;
-    unsafe {
-        let buffer_ptr = program_buffer.as_mut_ptr();
-        let location_ptr = location.as_ptr() as *const char;
-        length = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
-    };
-    &program_buffer[..(length as usize)]
-}
-
-extern "C" {
-    /// Responsible for loading the bytecode from the SUIT ram storage.
-    /// The application bytes are written into the buffer.
-    fn load_bytes_from_suit_storage(buffer: *mut u8, location: *const char) -> u32;
-}
 
 fn format_execution_response(
     execution_time: u32,

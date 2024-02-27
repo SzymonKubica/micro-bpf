@@ -54,3 +54,14 @@ impl Log for RiotLogger {
 
     fn flush(&self) {}
 }
+
+
+pub fn log_thread_spawned(thread: &CountedThread, thread_name: &str) {
+    debug!(
+        "{} thread spawned as {:?} ({:?}), status {:?}",
+        thread_name,
+        thread.pid(),
+        thread.pid().get_name(),
+        thread.status()
+    );
+}

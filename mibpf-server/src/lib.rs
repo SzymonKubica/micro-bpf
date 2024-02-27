@@ -29,6 +29,8 @@ mod vm;
 
 use vm::VmTarget;
 
+use crate::infra::log_thread_spawned;
+
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
 // The threading setup was adapted from here: https://gitlab.com/etonomy/riot-examples/-/tree/master/shell_threads?ref_type=heads
@@ -39,24 +41,22 @@ riot_main!(main);
 
 fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
     extern "C" {
-        fn do_gnrc_msg_queue_init();
+        fn init_message_queue();
     }
 
     // Initialise the logger
     infra::logger::RiotLogger::init(log::LevelFilter::Info);
 
-    // Need to initialise the gnrc message queue to allow for using
+    // Initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping
-    // Not sure how it works, adapted from examples/suit_femtocontainer/gcoap_handler.c
-    unsafe { do_gnrc_msg_queue_init() };
-
-    // Allows for inter-thread synchronization, not used at the moment.
-    let countdown = Mutex::new(3);
+    unsafe { init_message_queue() };
 
     token.with_message_queue::<4, _>(|token| {
         // We need message semantics for the vm thread
         let (_, semantics) = token.take_msg_semantics();
 
+        // The execution manager needs to take the message semantics to
+        // open up the message channel for receiving message requests.
         let vm_manager = vm::VMExecutionManager::new(semantics);
 
         // We need to get a send port so that other threads can send messages to
@@ -68,9 +68,8 @@ fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
         let mut gcoapthread_stacklock = COAP_THREAD_STACK.lock();
 
         // Here we define the main functions that will be executed by the threads
-        let mut gcoapthread_mainclosure =
-            || coap_server::gcoap_server_main(&countdown, &send_port).unwrap();
-        let mut shellthread_mainclosure = || shell::shell_main(&countdown).unwrap();
+        let mut gcoapthread_mainclosure = || coap_server::gcoap_server_main(&send_port).unwrap();
+        let mut shellthread_mainclosure = || shell::shell_main(&send_port).unwrap();
 
         // Spawn the threads and then wait forever.
         thread::scope(|threadscope| {
@@ -104,12 +103,3 @@ fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
     });
 }
 
-fn log_thread_spawned(thread: &CountedThread, thread_name: &str) {
-    debug!(
-        "{} thread spawned as {:?} ({:?}), status {:?}",
-        thread_name,
-        thread.pid(),
-        thread.pid().get_name(),
-        thread.status()
-    );
-}

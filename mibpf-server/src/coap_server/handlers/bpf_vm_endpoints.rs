@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::{convert::TryInto, fmt};
 
 use log::debug;
@@ -24,8 +24,7 @@ use rbpf::{self, helpers};
 
 use crate::{
     infra::suit_storage,
-    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
-    ExecutionRequest,
+    vm::{middleware, FemtoContainerVm, RbpfVm, VMExecutionRequest, VirtualMachine},
 };
 
 /// The handler expects to receive a request that contains a vm_target
@@ -164,11 +163,11 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
     }
 }
 
-struct VMLongExecutionHandler<'a> {
-    execution_send: &'a msg::SendPort<crate::ExecutionRequest, 23>,
+struct VMLongExecutionHandler {
+    execution_send:  Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, 23>>>,
 }
 
-impl<'a> coap_handler::Handler for VMLongExecutionHandler<'a> {
+impl coap_handler::Handler for VMLongExecutionHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
@@ -178,7 +177,7 @@ impl<'a> coap_handler::Handler for VMLongExecutionHandler<'a> {
             Err(code) => return code,
         };
 
-        self.execution_send.try_send(ExecutionRequest {
+        self.execution_send.lock().try_send(VMExecutionRequest {
             suit_location: request_data.suit_location as u8,
             vm_target: match request_data.vm_target {
                 VmTarget::Rbpf => 0,
@@ -200,9 +199,9 @@ impl<'a> coap_handler::Handler for VMLongExecutionHandler<'a> {
     }
 }
 
-pub fn spawn_vm_execution<'a>(
-    execution_send: &'a msg::SendPort<crate::ExecutionRequest, 23>,
-) -> impl coap_handler::Handler + 'a {
+pub fn spawn_vm_execution(
+    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequest, 23>>>,
+) -> impl coap_handler::Handler {
     VMLongExecutionHandler { execution_send }
 }
 

@@ -27,27 +27,13 @@ mod vm;
 
 use vm::VmTarget;
 
-// The second thread is running the CoAP network stack, therefore its
+// The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
 // The threading setup was adapted from here: https://gitlab.com/etonomy/riot-examples/-/tree/master/shell_threads?ref_type=heads
 static COAP_THREAD_STACK: Mutex<[u8; 16384]> = Mutex::new([0; 16384]);
 static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 
 riot_main!(main);
-
-#[derive(Debug, Clone)]
-pub struct ExecutionRequest {
-    suit_location: u8,
-    vm_target: u8,
-}
-
-impl Drop for ExecutionRequest {
-    fn drop(&mut self) {
-        println!("Dropping {:?} now.", self);
-    }
-}
-
-pub type ExecutionPort = msg::ReceivePort<ExecutionRequest, 23>;
 
 fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
     extern "C" {
@@ -66,17 +52,22 @@ fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
     let countdown = Mutex::new(3);
 
     token.with_message_queue::<4, _>(|token| {
-        // Lock the stacks of the threads.
-        let mut gcoapthread_stacklock = COAP_THREAD_STACK.lock();
-        let mut shellthread_stacklock = SHELL_THREAD_STACK.lock();
-
         // We need message semantics for the vm thread
         let (_, semantics) = token.take_msg_semantics();
-        let (message_semantics, execution_port, execution_send): (_, ExecutionPort, _) =
-            semantics.split_off();
 
+        let vm_manager = vm::VMExecutionManager::new(semantics);
+
+        // We need to get a send port so that other threads can send messages to
+        // the main VM executor to request executing eBPF programs.
+        let send_port = vm_manager.get_send_port();
+
+        // We need to lock the stacks for all of the spawned threads.
+        let mut shellthread_stacklock = SHELL_THREAD_STACK.lock();
+        let mut gcoapthread_stacklock = COAP_THREAD_STACK.lock();
+
+        // Here we define the main functions that will be executed by the threads
         let mut gcoapthread_mainclosure =
-            || coap_server::gcoap_server_main(&countdown, &execution_send).unwrap();
+            || coap_server::gcoap_server_main(&countdown, &send_port).unwrap();
         let mut shellthread_mainclosure = || shell::shell_main(&countdown).unwrap();
 
         // Spawn the threads and then wait forever.
@@ -115,12 +106,7 @@ fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
                 shellthread.status()
             );
 
-            // We invoke the VM after everything else is running
-            vm::vm_manager_main(&countdown, message_semantics, execution_port);
-
-            loop {
-                thread::sleep();
-            }
+            vm_manager.start();
         });
         unreachable!();
     });

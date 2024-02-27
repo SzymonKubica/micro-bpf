@@ -1,5 +1,6 @@
 use core::convert::TryInto;
 
+use alloc::sync::Arc;
 use riot_wrappers::{
     coap_handler::GcoapHandler,
     cstr::cstr,
@@ -23,7 +24,7 @@ use crate::coap_server::handlers::{
 
 pub fn gcoap_server_main(
     _countdown: &Mutex<u32>,
-    execution_send: &msg::SendPort<crate::ExecutionRequest, 23>,
+    execution_send: &Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, 23>>>,
 ) -> Result<(), ()> {
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint
@@ -39,7 +40,7 @@ pub fn gcoap_server_main(
 
     let mut coap_pkt_execution_handler = execute_vm_on_coap_pkt();
     let mut no_data_execution_handler = GcoapHandler(execute_vm_no_data());
-    let mut long_execution_handler = GcoapHandler(spawn_vm_execution(execution_send));
+    let mut long_execution_handler = GcoapHandler(spawn_vm_execution(execution_send.clone()));
 
     let mut console_write_listener = SingleHandlerListener::new(
         cstr!("/console/write"),

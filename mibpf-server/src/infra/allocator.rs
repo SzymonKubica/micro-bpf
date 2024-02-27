@@ -1,8 +1,7 @@
 pub mod allocator {
     use alloc::alloc::*;
     use core::ffi::c_void;
-    use riot_wrappers::riot_sys::free;
-    use riot_wrappers::riot_sys::malloc;
+    use riot_wrappers::riot_sys::{free, malloc};
 
     /// The global allocator type.
     #[derive(Default)]

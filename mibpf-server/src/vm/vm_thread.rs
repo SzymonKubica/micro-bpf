@@ -1,9 +1,10 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::{ffi::c_void, fmt};
+use log::debug;
 
 use riot_wrappers::{
     cstr::cstr,
-    msg::v2::{self as msg, MessageSemantics},
+    msg::v2::{self as msg, MessageSemantics, NoConfiguredMessages, Processing, SendPort},
     mutex::Mutex,
     stdio::println,
     thread::{self, spawn},
@@ -15,98 +16,145 @@ use riot_sys::msg_t;
 use crate::{
     infra::suit_storage,
     rbpf::{self, helpers},
+    vm::VmTarget,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
-    ExecutionRequest,
 };
 
 static VM_SLOT_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_SLOT_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
-#[derive(Debug, Copy, Clone)]
-pub enum VmTarget {
-    Rbpf,
-    FemtoContainer,
+/// Represents a request to execute an eBPF program on a particular VM. The
+/// suit_location is the index of the SUIT storage slot from which the program
+/// should be loaded. For instance, 0 corresponds to '.ram.0'. The vm_target
+/// specifies which implementation of the VM should be used (FemtoContainers or
+/// rBPF). 0 corresponds to rBPF and 1 corresponds to FemtoContainers. The
+/// reason an enum isn't used here is that this struct is send in messages via
+/// IPC api and adding an enum there resulted in the struct being too large to
+/// send.
+#[derive(Debug, Clone)]
+pub struct VMExecutionRequest {
+    pub suit_location: u8,
+    pub vm_target: u8,
 }
 
-/// This is the main function of the thread that allow for executing long-running
-/// eBPF programs. It spawns worker threads and then sends messages to them to
-/// start executing long running eBPF programs.
-pub fn vm_manager_main(
-    countdown: &Mutex<u32>,
-    message_semantics: msg::Processing<msg::NoConfiguredMessages, crate::ExecutionRequest, 23>,
-    execution_port: crate::ExecutionPort,
-) {
-    let mut slot_0_stacklock = VM_SLOT_0_STACK.lock();
-    let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
+// We need to implement Drop for the execution request so that it can be
+// dealocated after it is decoded an processed in the message channel.
+impl Drop for VMExecutionRequest {
+    fn drop(&mut self) {
+        debug!("Dropping {:?} now.", self);
+    }
+}
 
-    let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf);
-    let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf);
+const VM_EXECUTION_REQUEST_TYPE: u16 = 23;
+pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>;
 
-    thread::scope(|threadscope| {
-        let worker_0 = threadscope
-            .spawn(
-                slot_0_stacklock.as_mut(),
-                &mut slot_0_mainclosure,
-                cstr!("VM worker 0"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 4) as _,
-                (riot_sys::THREAD_CREATE_STACKTEST) as _,
-            )
-            .expect("Failed to spawn VM worker 0");
+/// Responsible for managing execution of long-running eBPF programs. It receives
+/// messages from other parts of the system that are requesting that a particular
+/// instance of the VM should be started and execute a specified program.
+pub struct VMExecutionManager {
+    receive_port: VMExecutionRequestPort,
+    send_port: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
+    message_semantics:
+        Processing<NoConfiguredMessages, VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>,
+}
 
-        println!(
-            "VM worker thread 0 spawned as {:?} ({:?}), status {:?}",
-            worker_0.pid(),
-            worker_0.pid().get_name(),
-            worker_0.status()
-        );
+impl VMExecutionManager {
+    pub fn new(message_semantics: NoConfiguredMessages) -> Self {
+        let (message_semantics, receive_port, send_port): (_, VMExecutionRequestPort, _) =
+            message_semantics.split_off();
 
-        let worker_1 = threadscope
-            .spawn(
-                slot_1_stacklock.as_mut(),
-                &mut slot_1_mainclosure,
-                cstr!("VM worker 1"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 5) as _,
-                (riot_sys::THREAD_CREATE_STACKTEST) as _,
-            )
-            .expect("Failed to spawn VM worker 1");
+        VMExecutionManager {
+            receive_port,
+            message_semantics,
+            send_port: Arc::new(Mutex::new(send_port)),
+        }
+    }
 
-        println!(
-            "VM worker thread 1 spawned as {:?} ({:?}), status {:?}",
-            worker_1.pid(),
-            worker_1.pid().get_name(),
-            worker_1.status()
-        );
+    /// Returns an atomically-counted reference to the send end of the message
+    /// channel for sending requests to execute eBPF programs.
+    pub fn get_send_port(
+        &self,
+    ) -> Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>> {
+        self.send_port.clone()
+    }
 
-        loop {
-            let code = message_semantics
-                .receive()
-                .decode(&execution_port, |s, execution_request| unsafe {
-                    let mut msg: msg_t = Default::default();
-                    println!("{}", "Sending message to worker 0");
-                    msg.type_ = 0;
-                    // The content of the message specifies which SUIT slot to load from
-                    msg.content = riot_sys::msg_t__bindgen_ty_1 {
-                        value: execution_request.suit_location as u32,
-                    };
-                    // for now we route slot 0 to worker 0 and slot 1 to worker 1
-                    let worker = match execution_request.suit_location {
-                        0 => &worker_0,
-                        1 => &worker_1,
-                        _ => panic!("Invalid slot number"),
-                    };
-                    let pid: riot_sys::kernel_pid_t = worker.pid().into();
-                    println!("Pid of the worker {}", pid);
-                    riot_sys::msg_send(&mut msg, pid);
-                })
-                .unwrap_or_else(|m| {
-                    println!(
+    /// This is the main function of the thread that allow for executing long-running
+    /// eBPF programs. It spawns worker threads and then sends messages to them to
+    /// start executing long running eBPF programs.
+    pub fn start(&self) {
+        let mut slot_0_stacklock = VM_SLOT_0_STACK.lock();
+        let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
+
+        let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf);
+        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf);
+
+        thread::scope(|threadscope| {
+            let worker_0 = threadscope
+                .spawn(
+                    slot_0_stacklock.as_mut(),
+                    &mut slot_0_mainclosure,
+                    cstr!("VM worker 0"),
+                    (riot_sys::THREAD_PRIORITY_MAIN - 4) as _,
+                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
+                )
+                .expect("Failed to spawn VM worker 0");
+
+            println!(
+                "VM worker thread 0 spawned as {:?} ({:?}), status {:?}",
+                worker_0.pid(),
+                worker_0.pid().get_name(),
+                worker_0.status()
+            );
+
+            let worker_1 = threadscope
+                .spawn(
+                    slot_1_stacklock.as_mut(),
+                    &mut slot_1_mainclosure,
+                    cstr!("VM worker 1"),
+                    (riot_sys::THREAD_PRIORITY_MAIN - 5) as _,
+                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
+                )
+                .expect("Failed to spawn VM worker 1");
+
+            println!(
+                "VM worker thread 1 spawned as {:?} ({:?}), status {:?}",
+                worker_1.pid(),
+                worker_1.pid().get_name(),
+                worker_1.status()
+            );
+
+            loop {
+                let code = self
+                    .message_semantics
+                    .receive()
+                    .decode(&self.receive_port, |s, execution_request| unsafe {
+                        let mut msg: msg_t = Default::default();
+                        println!("{}", "Sending message to worker 0");
+                        msg.type_ = 0;
+                        // The content of the message specifies which SUIT slot to load from
+                        msg.content = riot_sys::msg_t__bindgen_ty_1 {
+                            value: execution_request.suit_location as u32,
+                        };
+                        // for now we route slot 0 to worker 0 and slot 1 to worker 1
+                        let worker = match execution_request.suit_location {
+                            0 => &worker_0,
+                            1 => &worker_1,
+                            _ => panic!("Invalid slot number"),
+                        };
+                        let pid: riot_sys::kernel_pid_t = worker.pid().into();
+                        println!("Pid of the worker {}", pid);
+                        riot_sys::msg_send(&mut msg, pid);
+                    })
+                    .unwrap_or_else(|m| {
+                        println!(
                     "A message was received that was not previously decoded; we're dropping it."
                 );
-                });
-            println!("Result code {:?}", code);
-        }
-        unreachable!()
-    });
+                    });
+                println!("Result code {:?}", code);
+            }
+            unreachable!()
+        });
+    }
 }
 
 fn vm_main_thread(target: VmTarget) {

@@ -1,4 +1,4 @@
 MODULE = ffi
-RIOTBASE ?= $(CURDIR)/../../
+RIOTBASE ?= $(CURDIR)/../../RIOT
 include $(RIOTBASE)/Makefile.base
 

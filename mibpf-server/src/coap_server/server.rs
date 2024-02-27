@@ -6,7 +6,7 @@ use riot_wrappers::{
     cstr::cstr,
     gcoap::{self, SingleHandlerListener},
     gnrc, gpio,
-    msg::v2 as msg,
+    msg::v2::{self as msg, SendPort},
     mutex::Mutex,
     riot_sys,
     stdio::println,
@@ -16,15 +16,17 @@ use riot_wrappers::{
 use coap_handler_implementations::SimpleRendered;
 use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
 
-use crate::coap_server::handlers::{
-    execute_fc_on_coap_pkt, execute_vm_no_data, execute_vm_on_coap_pkt, handle_benchmark,
-    handle_console_write_request, handle_riot_board_query, handle_suit_pull_request,
-    spawn_vm_execution,
+use crate::{
+    coap_server::handlers::{
+        execute_fc_on_coap_pkt, execute_vm_no_data, execute_vm_on_coap_pkt, handle_benchmark,
+        handle_console_write_request, handle_riot_board_query, handle_suit_pull_request,
+        spawn_vm_execution,
+    },
+    vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE},
 };
 
 pub fn gcoap_server_main(
-    _countdown: &Mutex<u32>,
-    execution_send: &Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, 23>>>,
+    execution_send: &Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
 ) -> Result<(), ()> {
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint

@@ -24,7 +24,7 @@ use rbpf::{self, helpers};
 
 use crate::{
     infra::suit_storage,
-    vm::{middleware, FemtoContainerVm, RbpfVm, VMExecutionRequest, VirtualMachine},
+    vm::{middleware, FemtoContainerVm, RbpfVm, VMExecutionRequest, VirtualMachine, VM_EXECUTION_REQUEST_TYPE},
 };
 
 /// The handler expects to receive a request that contains a vm_target
@@ -164,7 +164,7 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
 }
 
 struct VMLongExecutionHandler {
-    execution_send:  Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, 23>>>,
+    execution_send:  Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {

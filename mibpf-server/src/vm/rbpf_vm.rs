@@ -2,10 +2,10 @@ use crate::vm::{middleware, VirtualMachine};
 use alloc::vec::Vec;
 use core::ops::DerefMut;
 
-use rbpf::{helpers, without_std::Error};
+use rbpf::without_std::Error;
 
 use riot_sys;
-use riot_wrappers::{cstr::cstr, gcoap::PacketBuffer, mutex::Mutex, stdio::println, ztimer::Clock};
+use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
 
 pub struct RbpfVm {
     pub registered_helpers: Vec<middleware::HelperFunction>,
@@ -69,7 +69,8 @@ impl VirtualMachine for RbpfVm {
 
         middleware::register_helpers(&mut vm, self.registered_helpers.clone());
 
-        let (_, execution_time) = self.timed_execution(|| vm.execute_program());
+        let (ret, execution_time) = self.timed_execution(|| vm.execute_program());
+        *result = ret;
         execution_time
     }
     fn execute_on_coap_pkt(&self, program: &[u8], pkt: &mut PacketBuffer, result: &mut i64) -> u32 {

@@ -3,7 +3,7 @@
 // drop-in replacement for the Femto-Container VM.
 //
 // The prototype for helpers follows the convention used by rBpF: five `u64` as arguments, and a
-// `u64` as a return value. Hence some helpers have unused arguments, or return a 0 value in all
+// `u64` as a return value. Hence some helpers have _unused arguments, or return a 0 value in all
 // cases, in order to respect this convention.
 // Question: why do we need this convention?
 
@@ -91,14 +91,14 @@ pub fn bpf_printf(fmt: u64, a1: u64, a2: u64, a3: u64, a4: u64) -> u64 {
 }
 
 /// Responsible for printing debug information. Prints a single value.
-pub fn bpf_print_debug(a1: u64, unused2: u64, unused3: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_print_debug(a1: u64, _unused2: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     println!("[DEBUG]: {a1}");
     return 0;
 }
 
 /* Standard library functions */
 
-pub fn bpf_memcpy(dest_p: u64, src_p: u64, size: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_memcpy(dest_p: u64, src_p: u64, size: u64, _unused4: u64, _unused5: u64) -> u64 {
     let dest: *mut riot_sys::libc::c_void = dest_p as *mut riot_sys::libc::c_void;
     let src: *const riot_sys::libc::c_void = src_p as *const riot_sys::libc::c_void;
     let size = size as u32;
@@ -114,10 +114,10 @@ pub fn bpf_memcpy(dest_p: u64, src_p: u64, size: u64, unused4: u64, unused5: u64
 /// manipulate the device.
 pub fn bpf_saul_reg_find_nth(
     saul_dev_index: u64,
-    unused2: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused2: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     unsafe { return riot_sys::saul_reg_find_nth(saul_dev_index as i32) as u64 }
 }
@@ -127,10 +127,10 @@ pub fn bpf_saul_reg_find_nth(
 /// https://api.riot-os.org/group__drivers__saul.html#:~:text=category%20IDs.%20More...-,enum,-%7B%0A%C2%A0%C2%A0SAUL_ACT_ANY
 pub fn bpf_saul_reg_find_type(
     saul_dev_type: u64,
-    unused2: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused2: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     unsafe { return riot_sys::saul_reg_find_type(saul_dev_type as u8) as u64 }
 }
@@ -140,17 +140,15 @@ pub fn bpf_saul_reg_find_type(
 pub fn bpf_saul_reg_read(
     dev_ptr: u64,
     data_ptr: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let dev: *mut riot_sys::saul_reg_t = dev_ptr as *mut riot_sys::saul_reg_t;
     let data: *mut riot_sys::phydat_t = data_ptr as *mut riot_sys::phydat_t;
-    let mut res = 0;
     unsafe {
-        res = riot_sys::saul_reg_read(dev, data) as u64;
+        riot_sys::saul_reg_read(dev, data) as u64
     }
-    res
 }
 
 /// Given a pointer to the SAUL device struct, it writes the provided phydat_t
@@ -158,17 +156,15 @@ pub fn bpf_saul_reg_read(
 pub fn bpf_saul_reg_write(
     dev_ptr: u64,
     data_ptr: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let dev: *mut riot_sys::saul_reg_t = dev_ptr as *mut riot_sys::saul_reg_t;
     let data: *const riot_sys::phydat_t = data_ptr as *const riot_sys::phydat_t;
-    let mut res = 0;
     unsafe {
-        res = riot_sys::saul_reg_write(dev, data) as u64;
+        riot_sys::saul_reg_write(dev, data) as u64
     }
-    res
 }
 
 #[repr(align(8))]
@@ -194,9 +190,9 @@ struct CoapContext {
 pub fn bpf_gcoap_resp_init(
     coap_ctx_p: u64,
     resp_code: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let coap_ctx: *const CoapContext = coap_ctx_p as *const CoapContext;
 
@@ -221,9 +217,9 @@ pub fn bpf_gcoap_resp_init(
 pub fn bpf_coap_opt_finish(
     coap_ctx_p: u64,
     flags_u: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let coap_ctx: *const CoapContext = coap_ctx_p as *const CoapContext;
     unsafe {
@@ -238,9 +234,9 @@ pub fn bpf_coap_opt_finish(
 pub fn bpf_coap_add_format(
     coap_ctx_p: u64,
     format: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let coap_ctx: *const CoapContext = coap_ctx_p as *const CoapContext;
     unsafe {
@@ -256,24 +252,24 @@ pub fn bpf_coap_add_format(
     }
 }
 pub fn bpf_coap_get_pdu(
-    unused1: u64,
-    unused2: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused1: u64,
+    _unused2: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     return 0;
 }
 
 /// Returns the current time in milliseconds as measured by RIOT's ZTIMER.
-pub fn bpf_now_ms(unused1: u64, unused2: u64, unused3: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_now_ms(_unused1: u64, _unused2: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     let clock = unsafe { riot_sys::ZTIMER_MSEC as *mut riot_sys::inline::ztimer_clock_t };
     let now: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
     now as u64
 }
 
 /// Returns the current time in microseconds as measured by RIOT's ZTIMER.
-pub fn bpf_ztimer_now(unused1: u64, unused2: u64, unused3: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_ztimer_now(_unused1: u64, _unused2: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     let now: u32 = unsafe {
         // An explicit cast into *mut riot_sys::inline::ztimer_clock_t is needed here
         // because the type of riot_sys::ZTIMER_USEC is riot_sys::ztimer_clock_t
@@ -287,9 +283,9 @@ pub fn bpf_ztimer_now(unused1: u64, unused2: u64, unused3: u64, unused4: u64, un
 pub fn bpf_ztimer_periodic_wakeup(
     last_wakeup: u64,
     period: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let last_wakeup: *mut u32 = last_wakeup as *mut u32;
     let period: u32 = period as u32;
@@ -302,7 +298,7 @@ pub fn bpf_ztimer_periodic_wakeup(
 
 /// Convert 16-bit fixed point number to a decimal string.
 /// Returns the length of the resulting string.
-pub fn bpf_fmt_s16_dfp(out_p: u64, val: u64, fp_digits: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_fmt_s16_dfp(out_p: u64, val: u64, fp_digits: u64, _unused4: u64, _unused5: u64) -> u64 {
     extern "C" {
         fn fmt_s16_dfp(out: *mut u8, val: i16, fp_digits: i32) -> usize;
     }
@@ -315,7 +311,7 @@ pub fn bpf_fmt_s16_dfp(out_p: u64, val: u64, fp_digits: u64, unused4: u64, unuse
 
 /// Convert a uint32 value to decimal string.
 /// Returns the number of characters written to (or needed in) out
-pub fn bpf_fmt_u32_dec(out_p: u64, val: u64, unused3: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_fmt_u32_dec(out_p: u64, val: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     extern "C" {
         fn fmt_u32_dec(out: *mut u8, val: u32) -> usize;
     }
@@ -330,14 +326,14 @@ pub fn bpf_fmt_u32_dec(out_p: u64, val: u64, unused3: u64, unused4: u64, unused5
 pub fn bpf_gpio_read_input(
     port: u64,
     pin_num: u64,
-    unused3: u64,
-    unused4: u64,
-    unused5: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
 ) -> u64 {
     let pin = gpio::GPIO::from_c(unsafe { riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32) })
         .unwrap();
     let result = pin.configure_as_input(gpio::InputMode::In);
-    if let Ok(mut in_pin) = result {
+    if let Ok(in_pin) = result {
         let pin_state = unsafe { riot_sys::gpio_read(in_pin.to_c()) };
         return pin_state as u64;
     }
@@ -347,22 +343,20 @@ pub fn bpf_gpio_read_input(
 // changing it. E.g. if we have a pin powering a led and then turn it to input
 // to read its state, it will return 0 as changing a pin to input changes its
 // state
-pub fn bpf_gpio_read_raw(port: u64, pin_num: u64, unused3: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_gpio_read_raw(port: u64, pin_num: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     let pin_state =
         unsafe { riot_sys::gpio_read(riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32)) };
     return pin_state as u64;
 }
-pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, unused4: u64, unused5: u64) -> u64 {
+pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _unused4: u64, _unused5: u64) -> u64 {
     let pin = gpio::GPIO::from_c(unsafe { riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32) })
         .unwrap();
-    unsafe {
         let result = pin.configure_as_output(gpio::OutputMode::Out);
-        if let Ok(mut out_pin) = result {
+        if let Ok(out_pin) = result {
             unsafe { riot_sys::gpio_write(out_pin.to_c(), val as i32) };
             return 1;
         }
         return 0;
-    }
 }
 
 /// List of all helpers together with their corresponding numbers (used

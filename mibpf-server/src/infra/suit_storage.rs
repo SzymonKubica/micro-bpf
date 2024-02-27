@@ -1,8 +1,9 @@
 use alloc::format;
 
-/// Currently, the interactions with SUIT storage are handled by functions written
-/// in native C, they could be reimplemented using unsafe rust bindings from
-/// riot_sys.
+// Currently, the interactions with SUIT storage are handled by functions written
+// in native C, they could be reimplemented using unsafe rust bindings from
+// riot_sys.
+
 extern "C" {
     fn initiate_suit_fetch(adderss: *const u8, signed_manifest_name: *const u8);
     /// Responsible for loading the bytecode from the SUIT ram storage.
@@ -36,7 +37,7 @@ pub fn suit_fetch(ip: &str, manifest: &str) {
 /// * `slot` - The index of the SUIT storage slot from which to load the bytes.
 pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a [u8] {
     let location = format!(".ram.{0}\0", slot);
-    let mut length = 0;
+    let length;
     unsafe {
         let buffer_ptr = program_buffer.as_mut_ptr();
         let location_ptr = location.as_ptr() as *const char;

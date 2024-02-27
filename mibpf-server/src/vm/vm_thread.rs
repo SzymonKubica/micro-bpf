@@ -1,15 +1,8 @@
-use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
-use core::{ffi::c_void, fmt};
+use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
 use log::{debug, error};
 
 use riot_wrappers::{
-    cstr::cstr,
-    msg::v2::{
-        self as msg, MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort,
-    },
-    mutex::Mutex,
-    stdio::println,
-    thread::{self, spawn},
+    cstr::cstr, msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort}, mutex::Mutex, stdio::println, thread
 };
 
 use riot_sys;
@@ -17,10 +10,10 @@ use riot_sys::msg_t;
 
 use crate::{
     infra::{log_thread_spawned, suit_storage},
-    rbpf::{self, helpers},
-    vm::VmTarget,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
+
+use super::VmTarget;
 
 static VM_SLOT_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_SLOT_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
@@ -121,7 +114,7 @@ impl VMExecutionManager {
                 let code = self
                     .message_semantics
                     .receive()
-                    .decode(&self.receive_port, |s, execution_request| unsafe {
+                    .decode(&self.receive_port, |_s, execution_request| unsafe {
                         let mut msg: msg_t = Default::default();
                         msg.type_ = 0;
                         // The content of the message specifies which SUIT slot to load from
@@ -138,14 +131,13 @@ impl VMExecutionManager {
                         println!("Pid of the worker {}", pid);
                         riot_sys::msg_send(&mut msg, pid);
                     })
-                    .unwrap_or_else(|m| {
+                    .unwrap_or_else(|_m| {
                         println!(
                     "A message was received that was not previously decoded; we're dropping it."
                 );
                     });
                 println!("Result code {:?}", code);
             }
-            unreachable!()
         });
     }
 }
@@ -155,7 +147,7 @@ fn vm_main_thread(target: VmTarget) {
         let mut msg: msg_t = Default::default();
         unsafe {
             println!("initialised the empty message: {:?}", msg);
-            let response = riot_sys::msg_receive(&mut msg);
+            let _ = riot_sys::msg_receive(&mut msg);
         }
 
         // We are unpacking the union msg_t__bindgen_ty_1 => unsafe

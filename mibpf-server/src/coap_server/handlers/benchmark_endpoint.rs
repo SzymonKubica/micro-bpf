@@ -1,11 +1,9 @@
 use alloc::format;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
-use core::fmt;
-use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
+use riot_wrappers::stdio::println;
 
 use crate::rbpf;
 use crate::rbpf::helpers;
@@ -31,10 +29,10 @@ impl coap_handler::Handler for BenchmarkHandler {
             // The SUIT ram storage for the program is 2048 bytes large so we won't
             // be able to load larger images. Hence 2048 byte buffer is sufficient
             let mut buffer: [u8; 2048] = [0; 2048];
-            let mut length = 0;
+            let length;
 
             // The rbpf code is always loaded from .ram.0
-            let mut location = ".ram.0\0";
+            let location = ".ram.0\0";
 
             unsafe {
                 let buffer_ptr = buffer.as_mut_ptr();
@@ -103,7 +101,7 @@ impl coap_handler::Handler for BenchmarkHandler {
             // Femtocontainers always loaded from .ram.1
             let location = ".ram.1\0";
 
-            let mut execution_time = 0;
+            let execution_time;
             unsafe {
                 // This assumes that the program has been loaded into the
                 // SUIT storage slot .ram.1

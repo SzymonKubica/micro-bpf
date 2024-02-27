@@ -1,9 +1,6 @@
 use core::fmt::Write;
-use embedded_hal::digital::v2::InputPin;
-use embedded_hal::digital::v2::OutputPin;
 use embedded_hal::digital::v2::ToggleableOutputPin;
 use riot_wrappers::gpio;
-use riot_wrappers::{cstr::cstr, stdio::println};
 
 pub fn handle_command(
     stdio: &mut riot_wrappers::stdio::Stdio,
@@ -30,7 +27,7 @@ pub fn handle_command(
             match &args[1] {
                 "read-input" => {
                     let result = pin.configure_as_input(gpio::InputMode::In);
-                    if let Ok(mut in_pin) = result {
+                    if let Ok(in_pin) = result {
                         writeln!(stdio, "Reading from GPIO port: {} pin: {}", port, pin_num);
                         let pin_state = unsafe { riot_sys::gpio_read(in_pin.to_c()) };
                         writeln!(stdio, "Raw Pin state: {}", pin_state);
@@ -56,7 +53,7 @@ pub fn handle_command(
                     let result = pin.configure_as_output(gpio::OutputMode::Out);
                     if let Ok(mut out_pin) = result {
                         writeln!(stdio, "Writing to GPIO port: {} pin: {} ", port, pin_num);
-                        let res = match args[4].parse::<u32>() {
+                        let _res = match args[4].parse::<u32>() {
                             Ok(0) => out_pin.set_low(),
                             Ok(_) => out_pin.set_high(),
                             _ => (),

@@ -1,19 +1,10 @@
 use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
-use core::ffi::c_void;
-use core::fmt;
 use riot_wrappers::coap_message::ResponseMessage;
 use riot_wrappers::gcoap::PacketBuffer;
-use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
+use riot_wrappers::stdio::println;
 
-use crate::rbpf;
-use crate::rbpf::helpers;
-// The riot_sys reimported through the wrappers doesn't seem to work.
-use riot_sys;
 
 extern "C" {
     /// Executes a femtocontainer VM where the eBPF program has access
@@ -56,7 +47,7 @@ impl coap_handler::Handler for FemtoContainerExecutionHandler {
 
         println!("Request payload received: {}", s);
 
-        let mut location = format!(".ram.{s}\0");
+        let location = format!(".ram.{s}\0");
 
         let checksum_message = "abcdef\
             AD3Awn4kb6FtcsyE0RU25U7f55Yncn3LP3oEx9Gl4qr7iDW7I8L6Pbw9jNnh0sE4DmCKuc\
@@ -126,7 +117,7 @@ impl FemtoContainerCoAPExecutor {
 
         println!("Request payload received: {}", s);
 
-        let mut location = format!(".ram.{s}\0");
+        let location = format!(".ram.{s}\0");
 
         unsafe {
             self.execution_time = execute_fc_vm_on_coap_pkt(

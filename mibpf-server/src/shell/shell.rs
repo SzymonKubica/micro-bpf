@@ -3,7 +3,7 @@ use riot_wrappers::msg::v2::SendPort;
 use riot_wrappers::mutex::Mutex;
 use riot_wrappers::shell::CommandList;
 
-use riot_wrappers::{cstr::cstr, stdio::println};
+use riot_wrappers::cstr::cstr;
 
 use crate::shell::{bpf_command, gpio_command};
 use crate::vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE};
@@ -14,7 +14,7 @@ pub fn shell_main(
     let mut line_buf = [0u8; 128];
 
     // TODO: add the command to execute loaded bpf programs
-    let mut commands = riot_shell_commands::all();
+    let commands = riot_shell_commands::all();
 
     let bpf_handler = bpf_command::VMExecutionShellCommandHandler::new(execution_send.clone());
 
@@ -33,10 +33,9 @@ pub fn shell_main(
     );
 
     trait_identity(commands).run_forever(&mut line_buf);
-    unreachable!();
 }
 
 // Workaround for a bug described here: https://github.com/RIOT-OS/rust-riot-wrappers/issues/76
-fn trait_identity(mut c: impl CommandList) -> impl CommandList {
+fn trait_identity(c: impl CommandList) -> impl CommandList {
     c
 }

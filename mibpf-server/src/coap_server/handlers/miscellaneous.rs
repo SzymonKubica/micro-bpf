@@ -1,5 +1,4 @@
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use riot_wrappers::{stdio::println, riot_sys};
 

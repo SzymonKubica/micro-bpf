@@ -1,18 +1,11 @@
-use alloc::{format, string::String, vec::Vec};
-use core::{convert::TryInto, fmt};
+use alloc::string::String;
+use core::convert::TryInto;
 use serde::{Deserialize, Serialize};
 
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
-use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
-// The riot_sys reimported through the wrappers doesn't seem to work.
-use riot_sys;
+use coap_message::{MutableWritableMessage, ReadableMessage};
+use riot_wrappers::stdio::println;
 
-use crate::{
-    infra::suit_storage,
-    rbpf,
-    rbpf::helpers,
-};
+use crate::infra::suit_storage;
 pub struct SuitPullHandler {
     last_fetched_manifest: Option<String>,
 }
@@ -42,7 +35,7 @@ impl coap_handler::Handler for SuitPullHandler {
 
         println!("Request payload received: {}", s);
 
-        let Ok((request_data, length)): Result<(SuitPullRequest, usize), _> =
+        let Ok((request_data, _length)): Result<(SuitPullRequest, usize), _> =
             serde_json_core::from_str(s)
         else {
             return coap_numbers::code::BAD_REQUEST;

@@ -1,26 +1,20 @@
-use core::convert::TryInto;
-
 use alloc::sync::Arc;
 use riot_wrappers::{
     coap_handler::GcoapHandler,
     cstr::cstr,
     gcoap::{self, SingleHandlerListener},
-    gnrc, gpio,
-    msg::v2::{self as msg, SendPort},
+    gnrc,
+    msg::v2::SendPort,
     mutex::Mutex,
     riot_sys,
     stdio::println,
     thread, ztimer,
 };
 
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
-
 use crate::{
     coap_server::handlers::{
-        execute_fc_on_coap_pkt, execute_vm_no_data, execute_vm_on_coap_pkt, handle_benchmark,
-        handle_console_write_request, handle_riot_board_query, handle_suit_pull_request,
-        spawn_vm_execution,
+        execute_vm_no_data, execute_vm_on_coap_pkt, handle_benchmark, handle_console_write_request,
+        handle_riot_board_query, handle_suit_pull_request, spawn_vm_execution,
     },
     vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE},
 };

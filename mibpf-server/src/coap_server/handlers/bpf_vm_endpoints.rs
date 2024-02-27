@@ -1,30 +1,24 @@
-use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
-use core::{convert::TryInto, fmt};
+use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
+use core::convert::TryInto;
 
-use log::debug;
-use serde::{Deserialize, Serialize};
+use log::{debug, error, info};
+use serde::Deserialize;
 // The riot_sys reimported through the wrappers doesn't seem to work.
 
 use riot_sys;
 use riot_wrappers::{
-    coap_message::ResponseMessage,
-    cstr::cstr,
-    gcoap::PacketBuffer,
-    msg::v2 as msg,
-    mutex::Mutex,
+    coap_message::ResponseMessage, gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex,
     stdio::println,
-    thread,
-    ztimer::{self, Clock},
 };
 
-use coap_handler_implementations::SimpleRendered;
-use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
-
-use rbpf::{self, helpers};
+use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::{
     infra::suit_storage,
-    vm::{middleware, FemtoContainerVm, RbpfVm, VMExecutionRequest, VirtualMachine, VM_EXECUTION_REQUEST_TYPE},
+    vm::{
+        middleware, FemtoContainerVm, RbpfVm, VMExecutionRequest, VirtualMachine,
+        VM_EXECUTION_REQUEST_TYPE,
+    },
 };
 
 /// The handler expects to receive a request that contains a vm_target
@@ -164,7 +158,8 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
 }
 
 struct VMLongExecutionHandler {
-    execution_send:  Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
+    execution_send:
+        Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {
@@ -177,13 +172,17 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             Err(code) => return code,
         };
 
-        self.execution_send.lock().try_send(VMExecutionRequest {
+        if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequest {
             suit_location: request_data.suit_location as u8,
             vm_target: match request_data.vm_target {
                 VmTarget::Rbpf => 0,
                 VmTarget::FemtoContainer => 1,
             },
-        });
+        }) {
+            info!("VM execution request sent successfully");
+        } else {
+            error!("Failed to send execution request message.");
+        }
 
         coap_numbers::code::CHANGED
     }
@@ -233,7 +232,7 @@ fn preprocess_request(request: &impl ReadableMessage) -> Result<RequestData, u8>
     };
 
     println!("Request payload received: {}", s);
-    let Ok((request_data, length)): Result<(RequestData, usize), _> = serde_json_core::from_str(s)
+    let Ok((request_data, _length)): Result<(RequestData, usize), _> = serde_json_core::from_str(s)
     else {
         return Err(coap_numbers::code::BAD_REQUEST);
     };

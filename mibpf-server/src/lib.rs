@@ -11,23 +11,13 @@ extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;
 
-use log::error;
-use riot_wrappers::{
-    cstr::cstr,
-    msg::v2::{self as msg, MessageSemantics},
-    mutex::Mutex,
-    riot_main, riot_main_with_tokens,
-    stdio::println,
-    thread::{self, CountedThread},
-    ztimer,
-};
+use log::{error, info};
+use riot_wrappers::{cstr::cstr, mutex::Mutex, println, riot_main, thread};
 
 mod coap_server;
 mod infra;
 mod shell;
 mod vm;
-
-use vm::VmTarget;
 
 use crate::infra::log_thread_spawned;
 
@@ -39,13 +29,17 @@ static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 
 riot_main!(main);
 
-fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
+fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     extern "C" {
         fn init_message_queue();
     }
 
     // Initialise the logger
-    infra::logger::RiotLogger::init(log::LevelFilter::Info);
+    if let Ok(()) = infra::logger::RiotLogger::init(log::LevelFilter::Info) {
+        info!("Logger initialised");
+    } else {
+        println!("Failed to initialise logger");
+    }
 
     // Initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping
@@ -102,4 +96,3 @@ fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
         unreachable!();
     });
 }
-

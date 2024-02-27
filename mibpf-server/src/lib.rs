@@ -1,13 +1,24 @@
-// Copyright (C) 2020 Christian Amsüss
+// Copyright (C) 2024 Szymon Kubica
 //
+// TODO: figure out licensing
 // This file is subject to the terms and conditions of the GNU Lesser
 // General Public License v2.1. See the file LICENSE in the top level
 // directory for more details.
 #![no_std]
 
-use riot_wrappers::cstr::cstr;
-use riot_wrappers::{mutex::Mutex, stdio::println, thread, ztimer};
-use riot_wrappers::{riot_main, riot_main_with_tokens};
+extern crate alloc;
+extern crate rbpf;
+extern crate riot_sys;
+extern crate rust_riotmodules;
+
+use riot_wrappers::{
+    cstr::cstr,
+    msg::v2::{self as msg, MessageSemantics},
+    mutex::Mutex,
+    riot_main, riot_main_with_tokens,
+    stdio::println,
+    thread, ztimer,
+};
 
 mod allocator;
 mod coap_server;
@@ -18,21 +29,13 @@ mod shell;
 mod suit_storage;
 mod vm;
 
+use vm::VmTarget;
+
 // The second thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
 // The threading setup was adapted from here: https://gitlab.com/etonomy/riot-examples/-/tree/master/shell_threads?ref_type=heads
 static COAP_THREAD_STACK: Mutex<[u8; 16384]> = Mutex::new([0; 16384]);
 static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
-
-extern crate alloc;
-extern crate rbpf;
-extern crate riot_sys;
-extern crate rust_riotmodules;
-
-use riot_wrappers::msg::v2 as msg;
-use riot_wrappers::msg::v2::MessageSemantics;
-
-use vm::VmTarget;
 
 riot_main!(main);
 

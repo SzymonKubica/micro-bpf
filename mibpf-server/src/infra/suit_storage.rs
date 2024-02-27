@@ -35,7 +35,6 @@ pub fn suit_fetch(ip: &str, manifest: &str) {
 /// * `program_buffer` - A mutable slice of bytes to write the program into
 /// * `slot` - The index of the SUIT storage slot from which to load the bytes.
 pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a [u8] {
-
     let location = format!(".ram.{0}\0", slot);
     let mut length = 0;
     unsafe {
@@ -45,5 +44,3 @@ pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a [u8] {
     };
     &program_buffer[..(length as usize)]
 }
-
-extern "C" {}

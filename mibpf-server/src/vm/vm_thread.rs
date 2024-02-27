@@ -1,5 +1,5 @@
 use crate::vm::{FemtoContainerVm, RbpfVm, VirtualMachine};
-use crate::ExecutionRequest;
+use crate::{suit_storage, ExecutionRequest};
 use alloc::format;
 use riot_wrappers::mutex::Mutex;
 
@@ -123,13 +123,12 @@ fn vm_main_thread(target: VmTarget) {
         let suit_location = unsafe { msg.content.value };
 
         let mut program_buffer: [u8; 512] = [0; 512];
-        let location = format!(".ram.{0}\0", suit_location);
 
-        let program = read_program_from_suit_storage(&mut program_buffer, &location);
+        let program = suit_storage::load_program(&mut program_buffer, suit_location as usize);
 
         println!(
-            "Loaded program bytecode from SUIT storage location {}, program length: {}",
-            location,
+            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
+            suit_location,
             program.len()
         );
 
@@ -149,22 +148,4 @@ fn vm_main_thread(target: VmTarget) {
         );
         println!("{}", &resp);
     }
-}
-
-// TODO: move the functions for interacting with the SUIT storage into their
-// separate module.
-fn read_program_from_suit_storage<'a>(program_buffer: &'a mut [u8], location: &str) -> &'a [u8] {
-    let mut length = 0;
-    unsafe {
-        let buffer_ptr = program_buffer.as_mut_ptr();
-        let location_ptr = location.as_ptr() as *const char;
-        length = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
-    };
-    &program_buffer[..(length as usize)]
-}
-
-extern "C" {
-    /// Responsible for loading the bytecode from the SUIT ram storage.
-    /// The application bytes are written into the buffer.
-    fn load_bytes_from_suit_storage(buffer: *mut u8, location: *const char) -> u32;
 }

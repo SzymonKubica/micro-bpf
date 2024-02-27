@@ -4,6 +4,7 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use coap_handler_implementations::SimpleRendered;
 use coap_message::{MessageOption, MutableWritableMessage, ReadableMessage};
+use log::debug;
 use core::convert::TryInto;
 use core::fmt;
 use riot_wrappers::coap_message::ResponseMessage;
@@ -11,10 +12,10 @@ use riot_wrappers::gcoap::PacketBuffer;
 use riot_wrappers::{cstr::cstr, stdio::println, ztimer::Clock};
 use riot_wrappers::{mutex::Mutex, thread, ztimer};
 
-use crate::{rbpf, suit_storage};
 use crate::rbpf::helpers;
 use crate::vm::{FemtoContainerVm, RbpfVm, VirtualMachine};
 use crate::{middleware, ExecutionRequest};
+use crate::{rbpf, suit_storage};
 use riot_wrappers::msg::v2 as msg;
 use serde::{Deserialize, Serialize};
 // The riot_sys reimported through the wrappers doesn't seem to work.
@@ -64,12 +65,11 @@ impl VMExecutionOnCoapPktHandler {
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
-        let location = format!(".ram.{0}\0", request_data.suit_location);
-        let program = load_program(&mut program_buffer, &location);
+        let program = suit_storage::load_program(&mut program_buffer, request_data.suit_location);
 
         println!(
-            "Loaded program bytecode from SUIT storage location {}, program length: {}",
-            location,
+            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
+            request_data.suit_location,
             program.len()
         );
 
@@ -101,6 +101,8 @@ pub fn execute_vm_on_coap_pkt() -> impl riot_wrappers::gcoap::Handler {
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
 /// to the executed program. The eBPF script can access the CoAP packet data.
+/// Its fields are used to store the results of the most recent VM execution
+/// which are then used to construct the CoAP response.
 struct VMExecutionNoDataHandler {
     execution_time: u32,
     result: i64,
@@ -121,14 +123,14 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         let mut program_buffer: [u8; 2048] = [0; 2048];
         let program = suit_storage::load_program(&mut program_buffer, request_data.suit_location);
 
-        println!(
-            "Loaded program bytecode from SUIT storage location {}, program length: {}",
-            location,
+        debug!(
+            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
+            request_data.suit_location,
             program.len()
         );
 
         // Dynamically dispatch between the two different VM implementations
-        // depending on the request data.
+        // depending on the requested target VM.
         let vm: Box<dyn VirtualMachine> = match request_data.vm_target {
             VmTarget::Rbpf => Box::new(RbpfVm::new(Vec::from(middleware::ALL_HELPERS))),
             VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
@@ -198,7 +200,6 @@ pub fn spawn_vm_execution<'a>(
 }
 
 /* Common utility functions for the handlers */
-
 
 fn format_execution_response(
     execution_time: u32,

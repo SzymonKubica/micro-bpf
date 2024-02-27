@@ -1,10 +1,12 @@
 use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::{ffi::c_void, fmt};
-use log::debug;
+use log::{debug, error};
 
 use riot_wrappers::{
     cstr::cstr,
-    msg::v2::{self as msg, MessageSemantics, NoConfiguredMessages, Processing, SendPort},
+    msg::v2::{
+        self as msg, MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort,
+    },
     mutex::Mutex,
     stdio::println,
     thread::{self, spawn},
@@ -14,7 +16,7 @@ use riot_sys;
 use riot_sys::msg_t;
 
 use crate::{
-    infra::suit_storage,
+    infra::{log_thread_spawned, suit_storage},
     rbpf::{self, helpers},
     vm::VmTarget,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
@@ -45,7 +47,7 @@ impl Drop for VMExecutionRequest {
     }
 }
 
-const VM_EXECUTION_REQUEST_TYPE: u16 = 23;
+pub const VM_EXECUTION_REQUEST_TYPE: u16 = 23;
 pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>;
 
 /// Responsible for managing execution of long-running eBPF programs. It receives
@@ -89,39 +91,29 @@ impl VMExecutionManager {
         let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf);
 
         thread::scope(|threadscope| {
-            let worker_0 = threadscope
-                .spawn(
-                    slot_0_stacklock.as_mut(),
-                    &mut slot_0_mainclosure,
-                    cstr!("VM worker 0"),
-                    (riot_sys::THREAD_PRIORITY_MAIN - 4) as _,
-                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
-                )
-                .expect("Failed to spawn VM worker 0");
+            let Ok(worker_0) = threadscope.spawn(
+                slot_0_stacklock.as_mut(),
+                &mut slot_0_mainclosure,
+                cstr!("VM worker 0"),
+                (riot_sys::THREAD_PRIORITY_MAIN - 4) as _,
+                (riot_sys::THREAD_CREATE_STACKTEST) as _,
+            ) else {
+                error!("Failed to spawn VM worker 0");
+            };
 
-            println!(
-                "VM worker thread 0 spawned as {:?} ({:?}), status {:?}",
-                worker_0.pid(),
-                worker_0.pid().get_name(),
-                worker_0.status()
-            );
+            log_thread_spawned(&worker_0, "VM worker 0");
 
-            let worker_1 = threadscope
-                .spawn(
-                    slot_1_stacklock.as_mut(),
-                    &mut slot_1_mainclosure,
-                    cstr!("VM worker 1"),
-                    (riot_sys::THREAD_PRIORITY_MAIN - 5) as _,
-                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
-                )
-                .expect("Failed to spawn VM worker 1");
+            let Ok(worker_1) = threadscope.spawn(
+                slot_1_stacklock.as_mut(),
+                &mut slot_1_mainclosure,
+                cstr!("VM worker 1"),
+                (riot_sys::THREAD_PRIORITY_MAIN - 5) as _,
+                (riot_sys::THREAD_CREATE_STACKTEST) as _,
+            ) else {
+                error!("Failed to spawn VM worker 1");
+            };
 
-            println!(
-                "VM worker thread 1 spawned as {:?} ({:?}), status {:?}",
-                worker_1.pid(),
-                worker_1.pid().get_name(),
-                worker_1.status()
-            );
+            log_thread_spawned(&worker_1, "VM worker 1");
 
             loop {
                 let code = self
@@ -129,7 +121,6 @@ impl VMExecutionManager {
                     .receive()
                     .decode(&self.receive_port, |s, execution_request| unsafe {
                         let mut msg: msg_t = Default::default();
-                        println!("{}", "Sending message to worker 0");
                         msg.type_ = 0;
                         // The content of the message specifies which SUIT slot to load from
                         msg.content = riot_sys::msg_t__bindgen_ty_1 {

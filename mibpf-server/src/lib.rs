@@ -11,13 +11,15 @@ extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;
 
+use log::{debug, error};
 use riot_wrappers::{
     cstr::cstr,
     msg::v2::{self as msg, MessageSemantics},
     mutex::Mutex,
     riot_main, riot_main_with_tokens,
     stdio::println,
-    thread, ztimer,
+    thread::{self, CountedThread},
+    ztimer,
 };
 
 mod coap_server;
@@ -72,42 +74,42 @@ fn main(token: thread::StartToken) -> ((), thread::TerminationToken) {
 
         // Spawn the threads and then wait forever.
         thread::scope(|threadscope| {
-            let gcoapthread = threadscope
-                .spawn(
-                    gcoapthread_stacklock.as_mut(),
-                    &mut gcoapthread_mainclosure,
-                    cstr!("secondthread"),
-                    (riot_sys::THREAD_PRIORITY_MAIN - 3) as _,
-                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
-                )
-                .expect("Failed to spawn gcoap server thread");
+            if let Ok(gcoapthread) = threadscope.spawn(
+                gcoapthread_stacklock.as_mut(),
+                &mut gcoapthread_mainclosure,
+                cstr!("secondthread"),
+                (riot_sys::THREAD_PRIORITY_MAIN - 3) as _,
+                (riot_sys::THREAD_CREATE_STACKTEST) as _,
+            ) {
+                log_thread_spawned(&gcoapthread, "CoAP server");
+            } else {
+                error!("Failed to spawn CoAP server thread");
+            }
 
-            println!(
-                "COAP server thread spawned as {:?} ({:?}), status {:?}",
-                gcoapthread.pid(),
-                gcoapthread.pid().get_name(),
-                gcoapthread.status()
-            );
-
-            let shellthread = threadscope
-                .spawn(
-                    shellthread_stacklock.as_mut(),
-                    &mut shellthread_mainclosure,
-                    cstr!("shellthread"),
-                    (riot_sys::THREAD_PRIORITY_MAIN - 2) as _,
-                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
-                )
-                .expect("Failed to spawn shell thread");
-
-            println!(
-                "Shell thread spawned as {:?} ({:?}), status {:?}",
-                shellthread.pid(),
-                shellthread.pid().get_name(),
-                shellthread.status()
-            );
+            if let Ok(shellthread) = threadscope.spawn(
+                shellthread_stacklock.as_mut(),
+                &mut shellthread_mainclosure,
+                cstr!("shellthread"),
+                (riot_sys::THREAD_PRIORITY_MAIN - 2) as _,
+                (riot_sys::THREAD_CREATE_STACKTEST) as _,
+            ) {
+                log_thread_spawned(&shellthread, "Shell");
+            } else {
+                error!("Failed to spawn shell thread");
+            }
 
             vm_manager.start();
         });
         unreachable!();
     });
+}
+
+fn log_thread_spawned(thread: &CountedThread, thread_name: &str) {
+    debug!(
+        "{} thread spawned as {:?} ({:?}), status {:?}",
+        thread_name,
+        thread.pid(),
+        thread.pid().get_name(),
+        thread.status()
+    );
 }

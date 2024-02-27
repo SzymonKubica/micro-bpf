@@ -99,6 +99,7 @@ impl VMExecutionManager {
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) else {
                 error!("Failed to spawn VM worker 0");
+                panic!();
             };
 
             log_thread_spawned(&worker_0, "VM worker 0");
@@ -111,6 +112,7 @@ impl VMExecutionManager {
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) else {
                 error!("Failed to spawn VM worker 1");
+                panic!();
             };
 
             log_thread_spawned(&worker_1, "VM worker 1");

@@ -10,3 +10,4 @@ pub use rbpf_vm::RbpfVm;
 pub use femtocontainer_vm::FemtoContainerVm;
 pub use vm::VmTarget;
 pub use vm_thread::VMExecutionManager;
+pub use vm_thread::VM_EXECUTION_REQUEST_TYPE;

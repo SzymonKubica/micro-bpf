@@ -1,18 +1,16 @@
-use core::fmt::Write;
 use alloc::sync::Arc;
+use core::fmt::Write;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 use crate::vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE};
 
 pub struct VMExecutionShellCommandHandler {
-    execution_send: Arc<Mutex<SendPort<crate::vm::VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
+    execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
 }
 
 impl VMExecutionShellCommandHandler {
     pub fn new(
-        execution_send: Arc<
-            Mutex<SendPort<crate::vm::VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>,
-        >,
+        execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
     ) -> Self {
         Self { execution_send }
     }

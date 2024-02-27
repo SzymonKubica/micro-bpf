@@ -1,5 +1,5 @@
-use log::{set_logger, set_max_level, Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
-use riot_wrappers::println;
+use log::{debug, set_logger, set_max_level, Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
+use riot_wrappers::{println, thread::CountedThread};
 
 /* Because we are running under no_std, we cannot use the set_boxed_logger
 function to tell the log crate which logger to use. Because of this, we

@@ -1,3 +1,5 @@
+use core::ffi::c_void;
+
 use riot_wrappers::{gcoap::PacketBuffer, println};
 
 use crate::vm::VirtualMachine;
@@ -8,7 +10,7 @@ extern "C" {
     fn execute_fc_vm_on_coap_pkt(
         program: *const u8,
         program_len: usize,
-        pkt: *mut PacketBuffer,
+        pkt: *mut c_void, // PacketBuffer isn't ffi-safe so we need to pass *c_void
         return_value: *mut i64,
     ) -> u32;
 
@@ -35,7 +37,7 @@ impl VirtualMachine for FemtoContainerVm {
             return execute_fc_vm_on_coap_pkt(
                 program.as_ptr() as *const u8,
                 program.len(),
-                pkt as *mut PacketBuffer,
+                pkt as *mut PacketBuffer as *mut c_void,
                 result as *mut i64,
             );
         }

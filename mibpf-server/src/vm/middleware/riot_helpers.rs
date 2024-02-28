@@ -7,12 +7,12 @@
 // cases, in order to respect this convention.
 // Question: why do we need this convention?
 
-use core::ffi::CStr;
+use core::ffi::{c_char, CStr};
 
 use alloc::vec::Vec;
+use rbpf::helpers;
 use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
-use rbpf::helpers;
 
 #[derive(Copy, Clone)]
 pub struct HelperFunction {
@@ -37,10 +37,13 @@ pub const BPF_DEBUG_PRINT_IDX: u32 = 0x03;
 pub const BPF_MEMCPY_IDX: u32 = 0x02;
 
 /* Key/value store functions */
+// TODO: implement store/fetch functions
+/*
 pub const BPF_STORE_LOCAL_IDX: u32 = 0x10;
 pub const BPF_STORE_GLOBAL_IDX: u32 = 0x11;
 pub const BPF_FETCH_LOCAL_IDX: u32 = 0x12;
 pub const BPF_FETCH_GLOBAL_IDX: u32 = 0x13;
+*/
 
 /* Saul functions */
 pub const BPF_SAUL_REG_FIND_NTH_IDX: u32 = 0x30;
@@ -75,12 +78,12 @@ pub fn bpf_printf(fmt: u64, a1: u64, a2: u64, a3: u64, a4: u64) -> u64 {
     // We need to take in the format string dynamically, so format! or println!
     // won't work here. We need to call into C.
     extern "C" {
-        fn printf(fmt: *const char, ...) -> i32;
+        fn printf(fmt: *const c_char, ...) -> i32;
     }
     //println!("bpf_printf: {fmt}, {a1}, {a2}, {a3}, {a4}");
     unsafe {
         printf(
-            CStr::from_ptr(fmt as *const i8).as_ptr() as *const char,
+            CStr::from_ptr(fmt as *const i8).as_ptr() as *const c_char,
             a1 as u32,
             a2 as u32,
             a3 as u32,
@@ -146,9 +149,7 @@ pub fn bpf_saul_reg_read(
 ) -> u64 {
     let dev: *mut riot_sys::saul_reg_t = dev_ptr as *mut riot_sys::saul_reg_t;
     let data: *mut riot_sys::phydat_t = data_ptr as *mut riot_sys::phydat_t;
-    unsafe {
-        riot_sys::saul_reg_read(dev, data) as u64
-    }
+    unsafe { riot_sys::saul_reg_read(dev, data) as u64 }
 }
 
 /// Given a pointer to the SAUL device struct, it writes the provided phydat_t
@@ -162,9 +163,7 @@ pub fn bpf_saul_reg_write(
 ) -> u64 {
     let dev: *mut riot_sys::saul_reg_t = dev_ptr as *mut riot_sys::saul_reg_t;
     let data: *const riot_sys::phydat_t = data_ptr as *const riot_sys::phydat_t;
-    unsafe {
-        riot_sys::saul_reg_write(dev, data) as u64
-    }
+    unsafe { riot_sys::saul_reg_write(dev, data) as u64 }
 }
 
 #[repr(align(8))]
@@ -251,6 +250,8 @@ pub fn bpf_coap_add_format(
         ) as u64;
     }
 }
+
+/// TODO: implement this helper
 pub fn bpf_coap_get_pdu(
     _unused1: u64,
     _unused2: u64,
@@ -262,14 +263,26 @@ pub fn bpf_coap_get_pdu(
 }
 
 /// Returns the current time in milliseconds as measured by RIOT's ZTIMER.
-pub fn bpf_now_ms(_unused1: u64, _unused2: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+pub fn bpf_now_ms(
+    _unused1: u64,
+    _unused2: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
+) -> u64 {
     let clock = unsafe { riot_sys::ZTIMER_MSEC as *mut riot_sys::inline::ztimer_clock_t };
     let now: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
     now as u64
 }
 
 /// Returns the current time in microseconds as measured by RIOT's ZTIMER.
-pub fn bpf_ztimer_now(_unused1: u64, _unused2: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+pub fn bpf_ztimer_now(
+    _unused1: u64,
+    _unused2: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
+) -> u64 {
     let now: u32 = unsafe {
         // An explicit cast into *mut riot_sys::inline::ztimer_clock_t is needed here
         // because the type of riot_sys::ZTIMER_USEC is riot_sys::ztimer_clock_t
@@ -343,7 +356,13 @@ pub fn bpf_gpio_read_input(
 // changing it. E.g. if we have a pin powering a led and then turn it to input
 // to read its state, it will return 0 as changing a pin to input changes its
 // state
-pub fn bpf_gpio_read_raw(port: u64, pin_num: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+pub fn bpf_gpio_read_raw(
+    port: u64,
+    pin_num: u64,
+    _unused3: u64,
+    _unused4: u64,
+    _unused5: u64,
+) -> u64 {
     let pin_state =
         unsafe { riot_sys::gpio_read(riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32)) };
     return pin_state as u64;
@@ -351,12 +370,12 @@ pub fn bpf_gpio_read_raw(port: u64, pin_num: u64, _unused3: u64, _unused4: u64, 
 pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _unused4: u64, _unused5: u64) -> u64 {
     let pin = gpio::GPIO::from_c(unsafe { riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32) })
         .unwrap();
-        let result = pin.configure_as_output(gpio::OutputMode::Out);
-        if let Ok(out_pin) = result {
-            unsafe { riot_sys::gpio_write(out_pin.to_c(), val as i32) };
-            return 1;
-        }
-        return 0;
+    let result = pin.configure_as_output(gpio::OutputMode::Out);
+    if let Ok(out_pin) = result {
+        unsafe { riot_sys::gpio_write(out_pin.to_c(), val as i32) };
+        return 1;
+    }
+    return 0;
 }
 
 /// List of all helpers together with their corresponding numbers (used
@@ -379,7 +398,7 @@ pub const ALL_HELPERS: [HelperFunction; 20] = [
     HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, bpf_gcoap_resp_init),
     HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, bpf_coap_opt_finish),
     HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, bpf_coap_add_format),
-    HelperFunction::new(BPF_COAP_GET_PDU_IDX, bpf_gcoap_resp_init),
+    HelperFunction::new(BPF_COAP_GET_PDU_IDX, bpf_coap_get_pdu),
     HelperFunction::new(BPF_FMT_S16_DFP_IDX, bpf_fmt_s16_dfp),
     HelperFunction::new(BPF_FMT_U32_DEC_IDX, bpf_fmt_u32_dec),
     HelperFunction::new(BPF_GPIO_READ_INPUT, bpf_gpio_read_input),
@@ -400,35 +419,38 @@ pub trait AcceptingHelpers {
 /* Implementations of the custom trait for all rBPF VMs */
 impl AcceptingHelpers for rbpf::EbpfVmFixedMbuff<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.index, helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmRaw<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.index, helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmNoData<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.index, helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmMbuff<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.index, helper.function);
     }
 }
 
-/// Registers all helpers provided by Femto-Container VM.
+/// Registers all helpers provided by Femto-Container VM. Those are library-like
+/// functions and are currently unused.
+#[allow(dead_code)]
 pub fn register_all(vm: &mut impl AcceptingHelpers) {
     for helper in ALL_HELPERS {
         vm.register_helper(helper);
     }
 }
 
+#[allow(dead_code)]
 pub fn register_helpers(vm: &mut impl AcceptingHelpers, helpers: Vec<HelperFunction>) {
     for helper in helpers {
         vm.register_helper(helper);

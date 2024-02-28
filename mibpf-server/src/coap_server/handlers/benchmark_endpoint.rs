@@ -5,6 +5,7 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use riot_wrappers::stdio::println;
 
+use crate::infra::suit_storage;
 use crate::rbpf;
 use crate::rbpf::helpers;
 use crate::vm::middleware;
@@ -19,32 +20,17 @@ impl coap_handler::Handler for BenchmarkHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        extern "C" {
-            /// Responsible for loading the bytecode from the SUIT ram storage.
-            /// The application bytes are written into the buffer.
-            fn load_bytes_from_suit_storage(buffer: *mut u8, location: *const char) -> u32;
-        }
-
         pub fn run_rbpf_vm(checksum_message: &str) -> u32 {
             // The SUIT ram storage for the program is 2048 bytes large so we won't
             // be able to load larger images. Hence 2048 byte buffer is sufficient
             let mut buffer: [u8; 2048] = [0; 2048];
-            let length;
 
             // The rbpf code is always loaded from .ram.0
-            let location = ".ram.0\0";
+            let program = suit_storage::load_program(&mut buffer, 0);
 
-            unsafe {
-                let buffer_ptr = buffer.as_mut_ptr();
-                // TODO: add ability to select between ram 0 and 1
-                let location_ptr = location.as_ptr() as *const char;
-                length = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
-            };
-
-            let program = &buffer[..(length as usize)];
             println!(
-                "Read program bytecode from SUIT storage location {}:\n {:?}",
-                location,
+                "Read program bytecode from SUIT storage slot {}:\n {:?}",
+                0,
                 program.to_vec()
             );
             let message_bytes = checksum_message.as_bytes();
@@ -87,15 +73,6 @@ impl coap_handler::Handler for BenchmarkHandler {
         }
 
         pub fn run_femtocontainer_vm(checksum_message: &str) -> u32 {
-            extern "C" {
-                /// Responsible for loading the bytecode from the SUIT ram storage.
-                /// The application bytes are written into the buffer.
-                fn execute_femtocontainer_vm(
-                    payload: *const u8,
-                    payload_len: usize,
-                    location: *const char,
-                ) -> u32;
-            }
             let message_bytes = checksum_message.as_bytes();
 
             // Femtocontainers always loaded from .ram.1
@@ -108,7 +85,7 @@ impl coap_handler::Handler for BenchmarkHandler {
                 execution_time = execute_femtocontainer_vm(
                     message_bytes.as_ptr(),
                     message_bytes.len(),
-                    location.as_ptr() as *const char,
+                    location.as_ptr(),
                 );
             }
             execution_time
@@ -131,7 +108,8 @@ impl coap_handler::Handler for BenchmarkHandler {
         // This checksum was taken from an example in RIOT.
         let mut checksum_message: String = "Ig17905kl50Xd31b59LC474BBw2xW50lMUf06hOjSx\
                                     DPfql0yvj7y0gbsDgwB653Pm5yjig0K5nfCS49WyIM3\
-                                    HE1648uMqHCS5WrAVuSO4zKF4O64j26Msvdll404kAO".to_string();
+                                    HE1648uMqHCS5WrAVuSO4zKF4O64j26Msvdll404kAO"
+            .to_string();
 
         let chunks = s.parse::<u8>().unwrap();
         for _ in 0..chunks {

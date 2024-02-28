@@ -1,6 +1,6 @@
 use crate::vm::{middleware, VirtualMachine};
 use alloc::vec::Vec;
-use core::ops::DerefMut;
+use core::{ffi::c_void, ops::DerefMut};
 
 use rbpf::without_std::Error;
 
@@ -16,7 +16,7 @@ extern "C" {
     /// It also recalculates pointers inside of that packet struct so that they point
     /// to correct offsets in the target memory buffer. This function is needed for
     /// executing the rBPF VM on raw packet data.
-    fn copy_packet(buffer: *mut PacketBuffer, mem: *mut u8);
+    fn copy_packet(buffer: *mut c_void, mem: *mut u8);
 }
 
 impl Default for RbpfVm {
@@ -32,6 +32,7 @@ impl RbpfVm {
         }
     }
 
+    #[allow(dead_code)]
     pub fn add_helper(&mut self, helper: middleware::HelperFunction) {
         self.registered_helpers.push(helper);
     }
@@ -76,7 +77,7 @@ impl VirtualMachine for RbpfVm {
     fn execute_on_coap_pkt(&self, program: &[u8], pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
         // Memory for the packet.
         let mut mem: [u8; 512] = [0; 512];
-        unsafe { copy_packet(pkt, mem.as_mut_ptr() as *mut u8) };
+        unsafe { copy_packet(pkt as *mut _ as *mut c_void, mem.as_mut_ptr() as *mut u8) };
 
         println!("Packet copy size: {}", mem.len());
 

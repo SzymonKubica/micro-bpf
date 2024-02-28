@@ -32,7 +32,7 @@ pub fn shell_main(
         },
     );
 
-    trait_identity(commands).run_forever(&mut line_buf);
+    trait_identity(commands).run_forever_with_buf(&mut line_buf);
 }
 
 // Workaround for a bug described here: https://github.com/RIOT-OS/rust-riot-wrappers/issues/76

@@ -7,9 +7,10 @@
 /// @param[out] buff      Target buffer where the read program is written.
 /// @param[in]  location  SUIT ram storage location from where the bytecode is
 /// loaded.
-uint32_t load_bytes_from_suit_storage(uint8_t *buff, char *location)
+uint32_t load_bytes_from_suit_storage(uint8_t *buff, uint8_t *location_id)
 {
 
+    char *location = (char *)location_id;
     LOG_DEBUG("[SUIT storage loader]: getting SUIT storage given id: %s. \n",
               location);
 

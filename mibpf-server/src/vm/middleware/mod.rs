@@ -1,3 +1,3 @@
-mod riot_helpers;
+pub mod riot_helpers;
 
 pub use riot_helpers::*;

@@ -13,7 +13,7 @@ use riot_wrappers::{
 
 use crate::{
     coap_server::handlers::{
-        execute_vm_no_data, execute_vm_on_coap_pkt, handle_benchmark, handle_console_write_request,
+        execute_vm_no_data, execute_vm_on_coap_pkt, handle_console_write_request,
         handle_riot_board_query, handle_suit_pull_request, spawn_vm_execution,
     },
     vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE},
@@ -30,8 +30,6 @@ pub fn gcoap_server_main(
     let mut console_write_handler = GcoapHandler(handle_console_write_request());
     let mut riot_board_handler = GcoapHandler(handle_riot_board_query());
 
-    // Handlers for executing benchmarks and initiating SUIT firmware fetch.
-    let mut benchmark_handler = GcoapHandler(handle_benchmark());
     let mut suit_pull_handler = GcoapHandler(handle_suit_pull_request());
 
     let mut coap_pkt_execution_handler = execute_vm_on_coap_pkt();
@@ -68,12 +66,6 @@ pub fn gcoap_server_main(
         &mut long_execution_handler,
     );
 
-    let mut benchmark_listener = SingleHandlerListener::new(
-        cstr!("/benchmark"),
-        riot_sys::COAP_POST,
-        &mut benchmark_handler,
-    );
-
     let mut suit_pull_listener = SingleHandlerListener::new(
         cstr!("/suit/pull"),
         riot_sys::COAP_POST,
@@ -86,7 +78,6 @@ pub fn gcoap_server_main(
         greg.register(&mut riot_board_listener);
         greg.register(&mut coap_pkt_vm_listener);
         greg.register(&mut vm_listener);
-        greg.register(&mut benchmark_listener);
         greg.register(&mut vm_spawn_listener);
         greg.register(&mut suit_pull_listener);
 

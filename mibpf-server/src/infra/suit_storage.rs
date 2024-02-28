@@ -8,7 +8,7 @@ extern "C" {
     fn initiate_suit_fetch(adderss: *const u8, signed_manifest_name: *const u8);
     /// Responsible for loading the bytecode from the SUIT ram storage.
     /// The application bytes are written into the buffer.
-    fn load_bytes_from_suit_storage(buffer: *mut u8, location: *const char) -> u32;
+    fn load_bytes_from_suit_storage(buffer: *mut u8, location_id: *const u8) -> u32;
 }
 
 /// Responsible for fetching data from a remote CoAP fileserver using a SUIT
@@ -40,7 +40,7 @@ pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a [u8] {
     let length;
     unsafe {
         let buffer_ptr = program_buffer.as_mut_ptr();
-        let location_ptr = location.as_ptr() as *const char;
+        let location_ptr = location.as_ptr();
         length = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
     };
     &program_buffer[..(length as usize)]

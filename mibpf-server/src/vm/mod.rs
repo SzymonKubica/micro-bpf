@@ -1,6 +1,6 @@
 
 mod vm;
-mod rbpf_vm;
+pub mod rbpf_vm;
 mod vm_thread;
 mod femtocontainer_vm;
 pub mod middleware;

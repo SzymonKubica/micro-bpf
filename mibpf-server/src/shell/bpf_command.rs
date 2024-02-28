@@ -43,9 +43,13 @@ impl VMExecutionShellCommandHandler {
             _ => return usage(),
         };
 
-        self.execution_send.lock().try_send(VMExecutionRequest {
+        if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequest {
             suit_location: slot,
             vm_target,
-        });
+        }) {
+            writeln!(stdio, "VM execution request sent successfully").unwrap();
+        } else {
+            writeln!(stdio, "Failed to send VM execution request").unwrap();
+        }
     }
 }

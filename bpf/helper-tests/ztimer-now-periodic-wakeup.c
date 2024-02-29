@@ -5,18 +5,14 @@
 
 // For some reason we need to inline these functions, otherwise we
 // get memory errors when passing the bpf_saul_reg_t pointer around
-void __attribute__((noinline))
-led_set_state(bpf_saul_reg_t *led, uint32_t state)
+void led_set_state(bpf_saul_reg_t *led, uint32_t state)
 {
     phydat_t led_state;
     led_state.val[0] = state;
     bpf_saul_reg_write(led, &led_state);
 }
 
-void __attribute__((noinline)) led_turn_off(bpf_saul_reg_t *led)
-{
-    led_set_state(led, 0);
-}
+void led_turn_off(bpf_saul_reg_t *led) { led_set_state(led, 0); }
 
 void led_turn_on(bpf_saul_reg_t *led) { led_set_state(led, 1); }
 

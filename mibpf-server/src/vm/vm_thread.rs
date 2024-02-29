@@ -153,7 +153,7 @@ fn vm_main_thread(target: VmTarget) {
         // We are unpacking the union msg_t__bindgen_ty_1 => unsafe
         let suit_location = unsafe { msg.content.value };
 
-        let mut program_buffer: [u8; 512] = [0; 512];
+        let mut program_buffer: [u8; 1024] = [0; 1024];
 
         let program = suit_storage::load_program(&mut program_buffer, suit_location as usize);
 

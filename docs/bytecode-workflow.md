@@ -308,24 +308,6 @@ Problems with the suggested solution are the following:
   of the VM (magic lddw instructions)
 - the current implementation of the script Femto-Containers cannot handle constant
   strings which aren't placed in the `.rodata` sections (e.g. `printf` problem from before)
-- the implementation seems to support functions, however exexuting the VM with
-  non-inlined functions has failed (TODO: investigate this)
-  Currently, if an function is present in the source file, the patching script
-  fails with this error:
-  ```
-  test_printf STT_FUNC
-  Traceback (most recent call last):
-  File "/home/szymon/Projects/ebpf-on-microcontrollers/mibpf/bpf/helper-tests/../../RIOT/dist/tools/rbpf/gen_rbf.py", line 69, in <module>
-    args.func(args)
-  File "/home/szymon/Projects/ebpf-on-microcontrollers/mibpf/bpf/helper-tests/../../RIOT/dist/tools/rbpf/gen_rbf.py", line 28, in generate
-    rbf_o = rbf.RBF.from_elf(arguments.input)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/home/szymon/Projects/ebpf-on-microcontrollers/mibpf/RIOT/dist/tools/rbpf/rbpf/rbf.py", line 286, in from_elf
-    RBF._patch_text(text, elffile, relocation, str_section_offsets)
-  File "/home/szymon/Projects/ebpf-on-microcontrollers/mibpf/RIOT/dist/tools/rbpf/rbpf/rbf.py", line 201, in _patch_text
-    opcode = RBF._get_section_lddw_opcode(section_name)
-
-  Which suggests that the script isn't able to correctly deal with helper functions.
   ```
 ### Relocation resolution at load time
 

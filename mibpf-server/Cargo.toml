@@ -1,5 +1,5 @@
 [package]
-name = "rust-gcoap"
+name = "mibpf-server"
 version = "0.1.0"
 authors = ["Christian Amsüss <chrysn@fsfe.org>"]
 edition = "2018"

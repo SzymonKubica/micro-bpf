@@ -469,6 +469,28 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
+name = "mibpf-server"
+version = "0.1.0"
+dependencies = [
+ "coap-handler 0.1.6",
+ "coap-handler-implementations",
+ "coap-message 0.2.3",
+ "coap-message-demos",
+ "coap-numbers",
+ "embedded-hal 0.2.7",
+ "embedded-nal",
+ "log",
+ "rbpf",
+ "riot-coap-handler-demos",
+ "riot-shell-commands",
+ "riot-sys",
+ "riot-wrappers",
+ "rust_riotmodules",
+ "serde",
+ "serde-json-core",
+]
+
+[[package]]
 name = "minicbor"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -712,28 +734,6 @@ dependencies = [
  "shlex 0.1.1",
  "switch-hal",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "rust-gcoap"
-version = "0.1.0"
-dependencies = [
- "coap-handler 0.1.6",
- "coap-handler-implementations",
- "coap-message 0.2.3",
- "coap-message-demos",
- "coap-numbers",
- "embedded-hal 0.2.7",
- "embedded-nal",
- "log",
- "rbpf",
- "riot-coap-handler-demos",
- "riot-shell-commands",
- "riot-sys",
- "riot-wrappers",
- "rust_riotmodules",
- "serde",
- "serde-json-core",
 ]
 
 [[package]]

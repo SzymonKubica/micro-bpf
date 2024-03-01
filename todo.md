@@ -2,20 +2,19 @@
 # List of things to do:
 
 - update the bpf directory structure documentation and explanations
-- clean up the c modules. (figure out how to get them loaded in)
-
-- allow for spawning long running vms
 
 - test all helpers implemented so far and cross check against FC
     - f12r_vm_coap_get_pdu;
 
 
 - fix it so that it runs on native as well.
+- fix the benchmark endpoint
 - write up the binary blob creation workflow
+- clean up unused gcoap endpoints
 
-- clean up the main codebase
-
-
+- modify rBPF to allow for switching between the two bytecode shape paradigms:
+  - just the text section
+  - full program with header, data, rodata, text + possibly aot compiled
 
 # Done:
 - investigate why gcoap finish call is broken (all fc gcoap and fmt helpers were
@@ -24,6 +23,10 @@
 - build a consistent setup of passing coap packets into bpf programs (done for FC)
 - replicate the above for rbpf
 - make it possible to compile the project out of the riot tree
+- allow for spawning long running vms
+- clean up the c modules. (figure out how to get them loaded in)
+- clean up the main codebase
+- finish fixing compilation issues
 
 
 # Discussion points after the meeting

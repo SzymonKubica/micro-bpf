@@ -1,3 +1,5 @@
+use core::ffi::c_int;
+
 use alloc::sync::Arc;
 use riot_wrappers::{
     coap_handler::GcoapHandler,

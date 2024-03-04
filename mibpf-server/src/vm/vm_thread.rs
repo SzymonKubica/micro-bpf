@@ -81,7 +81,7 @@ impl VMExecutionManager {
         let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
 
         let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf);
-        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf);
+        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::FemtoContainer);
 
         thread::scope(|threadscope| {
             let Ok(worker_0) = threadscope.spawn(
@@ -146,7 +146,6 @@ fn vm_main_thread(target: VmTarget) {
     loop {
         let mut msg: msg_t = Default::default();
         unsafe {
-            println!("initialised the empty message: {:?}", msg);
             let _ = riot_sys::msg_receive(&mut msg);
         }
 

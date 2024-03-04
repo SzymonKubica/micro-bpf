@@ -11,6 +11,8 @@ extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;
 
+use core::ffi::c_int;
+
 use log::{error, info};
 use riot_wrappers::{cstr::cstr, mutex::Mutex, println, riot_main, thread};
 
@@ -35,10 +37,19 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     }
 
     // Initialise the logger
-    if let Ok(()) = infra::logger::RiotLogger::init(log::LevelFilter::Info) {
+    if let Ok(()) = infra::logger::RiotLogger::init(log::LevelFilter::Debug) {
         info!("Logger initialised");
     } else {
         println!("Failed to initialise logger");
+    }
+
+    extern "C" {
+        fn dht_test() -> c_int;
+    }
+
+    println!("Initialising the DHT sensor...");
+    unsafe {
+        dht_test();
     }
 
     // Initialise the gnrc message queue to allow for using

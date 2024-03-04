@@ -35,6 +35,7 @@ USEMODULE += suit_storage_ram
 USEMODULE += saul
 USEMODULE += saul_reg
 USEMODULE += saul_default
+USEMODULE += dht
 
 USEMODULE += fmt
 
@@ -77,7 +78,7 @@ CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=2 -DCONFIG_SUIT_STORAGE_RAM_SIZE=204
 CFLAGS += '-DTHREAD_STACKSIZE_MAIN=(THREAD_STACKSIZE_DEFAULT + 20480)'
 
 # The name of crate (as per Cargo.toml package name, but with '-' replaced with '_')
-APPLICATION_RUST_MODULE = rust_gcoap
+APPLICATION_RUST_MODULE = mibpf_server
 BASELIBS += $(APPLICATION_RUST_MODULE).module
 
 FEATURES_REQUIRED += rust_target

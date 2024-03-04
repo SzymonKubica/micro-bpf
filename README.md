@@ -22,3 +22,17 @@ issues.
 If suit fetch fails and the message is 'hdr invalid' it means that cbor is
 missing from python env and that the RIOT image was compiled without the
 proper python env initialised.
+
+If the flashing process into stm32 fails saying 'overlapping sections' then it
+is probably because the esp-idf tools have been added to the path and RIOT tries
+to flash using those. Make sure RIOT uses
+```
+/home/szymon/Projects/ebpf-on-microcontrollers/mibpf/RIOT/dist/tools/openocd/openocd.sh
+```
+for flashing as opposed to some other version of openocd
+
+### If DHT22 doesn't respond:
+Adjust the constants in the DHT module so that the start LOW time is set appropriately
+as below.
+#define START_LOW_TIME          (20U * US_PER_MS)
+

@@ -14,11 +14,11 @@ int gpio_write(void *ctx)
     // Pin 7
     uint32_t pin = 6;
 
-    // PF13 corresponds to D7 where the microphone send digital output
-    // Port F
-    uint32_t port_f = 5;
+    // PD13 corresponds to D9 where the microphone send digital output
+    // Port D
+    uint32_t port_f = 3;
     // Pin 13
-    uint32_t pin_2 = 13;
+    uint32_t pin_2 = 15;
 
     // We read the microphone value until sound is detected.
     // After this we turn on the LED and terminate
@@ -27,13 +27,13 @@ int gpio_write(void *ctx)
     // Toggle the led
     uint32_t value = 128;
 
-
     uint32_t last_wakeup = bpf_ztimer_now();
     while (1) {
         uint64_t mic_value = 0;
         while (!mic_value) {
             mic_value = bpf_gpio_read_input(port_f, pin_2);
-            // We need to preempt here so that the rest of the system isn't locked up.
+            // We need to preempt here so that the rest of the system isn't
+            // locked up.
             bpf_ztimer_periodic_wakeup(&last_wakeup, PERIOD_US);
         }
         mic_value = 0;

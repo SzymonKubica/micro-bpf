@@ -21,5 +21,6 @@ int test_printf(void *ctx)
     // After the latest fixes to the rodata section, direct use of the format
     // string is also possible
     bpf_printf("Here is a number: %d\n", 10);
+    bpf_printf("Here is another number: %d\n", 12);
     return 0;
 }

@@ -2,7 +2,6 @@
 #include <linux/bpf.h>
 #include <math.h>
 #include "../helpers.h"
-#include <bpf/bpf_helpers.h>
 
 #define D7_PORT 5
 #define D7_PIN 13

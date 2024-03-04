@@ -308,6 +308,8 @@ Problems with the suggested solution are the following:
   of the VM (magic lddw instructions)
 - the current implementation of the script Femto-Containers cannot handle constant
   strings which aren't placed in the `.rodata` sections (e.g. `printf` problem from before)
+- the current implememtation has some skeleton setup for handling global function
+  relocations, but the current version of the VM doesn't support those.
   ```
 ### Relocation resolution at load time
 

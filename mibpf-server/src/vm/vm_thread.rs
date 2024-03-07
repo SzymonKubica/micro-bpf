@@ -2,7 +2,11 @@ use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
 use log::{debug, error};
 
 use riot_wrappers::{
-    cstr::cstr, msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort}, mutex::Mutex, stdio::println, thread
+    cstr::cstr,
+    msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort},
+    mutex::Mutex,
+    stdio::println,
+    thread,
 };
 
 use riot_sys;
@@ -10,7 +14,7 @@ use riot_sys::msg_t;
 
 use crate::{
     infra::{log_thread_spawned, suit_storage},
-    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
+    vm::{middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
 
 use super::VmTarget;
@@ -25,11 +29,13 @@ static VM_SLOT_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 /// rBPF). 0 corresponds to rBPF and 1 corresponds to FemtoContainers. The
 /// reason an enum isn't used here is that this struct is send in messages via
 /// IPC api and adding an enum there resulted in the struct being too large to
-/// send.
+/// send. It also specifies the binary layout format that the VM should expect
+/// in the loaded program
 #[derive(Debug, Clone)]
 pub struct VMExecutionRequest {
     pub suit_location: u8,
     pub vm_target: u8,
+    pub binary_layout: u8,
 }
 
 // We need to implement Drop for the execution request so that it can be
@@ -80,8 +86,8 @@ impl VMExecutionManager {
         let mut slot_0_stacklock = VM_SLOT_0_STACK.lock();
         let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
 
-        let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf);
-        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::FemtoContainer);
+        let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf, 0);
+        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::FemtoContainer, 1);
 
         thread::scope(|threadscope| {
             let Ok(worker_0) = threadscope.spawn(
@@ -119,7 +125,7 @@ impl VMExecutionManager {
                         msg.type_ = 0;
                         // The content of the message specifies which SUIT slot to load from
                         msg.content = riot_sys::msg_t__bindgen_ty_1 {
-                            value: execution_request.suit_location as u32,
+                            value: execution_request.binary_layout as u32,
                         };
                         // for now we route slot 0 to worker 0 and slot 1 to worker 1
                         let worker = match execution_request.suit_location {
@@ -142,7 +148,7 @@ impl VMExecutionManager {
     }
 }
 
-fn vm_main_thread(target: VmTarget) {
+fn vm_main_thread(target: VmTarget, suit_slot: u8) {
     loop {
         let mut msg: msg_t = Default::default();
         unsafe {
@@ -150,22 +156,26 @@ fn vm_main_thread(target: VmTarget) {
         }
 
         // We are unpacking the union msg_t__bindgen_ty_1 => unsafe
-        let suit_location = unsafe { msg.content.value };
+        let bytecode_layout_index = unsafe { msg.content.value };
 
         let mut program_buffer: [u8; 1024] = [0; 1024];
 
-        let program = suit_storage::load_program(&mut program_buffer, suit_location as usize);
+        let program = suit_storage::load_program(&mut program_buffer, suit_slot as usize);
 
         println!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            suit_location,
+            suit_slot,
             program.len()
         );
 
+        let bytecode_layout = BinaryFileLayout::from(bytecode_layout_index as u8);
         // Dynamically dispatch between the two different VM implementations
         // depending on the request data.
         let vm: Box<dyn VirtualMachine> = match target {
-            VmTarget::Rbpf => Box::new(RbpfVm::new(Vec::from(middleware::ALL_HELPERS))),
+            VmTarget::Rbpf => Box::new(RbpfVm::new(
+                Vec::from(middleware::ALL_HELPERS),
+                bytecode_layout,
+            )),
             VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 

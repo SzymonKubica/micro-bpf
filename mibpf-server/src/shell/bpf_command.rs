@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
-use core::fmt::Write;
+use core::{fmt::Write, str::FromStr};
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
-use crate::vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE};
+use crate::vm::{rbpf_vm::BinaryFileLayout, VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE};
 
 pub struct VMExecutionShellCommandHandler {
     execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
@@ -23,7 +23,7 @@ impl VMExecutionShellCommandHandler {
         let mut usage = || {
             writeln!(
                 stdio,
-                "usage: {} [rBPF | FemtoContainer] <suit-storage-slot (int)>",
+                "usage: {} [rBPF | FemtoContainer] <suit-storage-slot (int)> <bytecode-layout-option>",
                 &args[0]
             )
             .unwrap();
@@ -43,9 +43,16 @@ impl VMExecutionShellCommandHandler {
             _ => return usage(),
         };
 
+        let binary_layout = BinaryFileLayout::from_str(&args[3]).unwrap_or_else(|err| {
+            writeln!(stdio, "Invalid binary layout: {}", err).unwrap();
+            BinaryFileLayout::FunctionRelocationMetadata
+        });
+
+
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequest {
             suit_location: slot,
             vm_target,
+            binary_layout: binary_layout.into(),
         }) {
             writeln!(stdio, "VM execution request sent successfully").unwrap();
         } else {

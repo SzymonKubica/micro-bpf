@@ -16,8 +16,8 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 use crate::{
     infra::suit_storage,
     vm::{
-        middleware, FemtoContainerVm, RbpfVm, VMExecutionRequest, VirtualMachine,
-        VM_EXECUTION_REQUEST_TYPE,
+        middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VMExecutionRequest,
+        VirtualMachine, VM_EXECUTION_REQUEST_TYPE,
     },
 };
 
@@ -26,6 +26,7 @@ use crate::{
 #[derive(Deserialize)]
 struct RequestData {
     pub vm_target: VmTarget,
+    pub binary_layout: BinaryFileLayout,
     pub suit_location: usize,
 }
 
@@ -33,6 +34,25 @@ struct RequestData {
 enum VmTarget {
     Rbpf,
     FemtoContainer,
+}
+
+impl Into<u8> for VmTarget {
+    fn into(self) -> u8 {
+        match self {
+            VmTarget::Rbpf => 0,
+            VmTarget::FemtoContainer => 1,
+        }
+    }
+}
+
+impl From<u8> for VmTarget {
+    fn from(val: u8) -> Self {
+        match val {
+            0 => VmTarget::Rbpf,
+            1 => VmTarget::FemtoContainer,
+            _ => panic!("Unknown VM target: {}", val),
+        }
+    }
 }
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
@@ -76,7 +96,10 @@ impl VMExecutionOnCoapPktHandler {
         // Dynamically dispatch between the two different VM implementations
         // depending on the request data.
         let vm: Box<dyn VirtualMachine> = match request_data.vm_target {
-            VmTarget::Rbpf => Box::new(RbpfVm::new(Vec::from(middleware::ALL_HELPERS))),
+            VmTarget::Rbpf => Box::new(RbpfVm::new(
+                Vec::from(middleware::ALL_HELPERS),
+                request_data.binary_layout,
+            )),
             VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
@@ -132,7 +155,10 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         // Dynamically dispatch between the two different VM implementations
         // depending on the requested target VM.
         let vm: Box<dyn VirtualMachine> = match request_data.vm_target {
-            VmTarget::Rbpf => Box::new(RbpfVm::new(Vec::from(middleware::ALL_HELPERS))),
+            VmTarget::Rbpf => Box::new(RbpfVm::new(
+                Vec::from(middleware::ALL_HELPERS),
+                request_data.binary_layout,
+            )),
             VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
@@ -174,10 +200,8 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequest {
             suit_location: request_data.suit_location as u8,
-            vm_target: match request_data.vm_target {
-                VmTarget::Rbpf => 0,
-                VmTarget::FemtoContainer => 1,
-            },
+            vm_target: request_data.vm_target.into(),
+            binary_layout: request_data.binary_layout.into(),
         }) {
             info!("VM execution request sent successfully");
         } else {

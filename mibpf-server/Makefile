@@ -35,7 +35,7 @@ USEMODULE += suit_storage_ram
 USEMODULE += saul
 USEMODULE += saul_reg
 USEMODULE += saul_default
-USEMODULE += dht
+#USEMODULE += dht
 
 USEMODULE += fmt
 

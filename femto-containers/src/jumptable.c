@@ -360,8 +360,7 @@ MEM_LDDW_IMM:
 
 MEM_LDDWD_IMM:
     // For some reason an inlined call doesn't work
-    uint8_t *data_address = (uint8_t*)header + sizeof(f12r_header_t);
-    DST = data_address;
+    DST = (intptr_t)f12r_data(femtoc);
     DST += (uint64_t)instr->immediate;
     DST += ((uint64_t)((instr+1)->immediate)) << 32;
     instr++;
@@ -369,8 +368,7 @@ MEM_LDDWD_IMM:
 
 MEM_LDDWR_IMM:
     // For some reason an inlined call doesn't work
-    uint8_t *rodata_address = (uint8_t*)header + sizeof(f12r_header_t) + header->data_len;
-    DST = rodata_address;
+    DST = (intptr_t)f12r_rodata(femtoc);
     DST += (uint64_t)instr->immediate;
     DST += ((uint64_t)((instr+1)->immediate)) << 32;
     instr++;

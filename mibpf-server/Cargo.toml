@@ -18,6 +18,16 @@ lto = true
 codegen-units = 1
 opt-level = 3
 
+[profile.dev]
+# Setting the panic mode has little effect on the built code (as Rust on RIOT
+# supports no unwinding), but setting it allows builds on native without using
+# the nightly-only lang_items feature.
+panic = "abort"
+# This is a typical set of options that helps Rust binaries stay small
+lto = true
+codegen-units = 1
+opt-level = 3
+
 [dependencies]
 riot-wrappers = { version = "0.8.2", features = [ "set_panic_handler", "panic_handler_format", "with_coap_message", "with_coap_handler", "with_embedded_nal", "with_msg_v2", ] }
 riot-sys = { version = "0.7.10" }

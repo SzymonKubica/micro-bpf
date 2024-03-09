@@ -31,6 +31,9 @@ static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 
 riot_main!(main);
 
+#[no_mangle]
+extern "C" fn rust_eh_personality() {}
+
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     extern "C" {
         fn init_message_queue();

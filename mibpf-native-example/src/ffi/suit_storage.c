@@ -50,7 +50,8 @@ uint32_t load_bytes_from_suit_storage(uint8_t *buff, uint8_t *location_id)
 void initiate_suit_fetch(char *address, char *signed_manifest_name)
 {
     char suit_arg[70];
-    sprintf(suit_arg, "coap://[%s%%5]/%s", address, signed_manifest_name);
+    // TODO: make it possible to specify the board network interface in the request.
+    sprintf(suit_arg, "coap://[%s%%6]/%s", address, signed_manifest_name);
     LOG_DEBUG("Triggering the SUIT worker to fetch from %s on %s\n", address,
               signed_manifest_name);
     suit_worker_trigger(suit_arg, strlen(suit_arg));

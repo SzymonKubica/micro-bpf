@@ -11,12 +11,14 @@ use crate::vm::{VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE};
 pub fn shell_main(
     execution_send: &Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
 ) -> Result<(), ()> {
+
     extern "C" {
         fn init_message_queue();
     }
     // Initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping
     unsafe { init_message_queue() };
+
 
     let mut line_buf = [0u8; 128];
 

@@ -27,7 +27,6 @@ pub fn gcoap_server_main(
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint
     // and add it as a resource in the gcoap scope.
-
     // Example handlers
     let mut console_write_handler = GcoapHandler(handle_console_write_request());
     let mut riot_board_handler = GcoapHandler(handle_riot_board_query());

@@ -36,6 +36,13 @@ extern "C" fn rust_eh_personality() {}
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
+    extern "C" {
+        fn init_message_queue();
+    }
+    // Initialise the gnrc message queue to allow for using
+    // shell utilities such as ifconfig and ping
+    unsafe { init_message_queue() };
+
     // Initialise the logger
     if let Ok(()) = infra::logger::RiotLogger::init(log::LevelFilter::Debug) {
         info!("Logger initialised");
@@ -90,17 +97,20 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
                 error!("Failed to spawn CoAP server thread");
             }
 
+            /*
+             * For some reason the shell locks everything up
             if let Ok(shellthread) = threadscope.spawn(
                 shellthread_stacklock.as_mut(),
                 &mut shellthread_mainclosure,
                 cstr!("shellthread"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 2) as _,
+                (riot_sys::THREAD_PRIORITY_MAIN - 6) as _,
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) {
                 log_thread_spawned(&shellthread, "Shell");
             } else {
                 error!("Failed to spawn shell thread");
             }
+            */
 
             vm_manager.start();
         });

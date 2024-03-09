@@ -1,53 +1,44 @@
-gcoap used with Rust
-====================
+# Example Application for executing eBPF VMs running on a native target.
 
-This is the advanced Rust example; see ../rust-hello-world/ for the basics.
+This directory contains an example application allowing for testing the compile
+-load-execute workflow of eBPF programs on microcontrollers running RIOT.
+It is compatible with the `native` RIOT target which runs an instance of the OS
+directly on the host desktop machine.
 
-In extension to the basic example, it shows:
+## Quickstart guide
 
-* C code can be mixed with Rust code easily; any C file is built and linked
-  as in applications without Rust.
+1. Install dependencies for compilation
+   Because of rust-llvm compatibility issues, the preferred approach for building
+   this example is to use the BUILD_IN_DOCKER functionality provided by RIOT, in
+   order to use this, you need to have `docker` installed and then pull the latest
+   version of the RIOT build image required for building the project
+   ```
+   docker pull riot/riotbuild
+   ```
+2. Set up RIOT system base directory
+   You need to ensure that the path to the base directory of RIOT OS is specified
+   correctly at the top of the `Makefile` present in this directory. You can
+   adjust it by editing the line 7 in the file:
+   ```
+   RIOTBASE ?= $(CURDIR)/../RIOT
+   ```
+   In the example above, the compilation process expects that RIOT can be accessed
+   under ../RIOT relative to the current working directory.
+   Please ensure that after cloning the base `mibpf` repo, you have initialised
+   all git submodules using
+   ```
+   git submodule init
+   ```
+   Otherwise RIOT/ in the repo will be just an empty directory and the compilation
+   won't be successful.
+3. Compile and run the application binary
+4. Use `mibpf-tools` to compile, load and execute the program on the simulated
+   microcontroller (`native`)
 
-  While it's technically possible to have header files for that code,
-  it is easier (and likewise often done in C applications)
-  to just translate the entry function's signature manually,
-  as is done with the `do_vfs_init()` function.
 
-* Code of Rust applications can be spread out into modules,
-  even if it builds on RIOT components.
+The system image needs to be compiled in docker because of compatibility issues
+with `c2rust` that RIOT uses for compiling applications containing rust.
 
-  The CoAP handler built in the main function
-  combines generic CoAP components (from `coap_message_demos`)
-  with RIOT specific components (from `riot-coap-handler-demos`).
 
-* Many features of RIOT are exposed to Rust through the riot-wrappers crate,
-  which provides safe wrappers around RIOT structures.
 
-  In this example, the abovementioned CoAP handler is run on the gcoap server,
-  for which the wrappers provide adaptation to the platform independent handler interface.
 
-  Then, ztimer is used to sleep until the network interfaces are expected to be ready.
-
-  Finally, the available network interfaces are iterated over
-  and queried for their IP addresses,
-  which makes it easier (in absence of an interactive shell) to find which address CoAP requests can be directed at.
-
-How to use
-----------
-
-```
-$ make all flash term
-[...]
-main(): This is RIOT! (Version: 2022.01-devel-560-g7f8ed-rust-application)
-constfs mounted successfully
-CoAP server ready; waiting for interfaces to settle before reporting addresses...
-Active interface from PID KernelPID(6) ("gnrc_netdev_tap")
-    Address fe80:0000:0000:0000:1234:56ff:fe78:90ab
-    Address 2a02:0b18:c13b:8018:1234:56ff:fe78:90ab
-```
-
-Once that is ready, in a parallel shell, run:
-
-```
-$ aiocoap-client 'coap://[2a02:0b18:c13b:8018:1234:56ff:fe78:90ab]/.well-known/core'
-```

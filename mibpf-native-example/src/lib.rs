@@ -99,18 +99,18 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
             /*
              * For some reason the shell locks everything up
+             */
             if let Ok(shellthread) = threadscope.spawn(
                 shellthread_stacklock.as_mut(),
                 &mut shellthread_mainclosure,
                 cstr!("shellthread"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 6) as _,
+                (riot_sys::THREAD_PRIORITY_MAIN + 1) as _,
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) {
                 log_thread_spawned(&shellthread, "Shell");
             } else {
                 error!("Failed to spawn shell thread");
             }
-            */
 
             vm_manager.start();
         });

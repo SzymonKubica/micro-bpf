@@ -46,7 +46,6 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         println!("Failed to initialise logger");
     }
 
-    /*
     extern "C" {
         fn dht_test() -> c_int;
     }
@@ -56,7 +55,6 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     unsafe {
         dht_test();
     }
-    */
 
     // Initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping

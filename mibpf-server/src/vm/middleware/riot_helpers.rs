@@ -37,13 +37,10 @@ pub const BPF_DEBUG_PRINT_IDX: u32 = 0x03;
 pub const BPF_MEMCPY_IDX: u32 = 0x02;
 
 /* Key/value store functions */
-// TODO: implement store/fetch functions
-/*
 pub const BPF_STORE_LOCAL_IDX: u32 = 0x10;
 pub const BPF_STORE_GLOBAL_IDX: u32 = 0x11;
 pub const BPF_FETCH_LOCAL_IDX: u32 = 0x12;
 pub const BPF_FETCH_GLOBAL_IDX: u32 = 0x13;
-*/
 
 /* Saul functions */
 pub const BPF_SAUL_REG_FIND_NTH_IDX: u32 = 0x30;
@@ -97,6 +94,26 @@ pub fn bpf_printf(fmt: u64, a1: u64, a2: u64, a3: u64, a4: u64) -> u64 {
 pub fn bpf_print_debug(a1: u64, _unused2: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     println!("[DEBUG]: {a1}");
     return 0;
+}
+
+/* Key/value store functions - implementation */
+extern "C" {
+    fn bpf_store_update_global(key: u32, value: u32) -> i64;
+    fn bpf_store_fetch_global(key: u32, value: *mut u32) -> i64;
+}
+pub fn bpf_store_local(key: u64, value: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+    // Local store/fetch requires changing the VM interpreter to maintain the
+    // state of the key-value store btree and will require a bit more work.
+    unimplemented!()
+}
+pub fn bpf_store_global(key: u64, value: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+    unsafe { bpf_store_update_global(key as u32, value as u32) as u64 }
+}
+pub fn bpf_fetch_local(key: u64, value: u64,_unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+    unimplemented!()
+}
+pub fn bpf_fetch_global(key: u64, value: u64,_unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+    unsafe { bpf_store_fetch_global(key as u32, value as *mut u32) as u64 }
 }
 
 /* Standard library functions */
@@ -380,11 +397,15 @@ pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _unused4: u64, _unused5
 
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [HelperFunction; 20] = [
+pub const ALL_HELPERS: [HelperFunction; 24] = [
     // Print/debug helper functions
     HelperFunction::new(helpers::BPF_TRACE_PRINTK_IDX, helpers::bpf_trace_printf),
     HelperFunction::new(BPF_DEBUG_PRINT_IDX, bpf_print_debug),
     HelperFunction::new(BPF_PRINTF_IDX, bpf_printf),
+    HelperFunction::new(BPF_STORE_LOCAL_IDX, bpf_store_local),
+    HelperFunction::new(BPF_STORE_GLOBAL_IDX, bpf_store_global),
+    HelperFunction::new(BPF_FETCH_LOCAL_IDX, bpf_fetch_local),
+    HelperFunction::new(BPF_FETCH_GLOBAL_IDX, bpf_fetch_global),
     HelperFunction::new(BPF_MEMCPY_IDX, bpf_memcpy),
     // Time(r) functions
     HelperFunction::new(BPF_NOW_MS_IDX, bpf_now_ms),

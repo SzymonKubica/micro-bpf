@@ -31,12 +31,21 @@ static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 
 riot_main!(main);
 
+// This dummy implementaion is required because of a compliation bug which
+// complains about an undefined reference to rust_eh_personality. This shouldn't
+// be happening as the release profile of this application specifies panic="abort"
+// which means that we shouldn't need an eh_personality function.
 #[no_mangle]
 extern "C" fn rust_eh_personality() {}
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     extern "C" {
         fn init_message_queue();
+        fn bpf_store_init();
+    }
+
+    unsafe {
+        bpf_store_init();
     }
 
     // Initialise the logger
@@ -44,16 +53,6 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         info!("Logger initialised");
     } else {
         println!("Failed to initialise logger");
-    }
-
-    extern "C" {
-        fn dht_test() -> c_int;
-    }
-
-
-    println!("Initialising the DHT sensor...");
-    unsafe {
-        dht_test();
     }
 
     // Initialise the gnrc message queue to allow for using

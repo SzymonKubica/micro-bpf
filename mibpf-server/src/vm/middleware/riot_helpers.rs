@@ -109,10 +109,10 @@ pub fn bpf_store_local(key: u64, value: u64, _unused3: u64, _unused4: u64, _unus
 pub fn bpf_store_global(key: u64, value: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     unsafe { bpf_store_update_global(key as u32, value as u32) as u64 }
 }
-pub fn bpf_fetch_local(key: u64, value: u64,_unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+pub fn bpf_fetch_local(key: u64, value: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     unimplemented!()
 }
-pub fn bpf_fetch_global(key: u64, value: u64,_unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
+pub fn bpf_fetch_global(key: u64, value: u64, _unused3: u64, _unused4: u64, _unused5: u64) -> u64 {
     unsafe { bpf_store_fetch_global(key as u32, value as *mut u32) as u64 }
 }
 

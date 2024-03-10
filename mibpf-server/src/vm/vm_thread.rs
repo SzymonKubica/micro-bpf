@@ -87,7 +87,7 @@ impl VMExecutionManager {
         let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
 
         let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf, 0);
-        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::FemtoContainer, 1);
+        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf, 1);
 
         thread::scope(|threadscope| {
             let Ok(worker_0) = threadscope.spawn(

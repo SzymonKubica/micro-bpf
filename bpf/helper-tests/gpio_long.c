@@ -8,11 +8,11 @@ int gpio_write(void *ctx)
 {
     (void)ctx;
 
-    // PA7 corresponds to D12 to which LED is connected
+    // PA7 corresponds to D11 to which LED is connected
     // Port A
     uint32_t port_a = 0;
     // Pin 7
-    uint32_t pin = 6;
+    uint32_t pin = 7;
 
     // PD13 corresponds to D9 where the microphone send digital output
     // Port D

@@ -13,7 +13,6 @@ USEMODULE += netdev_default
 USEMODULE += auto_init_gnrc_netif
 USEMODULE += gnrc_ipv6_default
 USEMODULE += gnrc_icmpv6_echo
-USEMODULE += core_msg
 
 USEMODULE += ztimer
 USEMODULE += ztimer_usec
@@ -44,6 +43,11 @@ USEMODULE += progress_bar
 USEMODULE += vfs
 USEMODULE += constfs
 
+
+# Required to use the bpf global storage.
+USEMODULE += bpf
+USEMODULE += btree
+USEMODULE += memarray
 USEPKG += femto-container
 
 # Include the custom module with FFI functions that are used in the rust

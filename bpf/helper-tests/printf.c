@@ -8,8 +8,7 @@ const char FMT[] = "printf accepts up to 4 args: %d %d %d %d\n";
 int test_printf(void *ctx)
 {
 
-    // Here we use the macro to avoid defining the format string explicitly
-    print("printf accepts up to 4 args: %d %d %d %d\n", 1, 2, 3, 4);
+    bpf_printf("printf accepts up to 4 args: %d %d %d %d\n", 1, 2, 3, 4);
 
     // We can also use the helper directly, however in that case we need to
     // first declare the char[]

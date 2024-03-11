@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "../helpers.h"
 
+#define SHARED_KEY 0x50
 #define COAP_OPT_FINISH_PAYLOAD (0x0001)
 
 typedef struct {
@@ -19,7 +20,6 @@ typedef struct __attribute__((packed)) {
 
 int coap_test(bpf_coap_ctx_t *gcoap)
 {
-
     bpf_coap_pkt_t *pkt = gcoap->pkt;
     uint32_t counter = 123;
 
@@ -31,10 +31,12 @@ int coap_test(bpf_coap_ctx_t *gcoap)
     // functions correctly invoke the underlying coap functions.
     bpf_printf("Payload length: %d\n", pkt->payload_len);
 
+    // Find out why the stack overflows here
+
     unsigned code = (2 << 5) | 5;
     bpf_printf("Writing response code: %d\n", code);
 
-    bpf_gcoap_resp_init(gcoap, code);
+    bpf_gcoap_resp_init(gcoap, (2 << 5) | 5);
 
     // Check that the code has been written correctly
     coap_hdr_t *hdr = (coap_hdr_t *)(intptr_t)(pkt->hdr_p);
@@ -58,12 +60,8 @@ int coap_test(bpf_coap_ctx_t *gcoap)
 
     if (pkt->payload_len >= str_len) {
         bpf_memcpy(payload, stringified, str_len);
-        bpf_printf("Payload length + written string: %d\n", pdu_len + str_len);
-        //for (int i = 0; i < str_len; i++) {
-        //    bpf_printf("Payload[%d]: %d\n", i, payload[i]);
-        //}
         return pdu_len + str_len;
     }
 
-    return 100;
+    return -1;
 }

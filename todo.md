@@ -2,19 +2,15 @@
 # List of things to do:
 
 - update the bpf directory structure documentation and explanations
-
 - test all helpers implemented so far and cross check against FC
     - f12r_vm_coap_get_pdu;
 
-- fix it so that it runs on native as well.
 - fix the benchmark endpoint
 - clean up unused gcoap endpoints
-
-- modify rBPF to allow for switching between the two bytecode shape paradigms:
-  - just the text section
-  - full program with header, data, rodata, text + possibly aot compiled
-
 - update tools to allow for switching between the patching script backend.
+- build testsuite on native
+- clean up the logging situation with rBPF
+- make it so that most of the dev is done on native
 
 # Done:
 - investigate why gcoap finish call is broken (all fc gcoap and fmt helpers were
@@ -29,6 +25,11 @@
 - finish fixing compilation issues
 - write up the binary blob creation workflow
 - refactor bytecode patching script
+- fix it so that it runs on native as well.
+- modify rBPF to allow for switching between the two bytecode shape paradigms:
+  - just the text section
+  - full program with header, data, rodata, text + possibly aot compiled
+- add support for global storage
 
 
 # Discussion points after the meeting

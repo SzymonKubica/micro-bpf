@@ -14,6 +14,7 @@
 ## Things needed to make it work:
 -> support for at least 3 VMs executing in parallel (think about dynamic spawning)
 -> support bpf_store_global and ensure proper synchronisation
-   -> this requires a rewrite of the helper architecture in rbpf
+   -> this requires a rewrite of the helper architecture in rbpf (not necessarily, can call into the existing global impl)
+
 -> allow for killing / spawning VMs from the level of RIOT shell
 

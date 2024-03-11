@@ -65,9 +65,11 @@ struct VMExecutionOnCoapPktHandler {
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
         let request_data = self.handle_request(pkt);
-        let mut lengthwrapped = ResponseMessage::new(pkt);
-        self.build_response(&mut lengthwrapped, request_data);
-        lengthwrapped.finish()
+        //let mut lengthwrapped = ResponseMessage::new(pkt);
+        //self.build_response(&mut lengthwrapped, request_data);
+        //let length = lengthwrapped.finish();
+        //println!("Response length: {}", length);
+        131
     }
 }
 
@@ -111,7 +113,7 @@ impl VMExecutionOnCoapPktHandler {
     }
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
-        format_execution_response(self.execution_time, self.result, response, request);
+       format_execution_response(self.execution_time, self.result, response, request);
     }
 }
 

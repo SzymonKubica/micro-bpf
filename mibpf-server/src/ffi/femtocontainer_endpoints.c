@@ -161,6 +161,7 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_b
 
     f12r_mem_region_t mem_pdu;
     f12r_mem_region_t mem_pkt;
+    f12r_mem_region_t mem_buff;
 
     f12r_coap_ctx_t bpf_ctx = {
         .pkt = pdu,
@@ -174,6 +175,10 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_b
                     FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);
     f12r_add_region(&_bpf, &mem_pkt, pdu, sizeof(coap_pkt_t),
                     FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);
+    // Allow for reading and writing to the whole packet payload,
+    // TODO: remove
+    f12r_add_region(&_bpf, &mem_buff, pdu->payload, 512,
+                    FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);
 
     int64_t result = -1;
     LOG_INFO("[BPF handler]: executing VM\n");
@@ -185,7 +190,7 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_b
     uint32_t execution_time = end - start;
     *return_value = result;
 
-    LOG_INFO("Program returned: %d (%x)\n", result, result);
+    LOG_INFO("Program returned: %d (%x)\n", (int) result, result);
     LOG_INFO("Exit code: %d\n", res);
     LOG_INFO("Execution time: %d [us]\n", execution_time);
 

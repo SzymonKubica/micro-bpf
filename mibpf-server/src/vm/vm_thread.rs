@@ -4,9 +4,9 @@ use log::{debug, error};
 use riot_wrappers::{
     cstr::cstr,
     msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort},
-    mutex::Mutex,
+    mutex::{Mutex, MutexGuard},
     stdio::println,
-    thread,
+    thread::{self, CountedThread, CountingThreadScope},
 };
 
 use riot_sys;
@@ -87,9 +87,10 @@ impl VMExecutionManager {
         let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
 
         let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf, 0);
-        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::FemtoContainer, 1);
+        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf, 1);
 
         thread::scope(|threadscope| {
+            /*
             let Ok(worker_0) = threadscope.spawn(
                 slot_0_stacklock.as_mut(),
                 &mut slot_0_mainclosure,
@@ -100,8 +101,32 @@ impl VMExecutionManager {
                 error!("Failed to spawn VM worker 0");
                 panic!();
             };
+            */
+            let mut spawn_thread = |name: &str,
+                                stack: &'static mut MutexGuard<'_, [u8; 4096]>,
+                                closure,
+                                priority: u32| {
+                let Ok(thread) = threadscope.spawn(
+                    stack.as_mut(),
+                    closure,
+                    cstr!(name),
+                    (riot_sys::THREAD_PRIORITY_MAIN - priority) as _,
+                    (riot_sys::THREAD_CREATE_STACKTEST) as _,
+                ) else {
+                    let msg = format!("Failed to spawn {}", name);
+                    error!("{}", msg);
+                    panic!();
+                };
+                log_thread_spawned(&thread, name);
+                thread
+            };
 
-            log_thread_spawned(&worker_0, "VM worker 0");
+            let worker_0 = spawn_thread(
+                "VM worker 0",
+                &mut slot_0_stacklock,
+                &mut slot_0_mainclosure,
+                4,
+            );
 
             let Ok(worker_1) = threadscope.spawn(
                 slot_1_stacklock.as_mut(),
@@ -146,6 +171,28 @@ impl VMExecutionManager {
             }
         });
     }
+}
+
+fn spawn_thread<'env, 'id: 'env>(
+    threadscope: &mut CountingThreadScope<'env, 'id>,
+    name: &str,
+    stack: &'env mut MutexGuard<'_, [u8; 4096]>,
+    closure: &'env mut (impl Fn() + Send),
+    priority: u32,
+) -> CountedThread<'id> {
+    let Ok(thread) = threadscope.spawn(
+        stack.as_mut(),
+        closure,
+        cstr!(name),
+        (riot_sys::THREAD_PRIORITY_MAIN - priority) as _,
+        (riot_sys::THREAD_CREATE_STACKTEST) as _,
+    ) else {
+        let msg = format!("Failed to spawn {}", name);
+        error!("{}", msg);
+        panic!();
+    };
+    log_thread_spawned(&thread, name);
+    thread
 }
 
 fn vm_main_thread(target: VmTarget, suit_slot: u8) {

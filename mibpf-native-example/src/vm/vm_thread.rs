@@ -19,8 +19,8 @@ use crate::{
 
 use super::VmTarget;
 
-static VM_SLOT_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
-static VM_SLOT_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_SLOT_0_STACK: Mutex<[u8; 6000]> = Mutex::new([0; 6000]);
+static VM_SLOT_1_STACK: Mutex<[u8; 6000]> = Mutex::new([0; 6000]);
 
 /// Represents a request to execute an eBPF program on a particular VM. The
 /// suit_location is the index of the SUIT storage slot from which the program
@@ -87,14 +87,14 @@ impl VMExecutionManager {
         let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
 
         let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf, 0);
-        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::FemtoContainer, 1);
+        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf, 1);
 
         thread::scope(|threadscope| {
             let Ok(worker_0) = threadscope.spawn(
                 slot_0_stacklock.as_mut(),
                 &mut slot_0_mainclosure,
                 cstr!("VM worker 0"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 4) as _,
+                (riot_sys::THREAD_PRIORITY_MAIN + 1) as _,
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) else {
                 error!("Failed to spawn VM worker 0");
@@ -107,7 +107,7 @@ impl VMExecutionManager {
                 slot_1_stacklock.as_mut(),
                 &mut slot_1_mainclosure,
                 cstr!("VM worker 1"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 5) as _,
+                (riot_sys::THREAD_PRIORITY_MAIN + 2) as _,
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) else {
                 error!("Failed to spawn VM worker 1");
@@ -158,7 +158,7 @@ fn vm_main_thread(target: VmTarget, suit_slot: u8) {
         // We are unpacking the union msg_t__bindgen_ty_1 => unsafe
         let bytecode_layout_index = unsafe { msg.content.value };
 
-        let mut program_buffer: [u8; 1024] = [0; 1024];
+        let mut program_buffer: [u8; 1300] = [0; 1300];
 
         let program = suit_storage::load_program(&mut program_buffer, suit_slot as usize);
 

@@ -45,7 +45,12 @@ USEMODULE += progress_bar
 USEMODULE += vfs
 USEMODULE += constfs
 
+USEMODULE += bpf
+USEMODULE += btree
+USEMODULE += memarray
+
 USEPKG += femto-container
+
 
 # Include the custom module with FFI functions that are used in the rust
 # project

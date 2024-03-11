@@ -38,6 +38,7 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
     extern "C" {
         fn init_message_queue();
+        fn bpf_store_init();
     }
     // Initialise the gnrc message queue to allow for using
     // shell utilities such as ifconfig and ping
@@ -49,6 +50,10 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     } else {
         println!("Failed to initialise logger");
     }
+    unsafe {
+        bpf_store_init();
+    }
+
 
     /*
     extern "C" {
@@ -104,7 +109,7 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
                 shellthread_stacklock.as_mut(),
                 &mut shellthread_mainclosure,
                 cstr!("shellthread"),
-                (riot_sys::THREAD_PRIORITY_MAIN + 1) as _,
+                (riot_sys::THREAD_PRIORITY_MAIN + 3) as _,
                 (riot_sys::THREAD_CREATE_STACKTEST) as _,
             ) {
                 log_thread_spawned(&shellthread, "Shell");

@@ -14,7 +14,8 @@ use riot_sys::msg_t;
 
 use crate::{
     infra::suit_storage,
-    vm::{middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VirtualMachine}, spawn_thread,
+    spawn_thread,
+    vm::{middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
 
 use super::VmTarget;
@@ -59,7 +60,6 @@ pub struct VMExecutionManager {
         Processing<NoConfiguredMessages, VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>,
 }
 
-
 impl VMExecutionManager {
     pub fn new(message_semantics: NoConfiguredMessages) -> Self {
         let (message_semantics, receive_port, send_port): (_, VMExecutionRequestPort, _) =
@@ -84,6 +84,15 @@ impl VMExecutionManager {
     /// eBPF programs. It spawns worker threads and then sends messages to them to
     /// start executing long running eBPF programs.
     pub fn start(&self) {
+        extern "C" {
+            fn bpf_store_init();
+        }
+
+        // We need to initialise the global storage for the VM helpers.
+        // Currently we repurpose the Femto-Container implementation
+        unsafe {
+            bpf_store_init();
+        }
         let mut slot_0_stacklock = VM_SLOT_0_STACK.lock();
         let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
 

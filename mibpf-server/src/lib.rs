@@ -30,21 +30,7 @@ static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 
 riot_main!(main);
 
-// This dummy implementaion is required because of a compliation bug which
-// complains about an undefined reference to rust_eh_personality. This shouldn't
-// be happening as the release profile of this application specifies panic="abort"
-// which means that we shouldn't need an eh_personality function.
-#[no_mangle]
-extern "C" fn rust_eh_personality() {}
-
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
-    extern "C" {
-        fn bpf_store_init();
-    }
-
-    unsafe {
-        bpf_store_init();
-    }
 
     // Initialise the logger
     if let Ok(()) = util::logger::RiotLogger::init(log::LevelFilter::Debug) {
@@ -54,42 +40,29 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     }
 
     token.with_message_queue::<4, _>(|token| {
-        // We need message semantics for the vm thread
-        let (_, semantics) = token.take_msg_semantics();
-
         // The execution manager needs to take the message semantics to
         // open up the message channel for receiving message requests.
+        let (_, semantics) = token.take_msg_semantics();
         let vm_manager = vm::VMExecutionManager::new(semantics);
 
-        // We need to get a send port so that other threads can send messages to
+        // We need to initialize a send port so that other threads can send messages to
         // the main VM executor to request executing eBPF programs.
         let send_port = vm_manager.get_send_port();
 
         // We need to lock the stacks for all of the spawned threads.
-        let mut shellthread_stacklock = SHELL_THREAD_STACK.lock();
-        let mut gcoapthread_stacklock = COAP_THREAD_STACK.lock();
+        let mut shell_stack = SHELL_THREAD_STACK.lock();
+        let mut gcoap_stack = COAP_THREAD_STACK.lock();
 
         // Here we define the main functions that will be executed by the threads
-        let mut gcoapthread_mainclosure = || coap_server::gcoap_server_main(&send_port).unwrap();
-        let mut shellthread_mainclosure = || shell::shell_main(&send_port).unwrap();
+        let mut gcoap_main = || coap_server::gcoap_server_main(&send_port).unwrap();
+        let mut shell_main = || shell::shell_main(&send_port).unwrap();
 
+        let base_pri = riot_sys::THREAD_PRIORITY_MAIN;
         // Spawn the threads and then wait forever.
-        thread::scope(|threadscope| {
-            let gcoapthread = spawn_thread!(
-                threadscope,
-                "CoAP server",
-                gcoapthread_stacklock,
-                gcoapthread_mainclosure,
-                riot_sys::THREAD_PRIORITY_MAIN - 1
-            );
-
-            let shellthread = spawn_thread!(
-                threadscope,
-                "Shell",
-                shellthread_stacklock,
-                shellthread_mainclosure,
-                riot_sys::THREAD_PRIORITY_MAIN - 2
-            );
+        thread::scope(|scope| {
+            let gcoapthread =
+                spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, base_pri - 1);
+            let shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, base_pri + 2);
 
             vm_manager.start();
         });

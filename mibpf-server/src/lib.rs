@@ -19,9 +19,8 @@ use riot_wrappers::{cstr::cstr, mutex::Mutex, println, riot_main, thread};
 mod coap_server;
 mod infra;
 mod shell;
+mod util;
 mod vm;
-
-use crate::infra::log_thread_spawned;
 
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
@@ -40,7 +39,6 @@ extern "C" fn rust_eh_personality() {}
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     extern "C" {
-        fn init_message_queue();
         fn bpf_store_init();
     }
 
@@ -49,15 +47,11 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     }
 
     // Initialise the logger
-    if let Ok(()) = infra::logger::RiotLogger::init(log::LevelFilter::Debug) {
+    if let Ok(()) = util::logger::RiotLogger::init(log::LevelFilter::Debug) {
         info!("Logger initialised");
     } else {
         println!("Failed to initialise logger");
     }
-
-    // Initialise the gnrc message queue to allow for using
-    // shell utilities such as ifconfig and ping
-    unsafe { init_message_queue() };
 
     token.with_message_queue::<4, _>(|token| {
         // We need message semantics for the vm thread
@@ -81,29 +75,21 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
         // Spawn the threads and then wait forever.
         thread::scope(|threadscope| {
-            if let Ok(gcoapthread) = threadscope.spawn(
-                gcoapthread_stacklock.as_mut(),
-                &mut gcoapthread_mainclosure,
-                cstr!("secondthread"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 3) as _,
-                (riot_sys::THREAD_CREATE_STACKTEST) as _,
-            ) {
-                log_thread_spawned(&gcoapthread, "CoAP server");
-            } else {
-                error!("Failed to spawn CoAP server thread");
-            }
+            let gcoapthread = spawn_thread!(
+                threadscope,
+                "CoAP server",
+                gcoapthread_stacklock,
+                gcoapthread_mainclosure,
+                riot_sys::THREAD_PRIORITY_MAIN - 1
+            );
 
-            if let Ok(shellthread) = threadscope.spawn(
-                shellthread_stacklock.as_mut(),
-                &mut shellthread_mainclosure,
-                cstr!("shellthread"),
-                (riot_sys::THREAD_PRIORITY_MAIN - 2) as _,
-                (riot_sys::THREAD_CREATE_STACKTEST) as _,
-            ) {
-                log_thread_spawned(&shellthread, "Shell");
-            } else {
-                error!("Failed to spawn shell thread");
-            }
+            let shellthread = spawn_thread!(
+                threadscope,
+                "Shell",
+                shellthread_stacklock,
+                shellthread_mainclosure,
+                riot_sys::THREAD_PRIORITY_MAIN - 2
+            );
 
             vm_manager.start();
         });

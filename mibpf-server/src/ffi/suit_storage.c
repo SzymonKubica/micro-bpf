@@ -47,10 +47,10 @@ uint32_t load_bytes_from_suit_storage(uint8_t *buff, uint8_t *location_id)
     return length;
 }
 
-void initiate_suit_fetch(char *address, char *signed_manifest_name)
+void initiate_suit_fetch(char *address, int network_interface, char *signed_manifest_name)
 {
     char suit_arg[70];
-    sprintf(suit_arg, "coap://[%s%%5]/%s", address, signed_manifest_name);
+    sprintf(suit_arg, "coap://[%s%%%d]/%s", address, network_interface, signed_manifest_name);
     LOG_DEBUG("Triggering the SUIT worker to fetch from %s on %s\n", address,
               signed_manifest_name);
     suit_worker_trigger(suit_arg, strlen(suit_arg));

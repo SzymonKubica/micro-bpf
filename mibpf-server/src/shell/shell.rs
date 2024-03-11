@@ -13,6 +13,15 @@ pub fn shell_main(
 ) -> Result<(), ()> {
     let mut line_buf = [0u8; 128];
 
+    extern "C" {
+        fn init_message_queue();
+        fn bpf_store_init();
+    }
+
+    // Initialise the gnrc message queue to allow for using
+    // shell utilities such as ifconfig and ping
+    unsafe { init_message_queue() };
+
     // TODO: add the command to execute loaded bpf programs
     let commands = riot_shell_commands::all();
 

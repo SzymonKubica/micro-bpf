@@ -1,3 +1,5 @@
+use core::ffi::c_int;
+
 use alloc::format;
 
 // Currently, the interactions with SUIT storage are handled by functions written
@@ -5,7 +7,11 @@ use alloc::format;
 // riot_sys.
 
 extern "C" {
-    fn initiate_suit_fetch(adderss: *const u8, signed_manifest_name: *const u8);
+    fn initiate_suit_fetch(
+        adderss: *const u8,
+        network_interface: c_int,
+        signed_manifest_name: *const u8,
+    );
     /// Responsible for loading the bytecode from the SUIT ram storage.
     /// The application bytes are written into the buffer.
     fn load_bytes_from_suit_storage(buffer: *mut u8, location_id: *const u8) -> u32;
@@ -20,12 +26,12 @@ extern "C" {
 ///
 /// * `ip` - The IPv6 address of the machine hosting the fileserver
 /// * `manifest` - The name of the manifest file associated with the data to fetch
-pub fn suit_fetch(ip: &str, manifest: &str) {
+pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) {
     let ip_addr = format!("{}\0", ip);
     let suit_manifest = format!("{}\0", manifest);
-
+    let netif = network_interface.parse::<c_int>().unwrap();
     unsafe {
-        initiate_suit_fetch(ip_addr.as_ptr(), suit_manifest.as_ptr());
+        initiate_suit_fetch(ip_addr.as_ptr(), netif, suit_manifest.as_ptr());
     };
 }
 

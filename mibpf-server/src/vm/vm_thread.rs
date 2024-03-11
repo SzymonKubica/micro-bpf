@@ -13,8 +13,8 @@ use riot_sys;
 use riot_sys::msg_t;
 
 use crate::{
-    infra::{log_thread_spawned, suit_storage},
-    vm::{middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VirtualMachine},
+    infra::suit_storage,
+    vm::{middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VirtualMachine}, spawn_thread,
 };
 
 use super::VmTarget;
@@ -59,29 +59,6 @@ pub struct VMExecutionManager {
         Processing<NoConfiguredMessages, VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>,
 }
 
-/// Responsible for spawning a new thread using the given thread scope. The reason
-/// it can't be a plain function is that the threadscope is a mutable reference
-/// that is valid only inside of the scope closure, and so it can't be passed
-/// into a function. This macro allows for spawning multiple threads inside of
-/// a single scope without having to paste a lot of the boilerplate.
-#[macro_export]
-macro_rules! spawn_thread {
-    ($threadscope:expr, $name: expr, $stacklock:expr, $mainclosure:expr, $priority:expr ) => {{
-        let Ok(thread) = $threadscope.spawn(
-            $stacklock.as_mut(),
-            &mut $mainclosure,
-            cstr!($name),
-            (riot_sys::THREAD_PRIORITY_MAIN - $priority) as _,
-            (riot_sys::THREAD_CREATE_STACKTEST) as _,
-        ) else {
-            let msg = format!("Failed to spawn {}", $name);
-            error!("{}", msg);
-            panic!();
-        };
-        log_thread_spawned(&thread, $name);
-        thread
-    }};
-}
 
 impl VMExecutionManager {
     pub fn new(message_semantics: NoConfiguredMessages) -> Self {
@@ -119,7 +96,7 @@ impl VMExecutionManager {
                 "VM worker 0",
                 slot_0_stacklock,
                 slot_0_mainclosure,
-                4
+                riot_sys::THREAD_PRIORITY_MAIN - 4
             );
 
             let worker_1 = spawn_thread!(
@@ -127,7 +104,7 @@ impl VMExecutionManager {
                 "VM worker 1",
                 slot_1_stacklock,
                 slot_1_mainclosure,
-                5
+                riot_sys::THREAD_PRIORITY_MAIN - 5
             );
 
             loop {

@@ -17,6 +17,7 @@ pub struct SuitPullHandler {
 struct SuitPullRequest<'a> {
     pub ip_addr: &'a str,
     pub manifest: &'a str,
+    pub riot_network_interface: &'a str,
 }
 
 impl coap_handler::Handler for SuitPullHandler {
@@ -41,7 +42,7 @@ impl coap_handler::Handler for SuitPullHandler {
             return coap_numbers::code::BAD_REQUEST;
         };
 
-        suit_storage::suit_fetch(request_data.ip_addr, request_data.manifest);
+        suit_storage::suit_fetch(request_data.ip_addr, request_data.riot_network_interface, request_data.manifest);
 
         self.last_fetched_manifest = Some(String::from(request_data.manifest));
 

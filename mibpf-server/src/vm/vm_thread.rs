@@ -95,6 +95,7 @@ impl VMExecutionManager {
         unsafe {
             bpf_store_init();
         }
+
         let mut worker_0_stack = VM_WORKER_0_STACK.lock();
         let mut worker_1_stack = VM_WORKER_1_STACK.lock();
         let mut worker_2_stack = VM_WORKER_2_STACK.lock();

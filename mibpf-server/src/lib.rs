@@ -31,7 +31,6 @@ static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 riot_main!(main);
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
-
     // Initialise the logger
     if let Ok(()) = util::logger::RiotLogger::init(log::LevelFilter::Debug) {
         info!("Logger initialised");

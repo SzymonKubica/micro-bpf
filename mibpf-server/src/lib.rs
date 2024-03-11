@@ -49,21 +49,21 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         // the main VM executor to request executing eBPF programs.
         let send_port = vm_manager.get_send_port();
 
-        // We need to lock the stacks for all of the spawned threads.
         let mut shell_stack = SHELL_THREAD_STACK.lock();
         let mut gcoap_stack = COAP_THREAD_STACK.lock();
 
-        // Here we define the main functions that will be executed by the threads
+        // Because of the implementation details of the thread scope below, we
+        // need to declare the main closures of the threads here instead of
+        // inlining them.
         let mut gcoap_main = || coap_server::gcoap_server_main(&send_port).unwrap();
         let mut shell_main = || shell::shell_main(&send_port).unwrap();
 
         let base_pri = riot_sys::THREAD_PRIORITY_MAIN;
-        // Spawn the threads and then wait forever.
+
         thread::scope(|scope| {
             let gcoapthread =
                 spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, base_pri - 1);
             let shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, base_pri + 2);
-
             vm_manager.start();
         });
         unreachable!();

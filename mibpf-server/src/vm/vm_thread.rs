@@ -20,8 +20,10 @@ use crate::{
 
 use super::VmTarget;
 
-static VM_SLOT_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
-static VM_SLOT_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
 /// Represents a request to execute an eBPF program on a particular VM. The
 /// suit_location is the index of the SUIT storage slot from which the program
@@ -93,28 +95,29 @@ impl VMExecutionManager {
         unsafe {
             bpf_store_init();
         }
-        let mut slot_0_stacklock = VM_SLOT_0_STACK.lock();
-        let mut slot_1_stacklock = VM_SLOT_1_STACK.lock();
+        let mut worker_0_stack = VM_WORKER_0_STACK.lock();
+        let mut worker_1_stack = VM_WORKER_1_STACK.lock();
+        let mut worker_2_stack = VM_WORKER_2_STACK.lock();
+        let mut worker_3_stack = VM_WORKER_3_STACK.lock();
 
-        let mut slot_0_mainclosure = || vm_main_thread(VmTarget::Rbpf, 0);
-        let mut slot_1_mainclosure = || vm_main_thread(VmTarget::Rbpf, 1);
+        let mut worker_0_main = || vm_main_thread(VmTarget::Rbpf, 0);
+        let mut worker_1_main = || vm_main_thread(VmTarget::Rbpf, 1);
+        let mut worker_2_main = || vm_main_thread(VmTarget::FemtoContainer, 0);
+        let mut worker_3_main = || vm_main_thread(VmTarget::FemtoContainer, 1);
 
-        thread::scope(|threadscope| {
-            let worker_0 = spawn_thread!(
-                threadscope,
-                "VM worker 0",
-                slot_0_stacklock,
-                slot_0_mainclosure,
-                riot_sys::THREAD_PRIORITY_MAIN - 4
-            );
-
-            let worker_1 = spawn_thread!(
-                threadscope,
-                "VM worker 1",
-                slot_1_stacklock,
-                slot_1_mainclosure,
-                riot_sys::THREAD_PRIORITY_MAIN - 5
-            );
+        thread::scope(|ts| {
+            let base_pri = riot_sys::THREAD_PRIORITY_MAIN;
+            // All worker threads need to be spawned at the start because the
+            // thread scope doesn't allow for spawning new threads on the fly,
+            // we always need to know the number of threads at the start.
+            let worker_0 =
+                spawn_thread!(ts, "Worker 0", worker_0_stack, worker_0_main, base_pri - 4);
+            let worker_1 =
+                spawn_thread!(ts, "Worker 1", worker_1_stack, worker_1_main, base_pri - 3);
+            let worker_2 =
+                spawn_thread!(ts, "Worker 2", worker_2_stack, worker_2_main, base_pri - 2);
+            let worker_3 =
+                spawn_thread!(ts, "Worker 3", worker_3_stack, worker_3_main, base_pri - 1);
 
             loop {
                 let code = self
@@ -128,10 +131,13 @@ impl VMExecutionManager {
                             value: execution_request.binary_layout as u32,
                         };
                         // for now we route slot 0 to worker 0 and slot 1 to worker 1
-                        let worker = match execution_request.suit_location {
-                            0 => &worker_0,
-                            1 => &worker_1,
-                            _ => panic!("Invalid slot number"),
+                        let target = VmTarget::from(execution_request.vm_target);
+                        let worker = match (execution_request.suit_location, target) {
+                            (0, VmTarget::Rbpf) => &worker_0,
+                            (1, VmTarget::Rbpf) => &worker_1,
+                            (0, VmTarget::FemtoContainer) => &worker_0,
+                            (1, VmTarget::FemtoContainer) => &worker_1,
+                            _ => panic!("Invalid VM configuration "),
                         };
                         let pid: riot_sys::kernel_pid_t = worker.pid().into();
                         println!("Pid of the worker {}", pid);

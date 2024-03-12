@@ -20,10 +20,10 @@ use crate::{
 
 use super::VmTarget;
 
-static VM_WORKER_0_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
-static VM_WORKER_1_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
-static VM_WORKER_2_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
-static VM_WORKER_3_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
 /// Represents a request to execute an eBPF program on a particular VM. The
 /// suit_location is the index of the SUIT storage slot from which the program
@@ -135,17 +135,11 @@ impl VMExecutionManager {
                         let target = VmTarget::from(execution_request.vm_target);
                         let worker = match (execution_request.suit_location, target) {
                             (0, VmTarget::Rbpf) => &worker_0,
-                            (7, VmTarget::Rbpf) => &worker_0,
                             (1, VmTarget::Rbpf) => &worker_1,
-                            (0, VmTarget::FemtoContainer) => &worker_2,
-                            (1, VmTarget::FemtoContainer) => &worker_3,
+                            (0, VmTarget::FemtoContainer) => &worker_0,
+                            (1, VmTarget::FemtoContainer) => &worker_1,
                             _ => panic!("Invalid VM configuration "),
                         };
-                        // Quick hack to test out the killing
-                        if execution_request.suit_location == 7 {
-                            msg.content = riot_sys::msg_t__bindgen_ty_1 { value: 7 as u32 };
-                        }
-
                         let pid: riot_sys::kernel_pid_t = worker.pid().into();
                         println!("Pid of the worker {}", pid);
                         riot_sys::msg_send(&mut msg, pid);
@@ -170,58 +164,35 @@ fn vm_main_thread(target: VmTarget, suit_slot: u8) {
 
         // We are unpacking the union msg_t__bindgen_ty_1 => unsafe
         let bytecode_layout_index = unsafe { msg.content.value };
-        let mut vm_stack = [0u8; 4096];
 
-        let mut worker_mainclosure = || {
-            let mut program_buffer: [u8; 1024] = [0; 1024];
+        let mut program_buffer: [u8; 1024] = [0; 1024];
 
-            let program = suit_storage::load_program(&mut program_buffer, suit_slot as usize);
+        let program = suit_storage::load_program(&mut program_buffer, suit_slot as usize);
 
-            println!(
-                "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-                suit_slot,
-                program.len()
-            );
+        println!(
+            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
+            suit_slot,
+            program.len()
+        );
 
-            let bytecode_layout = BinaryFileLayout::from(bytecode_layout_index as u8);
-            // Dynamically dispatch between the two different VM implementations
-            // depending on the request data.
-            let vm: Box<dyn VirtualMachine> = match target {
-                VmTarget::Rbpf => Box::new(RbpfVm::new(
-                    Vec::from(middleware::ALL_HELPERS),
-                    bytecode_layout,
-                )),
-                VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
-            };
-
-            let mut result: i64 = 0;
-            let execution_time = vm.execute(&program, &mut result);
-
-            let resp = format!("Execution_time: {}, result: {}", execution_time, result);
-            println!("{}", &resp);
+        let bytecode_layout = BinaryFileLayout::from(bytecode_layout_index as u8);
+        // Dynamically dispatch between the two different VM implementations
+        // depending on the request data.
+        let vm: Box<dyn VirtualMachine> = match target {
+            VmTarget::Rbpf => Box::new(RbpfVm::new(
+                Vec::from(middleware::ALL_HELPERS),
+                bytecode_layout,
+            )),
+            VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
-        thread::scope(|ts| {
-            let base_pri = riot_sys::THREAD_PRIORITY_MAIN;
-            let vm_execution = spawn_thread!(
-                ts,
-                "VM Execution",
-                vm_stack,
-                worker_mainclosure,
-                base_pri - 3
-            );
-            let mut msg: msg_t = Default::default();
-            unsafe {
-                let _ = riot_sys::msg_receive(&mut msg);
-            }
-            let kill_signal = unsafe { msg.content.value };
-            if kill_signal == 7 {
-                unsafe {
-                    let pid = vm_execution.pid();
-                    riot_sys::thread_kill_zombie(pid.into());
-                }
-            }
-            ts.reap(vm_execution);
-        });
+        let mut result: i64 = 0;
+        let execution_time = vm.execute(&program, &mut result);
+
+        let resp = format!(
+            "Execution_time: {}, result: {}",
+            execution_time, result
+        );
+        println!("{}", &resp);
     }
 }

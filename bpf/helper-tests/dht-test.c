@@ -22,12 +22,20 @@ int test_saul_reg_find(void *ctx)
 
     bpf_saul_reg_t *dht_temp;
     bpf_saul_reg_t *dht_hum;
+    bpf_saul_reg_t *user_button;
     phydat_t temperature_data;
     phydat_t humidity_data;
+    phydat_t button_data;
 
     while (1) {
         dht_temp = bpf_saul_reg_find_type(SAUL_SENSE_TEMP);
         dht_hum = bpf_saul_reg_find_nth(5);
+        user_button = bpf_saul_reg_find_nth(3);
+        bpf_saul_reg_read(user_button, &button_data);
+        if (button_data.val[0] == 1) {
+            bpf_printf("Button pressed, terminating...\n");
+            return 0;
+        }
 
         bpf_saul_reg_read(dht_temp, &temperature_data);
 

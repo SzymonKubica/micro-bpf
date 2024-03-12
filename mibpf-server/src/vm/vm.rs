@@ -22,6 +22,16 @@ pub enum VmTarget {
     FemtoContainer,
 }
 
+impl From<u8> for VmTarget {
+    fn from(v: u8) -> Self {
+        match v {
+            0 => VmTarget::Rbpf,
+            1 => VmTarget::FemtoContainer,
+            _ => panic!("Invalid VmTarget value"),
+        }
+    }
+}
+
 impl FromStr for VmTarget {
     type Err = String;
 

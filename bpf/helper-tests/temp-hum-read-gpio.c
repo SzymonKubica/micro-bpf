@@ -62,7 +62,7 @@ int set_led_given_dht_data(void *ctx)
 
 void handle_temperature_data(uint16_t temp)
 {
-    if (temp > 250) {
+    if (temp > 220) {
         set_led(2, ON);
         set_led(1, OFF);
         set_led(0, OFF);
@@ -83,7 +83,7 @@ void handle_humidity_data(uint16_t hum)
     // so 80% is represented as 800
     // The led 3 is wired pull down and so to turn in on we need to write
     // to the pin high
-    if (hum > 800) {
+    if (hum > 650) {
         set_led(3, 4096);
     } else {
         set_led(3, 0);

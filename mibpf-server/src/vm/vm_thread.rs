@@ -27,6 +27,32 @@ static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
+pub struct VMExecutionRequest {
+    pub suit_slot: usize,
+    pub vm_target: VmTarget,
+    pub binary_layout: BinaryFileLayout,
+}
+
+impl VMExecutionRequest {
+    pub fn new(suit_location: usize, vm_target: VmTarget, binary_layout: BinaryFileLayout) -> Self {
+        VMExecutionRequest {
+            suit_slot: suit_location,
+            vm_target,
+            binary_layout,
+        }
+    }
+}
+
+impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
+    fn from(request: &VMExecutionRequestMsg) -> Self {
+        VMExecutionRequest {
+            suit_slot: request.suit_location as usize,
+            vm_target: VmTarget::from(request.vm_target),
+            binary_layout: BinaryFileLayout::from(request.binary_layout),
+        }
+    }
+}
+
 /// Represents a request to execute an eBPF program on a particular VM. The
 /// suit_location is the index of the SUIT storage slot from which the program
 /// should be loaded. For instance, 0 corresponds to '.ram.0'. The vm_target
@@ -38,35 +64,36 @@ static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 /// in the loaded program
 #[derive(Debug, Clone)]
 #[repr(C, packed)]
-pub struct VMExecutionRequest {
+
+pub struct VMExecutionRequestMsg {
     pub suit_location: u8,
     pub vm_target: u8,
     pub binary_layout: u8,
 }
 
-impl Into<msg_t> for VMExecutionRequest {
+impl Into<msg_t> for VMExecutionRequestMsg {
     fn into(mut self) -> msg_t {
         let mut msg: msg_t = Default::default();
         msg.type_ = 0;
         // The content of the message specifies which SUIT slot to load from
         msg.content = riot_sys::msg_t__bindgen_ty_1 {
-            ptr: &mut self as *mut VMExecutionRequest as *mut c_void,
+            ptr: &mut self as *mut VMExecutionRequestMsg as *mut c_void,
         };
         msg
     }
 }
 
-impl From<msg_t> for &VMExecutionRequest {
+impl From<msg_t> for &VMExecutionRequestMsg {
     fn from(msg: msg_t) -> Self {
-        let execution_request_ptr: *mut VMExecutionRequest =
-            unsafe { msg.content.ptr as *mut VMExecutionRequest };
+        let execution_request_ptr: *mut VMExecutionRequestMsg =
+            unsafe { msg.content.ptr as *mut VMExecutionRequestMsg };
         unsafe { &*execution_request_ptr }
     }
 }
 
 // We need to implement Drop for the execution request so that it can be
 // dealocated after it is decoded an processed in the message channel.
-impl Drop for VMExecutionRequest {
+impl Drop for VMExecutionRequestMsg {
     fn drop(&mut self) {
         debug!("Dropping {:?} now.", self);
     }
@@ -74,15 +101,15 @@ impl Drop for VMExecutionRequest {
 
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;
-pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequest, VM_EXEC_REQUEST>;
+pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequestMsg, VM_EXEC_REQUEST>;
 
 /// Responsible for managing execution of long-running eBPF programs. It receives
 /// messages from other parts of the system that are requesting that a particular
 /// instance of the VM should be started and execute a specified program.
 pub struct VMExecutionManager {
     receive_port: VMExecutionRequestPort,
-    send_port: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>>,
-    message_semantics: Processing<NoConfiguredMessages, VMExecutionRequest, VM_EXEC_REQUEST>,
+    send_port: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    message_semantics: Processing<NoConfiguredMessages, VMExecutionRequestMsg, VM_EXEC_REQUEST>,
 }
 
 impl VMExecutionManager {
@@ -99,7 +126,7 @@ impl VMExecutionManager {
 
     /// Returns an atomically-counted reference to the send end of the message
     /// channel for sending requests to execute eBPF programs.
-    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>> {
+    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>> {
         self.send_port.clone()
     }
 
@@ -173,29 +200,22 @@ fn vm_main_thread() {
         unsafe {
             let _ = riot_sys::msg_receive(&mut msg);
         }
-
-        let execution_request: &VMExecutionRequest = msg.into();
+        let execution_request_msg: &VMExecutionRequestMsg = msg.into();
+        let execution_request = VMExecutionRequest::from(execution_request_msg);
 
         let mut program_buffer: [u8; 1024] = [0; 1024];
-
-        let program = suit_storage::load_program(
-            &mut program_buffer,
-            execution_request.suit_location as usize,
-        );
+        let program = suit_storage::load_program(&mut program_buffer, execution_request.suit_slot);
 
         info!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            execution_request.suit_location,
+            execution_request.suit_slot,
             program.len()
         );
 
-        let bytecode_layout = BinaryFileLayout::from(execution_request.binary_layout);
-        // Dynamically dispatch between the two different VM implementations
-        // depending on the request data.
-        let vm: Box<dyn VirtualMachine> = match VmTarget::from(execution_request.vm_target) {
+        let vm: Box<dyn VirtualMachine> = match execution_request.vm_target {
             VmTarget::Rbpf => Box::new(RbpfVm::new(
                 Vec::from(middleware::ALL_HELPERS),
-                bytecode_layout,
+                execution_request.binary_layout,
             )),
             VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
         };

@@ -16,7 +16,7 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 use crate::{
     infra::suit_storage,
     vm::{
-        middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VMExecutionRequest,
+        middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VMExecutionRequestMsg,
         VirtualMachine, VM_EXEC_REQUEST,
     },
 };
@@ -187,7 +187,7 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
 
 struct VMLongExecutionHandler {
     execution_send:
-        Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, VM_EXEC_REQUEST>>>,
+        Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {
@@ -200,7 +200,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             Err(code) => return code,
         };
 
-        if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequest {
+        if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
             suit_location: request_data.suit_location as u8,
             vm_target: request_data.vm_target.into(),
             binary_layout: request_data.binary_layout.into(),
@@ -225,7 +225,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 }
 
 pub fn spawn_vm_execution(
-    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequest, 23>>>,
+    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, 23>>>,
 ) -> impl coap_handler::Handler {
     VMLongExecutionHandler { execution_send }
 }

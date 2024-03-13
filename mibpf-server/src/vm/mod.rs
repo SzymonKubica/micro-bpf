@@ -4,7 +4,7 @@ pub mod rbpf_vm;
 mod vm_thread;
 mod femtocontainer_vm;
 pub mod middleware;
-pub use vm_thread::VMExecutionRequest;
+pub use vm_thread::VMExecutionRequestMsg;
 pub use vm::VirtualMachine;
 pub use rbpf_vm::RbpfVm;
 pub use femtocontainer_vm::FemtoContainerVm;

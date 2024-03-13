@@ -18,11 +18,11 @@ use crate::{
         execute_vm_no_data, execute_vm_on_coap_pkt, handle_console_write_request,
         handle_riot_board_query, handle_suit_pull_request, spawn_vm_execution,
     },
-    vm::{VMExecutionRequest, VM_EXEC_REQUEST},
+    vm::{VMExecutionRequestMsg, VM_EXEC_REQUEST},
 };
 
 pub fn gcoap_server_main(
-    execution_send: &Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>>,
+    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
 ) -> Result<(), ()> {
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint

@@ -2,15 +2,15 @@ use alloc::sync::Arc;
 use core::{fmt::Write, str::FromStr};
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
-use crate::vm::{rbpf_vm::BinaryFileLayout, VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE};
+use crate::vm::{rbpf_vm::BinaryFileLayout, VMExecutionRequest, VM_EXEC_REQUEST};
 
 pub struct VMExecutionShellCommandHandler {
-    execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
+    execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>>,
 }
 
 impl VMExecutionShellCommandHandler {
     pub fn new(
-        execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
+        execution_send: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>>,
     ) -> Self {
         Self { execution_send }
     }

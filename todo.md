@@ -10,7 +10,6 @@
 - update tools to allow for switching between the patching script backend.
 - build testsuite on native
 - clean up the logging situation with rBPF
-- make it so that most of the dev is done on native
 
 # Done:
 - investigate why gcoap finish call is broken (all fc gcoap and fmt helpers were
@@ -30,6 +29,7 @@
   - just the text section
   - full program with header, data, rodata, text + possibly aot compiled
 - add support for global storage
+- make it so that most of the dev is done on native
 
 
 # Discussion points after the meeting

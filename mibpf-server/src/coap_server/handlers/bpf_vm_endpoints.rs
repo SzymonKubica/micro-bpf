@@ -17,7 +17,7 @@ use crate::{
     infra::suit_storage,
     vm::{
         middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VMExecutionRequest,
-        VirtualMachine, VM_EXECUTION_REQUEST_TYPE,
+        VirtualMachine, VM_EXEC_REQUEST,
     },
 };
 
@@ -187,7 +187,7 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
 
 struct VMLongExecutionHandler {
     execution_send:
-        Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
+        Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequest, VM_EXEC_REQUEST>>>,
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {

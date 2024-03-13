@@ -1,5 +1,7 @@
+use core::ffi::c_void;
+
 use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
-use log::{debug, error};
+use log::{debug, error, info};
 
 use riot_wrappers::{
     cstr::cstr,
@@ -35,10 +37,31 @@ static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 /// send. It also specifies the binary layout format that the VM should expect
 /// in the loaded program
 #[derive(Debug, Clone)]
+#[repr(C, packed)]
 pub struct VMExecutionRequest {
     pub suit_location: u8,
     pub vm_target: u8,
     pub binary_layout: u8,
+}
+
+impl Into<msg_t> for VMExecutionRequest {
+    fn into(mut self) -> msg_t {
+        let mut msg: msg_t = Default::default();
+        msg.type_ = 0;
+        // The content of the message specifies which SUIT slot to load from
+        msg.content = riot_sys::msg_t__bindgen_ty_1 {
+            ptr: &mut self as *mut VMExecutionRequest as *mut c_void,
+        };
+        msg
+    }
+}
+
+impl From<msg_t> for &VMExecutionRequest {
+    fn from(msg: msg_t) -> Self {
+        let execution_request_ptr: *mut VMExecutionRequest =
+            unsafe { msg.content.ptr as *mut VMExecutionRequest };
+        unsafe { &*execution_request_ptr }
+    }
 }
 
 // We need to implement Drop for the execution request so that it can be
@@ -63,7 +86,7 @@ pub struct VMExecutionManager {
 }
 
 impl VMExecutionManager {
-    pub fn new(message_semantics: riot_wrappers::thread::TokenParts) -> Self {
+    pub fn new(message_semantics: NoConfiguredMessages) -> Self {
         let (message_semantics, receive_port, send_port): (_, VMExecutionRequestPort, _) =
             message_semantics.split_off();
 
@@ -99,10 +122,10 @@ impl VMExecutionManager {
         let mut worker_2_stack = VM_WORKER_2_STACK.lock();
         let mut worker_3_stack = VM_WORKER_3_STACK.lock();
 
-        let mut worker_0_main = || vm_main_thread(VmTarget::Rbpf, 0);
-        let mut worker_1_main = || vm_main_thread(VmTarget::Rbpf, 1);
-        let mut worker_2_main = || vm_main_thread(VmTarget::FemtoContainer, 0);
-        let mut worker_3_main = || vm_main_thread(VmTarget::FemtoContainer, 1);
+        let mut worker_0_main = || vm_main_thread();
+        let mut worker_1_main = || vm_main_thread();
+        let mut worker_2_main = || vm_main_thread();
+        let mut worker_3_main = || vm_main_thread();
 
         thread::scope(|ts| {
             let pri = riot_sys::THREAD_PRIORITY_MAIN;
@@ -118,13 +141,7 @@ impl VMExecutionManager {
                 let code = self
                     .message_semantics
                     .receive()
-                    .decode(&self.receive_port, |_s, execution_request| unsafe {
-                        let mut msg: msg_t = Default::default();
-                        msg.type_ = 0;
-                        // The content of the message specifies which SUIT slot to load from
-                        msg.content = riot_sys::msg_t__bindgen_ty_1 {
-                            value: execution_request.binary_layout as u32,
-                        };
+                    .decode(&self.receive_port, |_s, mut execution_request| unsafe {
                         // for now we route slot 0 to worker 0 and slot 1 to worker 1
                         let target = VmTarget::from(execution_request.vm_target);
                         let worker = match (execution_request.suit_location, target) {
@@ -135,7 +152,8 @@ impl VMExecutionManager {
                             _ => panic!("Invalid VM configuration "),
                         };
                         let pid: riot_sys::kernel_pid_t = worker.pid().into();
-                        println!("Pid of the worker {}", pid);
+                        info!("Sending execution request to the worker with PID: {}", pid);
+                        let mut msg: msg_t = execution_request.into();
                         riot_sys::msg_send(&mut msg, pid);
                     })
                     .unwrap_or_else(|_m| {
@@ -149,30 +167,32 @@ impl VMExecutionManager {
     }
 }
 
-fn vm_main_thread(target: VmTarget, suit_slot: u8) {
+fn vm_main_thread() {
     loop {
         let mut msg: msg_t = Default::default();
         unsafe {
             let _ = riot_sys::msg_receive(&mut msg);
         }
 
-        // We are unpacking the union msg_t__bindgen_ty_1 => unsafe
-        let bytecode_layout_index = unsafe { msg.content.value };
+        let execution_request: &VMExecutionRequest = msg.into();
 
         let mut program_buffer: [u8; 1024] = [0; 1024];
 
-        let program = suit_storage::load_program(&mut program_buffer, suit_slot as usize);
+        let program = suit_storage::load_program(
+            &mut program_buffer,
+            execution_request.suit_location as usize,
+        );
 
-        println!(
+        info!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            suit_slot,
+            execution_request.suit_location,
             program.len()
         );
 
-        let bytecode_layout = BinaryFileLayout::from(bytecode_layout_index as u8);
+        let bytecode_layout = BinaryFileLayout::from(execution_request.binary_layout);
         // Dynamically dispatch between the two different VM implementations
         // depending on the request data.
-        let vm: Box<dyn VirtualMachine> = match target {
+        let vm: Box<dyn VirtualMachine> = match VmTarget::from(execution_request.vm_target) {
             VmTarget::Rbpf => Box::new(RbpfVm::new(
                 Vec::from(middleware::ALL_HELPERS),
                 bytecode_layout,

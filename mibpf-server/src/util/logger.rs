@@ -1,4 +1,4 @@
-use log::{debug, set_logger, set_max_level, LevelFilter, Log, Metadata, Record, SetLoggerError};
+use log::{debug, set_logger, set_max_level, LevelFilter, Log, Metadata, Record, SetLoggerError, info};
 use riot_wrappers::{println, thread::CountedThread};
 
 /* Because we are running under no_std, we cannot use the set_boxed_logger
@@ -17,6 +17,14 @@ static TRACE_LOGGER: RiotLogger = RiotLogger::new(LevelFilter::Trace);
 /// println! macro.
 pub struct RiotLogger {
     level: LevelFilter,
+}
+
+pub fn initialise_logger() {
+    if let Ok(()) = RiotLogger::init(log::LevelFilter::Debug) {
+        info!("Logger initialised");
+    } else {
+        println!("Failed to initialise logger");
+    }
 }
 
 impl RiotLogger {
@@ -54,7 +62,6 @@ impl Log for RiotLogger {
 
     fn flush(&self) {}
 }
-
 
 pub fn log_thread_spawned(thread: &CountedThread, thread_name: &str) {
     debug!(

@@ -31,13 +31,10 @@ static SHELL_THREAD_STACK: Mutex<[u8; 5120]> = Mutex::new([0; 5120]);
 riot_main!(main);
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
-    // Initialise the logger
-    if let Ok(()) = util::logger::RiotLogger::init(log::LevelFilter::Debug) {
-        info!("Logger initialised");
-    } else {
-        println!("Failed to initialise logger");
-    }
+    util::logger::initialise_logger();
 
+    // We need to initialise the message queue so that the CoAP server can send
+    // requests to the VM executor responsible for spawning instances of the VM.
     token.with_message_queue::<4, _>(|token| {
         // The execution manager needs to take the message semantics to
         // open up the message channel for receiving message requests.
@@ -57,12 +54,11 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         let mut gcoap_main = || coap_server::gcoap_server_main(&send_port).unwrap();
         let mut shell_main = || shell::shell_main(&send_port).unwrap();
 
-        let base_pri = riot_sys::THREAD_PRIORITY_MAIN;
+        let pri = riot_sys::THREAD_PRIORITY_MAIN;
 
         thread::scope(|scope| {
-            let gcoapthread =
-                spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, base_pri - 1);
-            let shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, base_pri + 2);
+            let gcoapthread = spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 1);
+            let shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
             vm_manager.start();
         });
         unreachable!();

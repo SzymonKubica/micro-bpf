@@ -49,21 +49,21 @@ impl Drop for VMExecutionRequest {
     }
 }
 
-pub const VM_EXECUTION_REQUEST_TYPE: u16 = 23;
-pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>;
+/// The unique identifier of the request type used to start the execution of the VM.
+pub const VM_EXEC_REQUEST: u16 = 23;
+pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequest, VM_EXEC_REQUEST>;
 
 /// Responsible for managing execution of long-running eBPF programs. It receives
 /// messages from other parts of the system that are requesting that a particular
 /// instance of the VM should be started and execute a specified program.
 pub struct VMExecutionManager {
     receive_port: VMExecutionRequestPort,
-    send_port: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>>,
-    message_semantics:
-        Processing<NoConfiguredMessages, VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>,
+    send_port: Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>>,
+    message_semantics: Processing<NoConfiguredMessages, VMExecutionRequest, VM_EXEC_REQUEST>,
 }
 
 impl VMExecutionManager {
-    pub fn new(message_semantics: NoConfiguredMessages) -> Self {
+    pub fn new(message_semantics: riot_wrappers::thread::TokenParts) -> Self {
         let (message_semantics, receive_port, send_port): (_, VMExecutionRequestPort, _) =
             message_semantics.split_off();
 
@@ -76,9 +76,7 @@ impl VMExecutionManager {
 
     /// Returns an atomically-counted reference to the send end of the message
     /// channel for sending requests to execute eBPF programs.
-    pub fn get_send_port(
-        &self,
-    ) -> Arc<Mutex<SendPort<VMExecutionRequest, VM_EXECUTION_REQUEST_TYPE>>> {
+    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<VMExecutionRequest, VM_EXEC_REQUEST>>> {
         self.send_port.clone()
     }
 
@@ -107,18 +105,14 @@ impl VMExecutionManager {
         let mut worker_3_main = || vm_main_thread(VmTarget::FemtoContainer, 1);
 
         thread::scope(|ts| {
-            let base_pri = riot_sys::THREAD_PRIORITY_MAIN;
+            let pri = riot_sys::THREAD_PRIORITY_MAIN;
             // All worker threads need to be spawned at the start because the
             // thread scope doesn't allow for spawning new threads on the fly,
             // we always need to know the number of threads at the start.
-            let worker_0 =
-                spawn_thread!(ts, "Worker 0", worker_0_stack, worker_0_main, base_pri - 4);
-            let worker_1 =
-                spawn_thread!(ts, "Worker 1", worker_1_stack, worker_1_main, base_pri - 3);
-            let worker_2 =
-                spawn_thread!(ts, "Worker 2", worker_2_stack, worker_2_main, base_pri - 2);
-            let worker_3 =
-                spawn_thread!(ts, "Worker 3", worker_3_stack, worker_3_main, base_pri - 1);
+            let worker_0 = spawn_thread!(ts, "Worker 0", worker_0_stack, worker_0_main, pri - 4);
+            let worker_1 = spawn_thread!(ts, "Worker 1", worker_1_stack, worker_1_main, pri - 3);
+            let worker_2 = spawn_thread!(ts, "Worker 2", worker_2_stack, worker_2_main, pri - 2);
+            let worker_3 = spawn_thread!(ts, "Worker 3", worker_3_stack, worker_3_main, pri - 1);
 
             loop {
                 let code = self
@@ -136,8 +130,8 @@ impl VMExecutionManager {
                         let worker = match (execution_request.suit_location, target) {
                             (0, VmTarget::Rbpf) => &worker_0,
                             (1, VmTarget::Rbpf) => &worker_1,
-                            (0, VmTarget::FemtoContainer) => &worker_0,
-                            (1, VmTarget::FemtoContainer) => &worker_1,
+                            (0, VmTarget::FemtoContainer) => &worker_2,
+                            (1, VmTarget::FemtoContainer) => &worker_3,
                             _ => panic!("Invalid VM configuration "),
                         };
                         let pid: riot_sys::kernel_pid_t = worker.pid().into();
@@ -189,10 +183,7 @@ fn vm_main_thread(target: VmTarget, suit_slot: u8) {
         let mut result: i64 = 0;
         let execution_time = vm.execute(&program, &mut result);
 
-        let resp = format!(
-            "Execution_time: {}, result: {}",
-            execution_time, result
-        );
+        let resp = format!("Execution_time: {}, result: {}", execution_time, result);
         println!("{}", &resp);
     }
 }

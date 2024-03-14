@@ -81,3 +81,11 @@ impl Drop for VMExecutionRequestMsg {
         debug!("Dropping {:?} now.", self);
     }
 }
+
+
+/// Responsible for notifying the VM manager that the execution of a given
+/// VM is finished and the worker can be allocated a new job.
+#[derive(Debug, Clone)]
+pub struct VMExecutionCompleteMsg {
+    pub worker_pid: i16,
+}

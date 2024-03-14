@@ -16,44 +16,10 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 use crate::{
     infra::suit_storage,
     vm::{
-        middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VMExecutionRequestMsg,
+        middleware, FemtoContainerVm, RbpfVm,
         VirtualMachine, VM_EXEC_REQUEST,
-    },
+    }, model::{requests::{VMExecutionRequestMsg, VMExecutionRequest}, enumerations::TargetVM},
 };
-
-/// The handler expects to receive a request that contains a vm_target
-/// and the SUIT storage location from where to load the program.
-#[derive(Deserialize)]
-struct RequestData {
-    pub vm_target: VmTarget,
-    pub binary_layout: BinaryFileLayout,
-    pub suit_location: usize,
-}
-
-#[derive(Deserialize)]
-enum VmTarget {
-    Rbpf,
-    FemtoContainer,
-}
-
-impl Into<u8> for VmTarget {
-    fn into(self) -> u8 {
-        match self {
-            VmTarget::Rbpf => 0,
-            VmTarget::FemtoContainer => 1,
-        }
-    }
-}
-
-impl From<u8> for VmTarget {
-    fn from(val: u8) -> Self {
-        match val {
-            0 => VmTarget::Rbpf,
-            1 => VmTarget::FemtoContainer,
-            _ => panic!("Unknown VM target: {}", val),
-        }
-    }
-}
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
 /// to the executed program. The eBPF script can access the CoAP packet data.
@@ -87,22 +53,22 @@ impl VMExecutionOnCoapPktHandler {
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
-        let program = suit_storage::load_program(&mut program_buffer, request_data.suit_location);
+        let program = suit_storage::load_program(&mut program_buffer, request_data.suit_slot);
 
         println!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            request_data.suit_location,
+            request_data.suit_slot,
             program.len()
         );
 
         // Dynamically dispatch between the two different VM implementations
         // depending on the request data.
         let vm: Box<dyn VirtualMachine> = match request_data.vm_target {
-            VmTarget::Rbpf => Box::new(RbpfVm::new(
+            TargetVM::Rbpf => Box::new(RbpfVm::new(
                 Vec::from(middleware::ALL_HELPERS),
                 request_data.binary_layout,
             )),
-            VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
         self.execution_time = vm.execute_on_coap_pkt(&program, request, &mut self.result);
@@ -146,22 +112,22 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
-        let program = suit_storage::load_program(&mut program_buffer, request_data.suit_location);
+        let program = suit_storage::load_program(&mut program_buffer, request_data.suit_slot);
 
         debug!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            request_data.suit_location,
+            request_data.suit_slot,
             program.len()
         );
 
         // Dynamically dispatch between the two different VM implementations
         // depending on the requested target VM.
         let vm: Box<dyn VirtualMachine> = match request_data.vm_target {
-            VmTarget::Rbpf => Box::new(RbpfVm::new(
+            TargetVM::Rbpf => Box::new(RbpfVm::new(
                 Vec::from(middleware::ALL_HELPERS),
                 request_data.binary_layout,
             )),
-            VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
         self.execution_time = vm.execute(&program, &mut self.result);
@@ -187,7 +153,7 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
 
 struct VMLongExecutionHandler {
     execution_send:
-        Arc<Mutex<msg::SendPort<crate::vm::VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+        Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {
@@ -201,7 +167,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
         };
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
-            suit_location: request_data.suit_location as u8,
+            suit_slot: request_data.suit_slot as u8,
             vm_target: request_data.vm_target.into(),
             binary_layout: request_data.binary_layout.into(),
         }) {
@@ -246,7 +212,7 @@ fn format_execution_response(
     response.set_payload(resp.as_bytes());
 }
 
-fn preprocess_request(request: &impl ReadableMessage) -> Result<RequestData, u8> {
+fn preprocess_request(request: &impl ReadableMessage) -> Result<VMExecutionRequest, u8> {
     if request.code().into() != coap_numbers::code::POST {
         return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
     }
@@ -258,7 +224,7 @@ fn preprocess_request(request: &impl ReadableMessage) -> Result<RequestData, u8>
     };
 
     println!("Request payload received: {}", s);
-    let Ok((request_data, _length)): Result<(RequestData, usize), _> = serde_json_core::from_str(s)
+    let Ok((request_data, _length)): Result<(VMExecutionRequest, usize), _> = serde_json_core::from_str(s)
     else {
         return Err(coap_numbers::code::BAD_REQUEST);
     };

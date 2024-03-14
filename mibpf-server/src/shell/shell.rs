@@ -5,8 +5,9 @@ use riot_wrappers::shell::CommandList;
 
 use riot_wrappers::cstr::cstr;
 
+use crate::model::requests::VMExecutionRequestMsg;
 use crate::shell::{bpf_command, gpio_command};
-use crate::vm::{VMExecutionRequestMsg, VM_EXEC_REQUEST};
+use crate::vm::VM_EXEC_REQUEST;
 
 pub fn shell_main(
     execution_send: &Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,

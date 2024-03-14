@@ -18,7 +18,7 @@ use crate::{
         execute_vm_no_data, execute_vm_on_coap_pkt, handle_console_write_request,
         handle_riot_board_query, handle_suit_pull_request, spawn_vm_execution,
     },
-    vm::{VMExecutionRequestMsg, VM_EXEC_REQUEST},
+    vm::VM_EXEC_REQUEST, model::requests::VMExecutionRequestMsg,
 };
 
 pub fn gcoap_server_main(

@@ -2,7 +2,7 @@ use alloc::sync::Arc;
 use core::{fmt::Write, str::FromStr};
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
-use crate::vm::{rbpf_vm::BinaryFileLayout, VMExecutionRequestMsg, VM_EXEC_REQUEST};
+use crate::{vm::{VM_EXEC_REQUEST}, model::{requests::VMExecutionRequestMsg, enumerations::BinaryFileLayout}};
 
 pub struct VMExecutionShellCommandHandler {
     execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
@@ -50,7 +50,7 @@ impl VMExecutionShellCommandHandler {
 
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
-            suit_location: slot,
+            suit_slot: slot,
             vm_target,
             binary_layout: binary_layout.into(),
         }) {

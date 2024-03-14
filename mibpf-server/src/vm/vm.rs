@@ -15,31 +15,3 @@ pub trait VirtualMachine {
     fn execute_on_coap_pkt(&self, program: &[u8], pkt: &mut PacketBuffer, result: &mut i64) -> u32;
 }
 
-/// The target VM for the execution request
-#[derive(Debug, Copy, Clone)]
-pub enum VmTarget {
-    Rbpf,
-    FemtoContainer,
-}
-
-impl From<u8> for VmTarget {
-    fn from(v: u8) -> Self {
-        match v {
-            0 => VmTarget::Rbpf,
-            1 => VmTarget::FemtoContainer,
-            _ => panic!("Invalid VmTarget value"),
-        }
-    }
-}
-
-impl FromStr for VmTarget {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "rBPF" => Ok(VmTarget::Rbpf),
-            "FemtoContainer" => Ok(VmTarget::FemtoContainer),
-            _ => Err(String::from(s)),
-        }
-    }
-}

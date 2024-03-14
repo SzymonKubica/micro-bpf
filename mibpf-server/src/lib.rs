@@ -21,6 +21,7 @@ mod infra;
 mod shell;
 mod util;
 mod vm;
+mod model;
 
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.

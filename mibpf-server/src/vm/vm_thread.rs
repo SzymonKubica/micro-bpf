@@ -17,87 +17,14 @@ use riot_sys::msg_t;
 use crate::{
     infra::suit_storage,
     spawn_thread,
-    vm::{middleware, rbpf_vm::BinaryFileLayout, FemtoContainerVm, RbpfVm, VirtualMachine},
+    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine}, model::{requests::{VMExecutionRequestMsg, VMExecutionRequest}, enumerations::TargetVM},
 };
-
-use super::VmTarget;
 
 static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
-pub struct VMExecutionRequest {
-    pub suit_slot: usize,
-    pub vm_target: VmTarget,
-    pub binary_layout: BinaryFileLayout,
-}
-
-impl VMExecutionRequest {
-    pub fn new(suit_location: usize, vm_target: VmTarget, binary_layout: BinaryFileLayout) -> Self {
-        VMExecutionRequest {
-            suit_slot: suit_location,
-            vm_target,
-            binary_layout,
-        }
-    }
-}
-
-impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
-    fn from(request: &VMExecutionRequestMsg) -> Self {
-        VMExecutionRequest {
-            suit_slot: request.suit_location as usize,
-            vm_target: VmTarget::from(request.vm_target),
-            binary_layout: BinaryFileLayout::from(request.binary_layout),
-        }
-    }
-}
-
-/// Represents a request to execute an eBPF program on a particular VM. The
-/// suit_location is the index of the SUIT storage slot from which the program
-/// should be loaded. For instance, 0 corresponds to '.ram.0'. The vm_target
-/// specifies which implementation of the VM should be used (FemtoContainers or
-/// rBPF). 0 corresponds to rBPF and 1 corresponds to FemtoContainers. The
-/// reason an enum isn't used here is that this struct is send in messages via
-/// IPC api and adding an enum there resulted in the struct being too large to
-/// send. It also specifies the binary layout format that the VM should expect
-/// in the loaded program
-#[derive(Debug, Clone)]
-#[repr(C, packed)]
-
-pub struct VMExecutionRequestMsg {
-    pub suit_location: u8,
-    pub vm_target: u8,
-    pub binary_layout: u8,
-}
-
-impl Into<msg_t> for VMExecutionRequestMsg {
-    fn into(mut self) -> msg_t {
-        let mut msg: msg_t = Default::default();
-        msg.type_ = 0;
-        // The content of the message specifies which SUIT slot to load from
-        msg.content = riot_sys::msg_t__bindgen_ty_1 {
-            ptr: &mut self as *mut VMExecutionRequestMsg as *mut c_void,
-        };
-        msg
-    }
-}
-
-impl From<msg_t> for &VMExecutionRequestMsg {
-    fn from(msg: msg_t) -> Self {
-        let execution_request_ptr: *mut VMExecutionRequestMsg =
-            unsafe { msg.content.ptr as *mut VMExecutionRequestMsg };
-        unsafe { &*execution_request_ptr }
-    }
-}
-
-// We need to implement Drop for the execution request so that it can be
-// dealocated after it is decoded an processed in the message channel.
-impl Drop for VMExecutionRequestMsg {
-    fn drop(&mut self) {
-        debug!("Dropping {:?} now.", self);
-    }
-}
 
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;
@@ -170,12 +97,12 @@ impl VMExecutionManager {
                     .receive()
                     .decode(&self.receive_port, |_s, mut execution_request| unsafe {
                         // for now we route slot 0 to worker 0 and slot 1 to worker 1
-                        let target = VmTarget::from(execution_request.vm_target);
-                        let worker = match (execution_request.suit_location, target) {
-                            (0, VmTarget::Rbpf) => &worker_0,
-                            (1, VmTarget::Rbpf) => &worker_1,
-                            (0, VmTarget::FemtoContainer) => &worker_2,
-                            (1, VmTarget::FemtoContainer) => &worker_3,
+                        let target = TargetVM::from(execution_request.vm_target);
+                        let worker = match (execution_request.suit_slot, target) {
+                            (0, TargetVM::Rbpf) => &worker_0,
+                            (1, TargetVM::Rbpf) => &worker_1,
+                            (0, TargetVM::FemtoContainer) => &worker_2,
+                            (1, TargetVM::FemtoContainer) => &worker_3,
                             _ => panic!("Invalid VM configuration "),
                         };
                         let pid: riot_sys::kernel_pid_t = worker.pid().into();
@@ -213,11 +140,11 @@ fn vm_main_thread() {
         );
 
         let vm: Box<dyn VirtualMachine> = match execution_request.vm_target {
-            VmTarget::Rbpf => Box::new(RbpfVm::new(
+            TargetVM::Rbpf => Box::new(RbpfVm::new(
                 Vec::from(middleware::ALL_HELPERS),
                 execution_request.binary_layout,
             )),
-            VmTarget::FemtoContainer => Box::new(FemtoContainerVm {}),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
         let mut result: i64 = 0;

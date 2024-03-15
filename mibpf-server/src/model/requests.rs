@@ -1,6 +1,7 @@
 use core::ffi::c_void;
 
 use crate::{model::enumerations::BinaryFileLayout, model::enumerations::TargetVM};
+use alloc::vec::Vec;
 use log::debug;
 use riot_sys::msg_t;
 use serde::{Deserialize, Serialize};
@@ -15,6 +16,7 @@ pub struct VMExecutionRequest {
     pub vm_target: TargetVM,
     pub binary_layout: BinaryFileLayout,
     pub suit_slot: usize,
+    pub allowed_helpers: Vec<u8>,
 }
 
 impl VMExecutionRequest {
@@ -23,6 +25,7 @@ impl VMExecutionRequest {
             suit_slot: suit_location,
             vm_target,
             binary_layout,
+            allowed_helpers: Vec::new(),
         }
     }
 }
@@ -33,6 +36,7 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
             suit_slot: request.suit_slot as usize,
             vm_target: TargetVM::from(request.vm_target),
             binary_layout: BinaryFileLayout::from(request.binary_layout),
+            allowed_helpers: request.allowed_helpers.clone(),
         }
     }
 }
@@ -46,12 +50,12 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
 /// IPC api and adding an enum there resulted in the struct being too large to
 /// send. It also specifies the binary layout format that the VM should expect
 /// in the loaded program
-#[derive(Debug, Clone)]
-#[repr(C, packed)]
+#[derive(Clone)]
 pub struct VMExecutionRequestMsg {
     pub vm_target: u8,
     pub binary_layout: u8,
     pub suit_slot: u8,
+    pub allowed_helpers: Vec<u8>,
 }
 
 impl Into<msg_t> for VMExecutionRequestMsg {
@@ -78,10 +82,9 @@ impl From<msg_t> for &VMExecutionRequestMsg {
 // dealocated after it is decoded an processed in the message channel.
 impl Drop for VMExecutionRequestMsg {
     fn drop(&mut self) {
-        debug!("Dropping {:?} now.", self);
+        debug!("Dropping execution request message now.");
     }
 }
-
 
 /// Responsible for notifying the VM manager that the execution of a given
 /// VM is finished and the worker can be allocated a new job.

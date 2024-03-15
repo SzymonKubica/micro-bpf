@@ -1,4 +1,4 @@
-use alloc::sync::Arc;
+use alloc::{sync::Arc, vec};
 use core::{fmt::Write, str::FromStr};
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
@@ -53,6 +53,7 @@ impl VMExecutionShellCommandHandler {
             suit_slot: slot,
             vm_target,
             binary_layout: binary_layout.into(),
+            allowed_helpers: vec![1, 2, 3],
         }) {
             writeln!(stdio, "VM execution request sent successfully").unwrap();
         } else {

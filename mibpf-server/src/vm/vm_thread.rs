@@ -122,40 +122,62 @@ impl VMExecutionManager {
             ];
 
             loop {
-                let code = self
-                    .message_semantics
-                    .receive()
-                    .decode(
-                        &self.request_receive_port,
-                        |_s, mut execution_request| unsafe {
-                            // for now we route slot 0 to worker 0 and slot 1 to worker 1
-                            let target = TargetVM::from(execution_request.vm_target);
-                            if free_workers.is_empty() {
-                                error!("No free workers to execute the request.");
-                                return;
-                            }
-                            let pid: riot_sys::kernel_pid_t = free_workers.pop().unwrap();
-                            info!("Sending execution request to the worker with PID: {}", pid);
-                            let mut msg: msg_t = execution_request.into();
-                            riot_sys::msg_send(&mut msg, pid);
-                        },
-                    )
-                    .unwrap_or_else(|_m| {
-                        _m.decode(&self.notification_receive_port, |_s, mut notification| {
-                            info!(
-                                "Received notification from worker with PID: {}",
-                                notification.worker_pid
-                            );
-                            info!("Adding worker back to the pool of free workers.");
-                            free_workers.push(notification.worker_pid)
+                let message = self.message_semantics.receive();
+
+                // First handle any execution requests
+                let result = message.decode(
+                    &self.request_receive_port,
+                    |_s, mut execution_request| unsafe {
+                        Self::handle_execution_request(&mut free_workers, execution_request)
+                    },
+                );
+
+                // Now process any completion notifications
+                // TODO: this should probably happen in reverse order because
+                // otherwise we might block all slots and fail to process
+                // completion notifications.
+                let code = if let Err(message) = result {
+                    message
+                        .decode(&self.notification_receive_port, |_s, mut notification| {
+                            Self::handle_job_complete_notification(&mut free_workers, &notification)
                         })
                         .unwrap_or_else(|_m| {
                             error!("Failed to decode message.");
                         });
-                    });
+                } else {
+                    result.unwrap();
+                };
+
                 println!("Result code {:?}", code);
             }
         });
+    }
+
+    pub fn handle_execution_request(workers: &mut Vec<i16>, request: VMExecutionRequestMsg) {
+        let target = TargetVM::from(request.vm_target);
+        if workers.is_empty() {
+            error!("No free workers to execute the request.");
+            return;
+        }
+        let pid: riot_sys::kernel_pid_t = workers.pop().unwrap();
+        info!("Sending execution request to the worker with PID: {}", pid);
+        let mut msg: msg_t = request.into();
+        unsafe {
+            riot_sys::msg_send(&mut msg, pid);
+        };
+    }
+
+    pub fn handle_job_complete_notification(
+        workers: &mut Vec<i16>,
+        notification: &VMExecutionCompleteMsg,
+    ) {
+        info!(
+            "Received notification from worker with PID: {}",
+            notification.worker_pid
+        );
+
+        info!("Adding worker back to the pool of free workers.");
+        workers.push(notification.worker_pid)
     }
 }
 

@@ -16,7 +16,7 @@ pub struct VMExecutionRequest {
     pub vm_target: TargetVM,
     pub binary_layout: BinaryFileLayout,
     pub suit_slot: usize,
-    pub allowed_helpers: Vec<u8>,
+    pub allowed_helpers: u32,
 }
 
 impl VMExecutionRequest {
@@ -25,7 +25,7 @@ impl VMExecutionRequest {
             suit_slot: suit_location,
             vm_target,
             binary_layout,
-            allowed_helpers: Vec::new(),
+            allowed_helpers: 0,
         }
     }
 }
@@ -50,12 +50,16 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
 /// IPC api and adding an enum there resulted in the struct being too large to
 /// send. It also specifies the binary layout format that the VM should expect
 /// in the loaded program
+///
+/// It also specifies the helpers that the VM should be allowed to call, given
+/// that there are currently 24 available helper functions, we use an u32 to
+/// specify which ones are allowed.
 #[derive(Clone)]
 pub struct VMExecutionRequestMsg {
     pub vm_target: u8,
     pub binary_layout: u8,
     pub suit_slot: u8,
-    pub allowed_helpers: Vec<u8>,
+    pub allowed_helpers: u32,
 }
 
 impl Into<msg_t> for VMExecutionRequestMsg {

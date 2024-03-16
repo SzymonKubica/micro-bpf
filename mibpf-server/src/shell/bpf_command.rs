@@ -1,8 +1,8 @@
-use alloc::{sync::Arc, vec};
+use alloc::{sync::Arc, vec::{self, Vec}};
 use core::{fmt::Write, str::FromStr};
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
-use crate::{vm::{VM_EXEC_REQUEST}, model::{requests::VMExecutionRequestMsg, enumerations::BinaryFileLayout}};
+use crate::{vm::{VM_EXEC_REQUEST, middleware::{encode_helpers, self}}, model::{requests::VMExecutionRequestMsg, enumerations::BinaryFileLayout}};
 
 pub struct VMExecutionShellCommandHandler {
     execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
@@ -53,7 +53,7 @@ impl VMExecutionShellCommandHandler {
             suit_slot: slot,
             vm_target,
             binary_layout: binary_layout.into(),
-            allowed_helpers: vec![1, 2, 3],
+            allowed_helpers: encode_helpers(Vec::from(middleware::ALL_HELPERS)),
         }) {
             writeln!(stdio, "VM execution request sent successfully").unwrap();
         } else {

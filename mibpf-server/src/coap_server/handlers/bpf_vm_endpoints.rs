@@ -16,7 +16,7 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 use crate::{
     infra::suit_storage,
     vm::{
-        middleware, FemtoContainerVm, RbpfVm,
+        middleware::{self, encode_helpers}, FemtoContainerVm, RbpfVm,
         VirtualMachine, VM_EXEC_REQUEST,
     }, model::{requests::{VMExecutionRequestMsg, VMExecutionRequest}, enumerations::TargetVM},
 };
@@ -170,7 +170,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             suit_slot: request_data.suit_slot as u8,
             vm_target: request_data.vm_target.into(),
             binary_layout: request_data.binary_layout.into(),
-            allowed_helpers: alloc::vec![1, 2, 3],
+            allowed_helpers: encode_helpers(Vec::from(middleware::ALL_HELPERS)),
         }) {
             info!("VM execution request sent successfully");
         } else {

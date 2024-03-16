@@ -16,13 +16,19 @@ use riot_wrappers::stdio::println;
 
 #[derive(Copy, Clone)]
 pub struct HelperFunction {
-    pub index: u32,
+    pub id: u32,
+    pub index: u32, // Index of the helper in the list of helpers for encoding allowed helpers in
+    // vm execution messages.
     pub function: fn(u64, u64, u64, u64, u64) -> u64,
 }
 
 impl HelperFunction {
-    pub const fn new(index: u32, function: fn(u64, u64, u64, u64, u64) -> u64) -> Self {
-        HelperFunction { index, function }
+    pub const fn new(id: u32, index: u32, function: fn(u64, u64, u64, u64, u64) -> u64) -> Self {
+        HelperFunction {
+            id,
+            index,
+            function,
+        }
     }
 }
 
@@ -399,33 +405,41 @@ pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _unused4: u64, _unused5
 /// directly as function pointers in the compiled eBPF bytecode).
 pub const ALL_HELPERS: [HelperFunction; 24] = [
     // Print/debug helper functions
-    HelperFunction::new(helpers::BPF_TRACE_PRINTK_IDX, helpers::bpf_trace_printf),
-    HelperFunction::new(BPF_DEBUG_PRINT_IDX, bpf_print_debug),
-    HelperFunction::new(BPF_PRINTF_IDX, bpf_printf),
-    HelperFunction::new(BPF_STORE_LOCAL_IDX, bpf_store_local),
-    HelperFunction::new(BPF_STORE_GLOBAL_IDX, bpf_store_global),
-    HelperFunction::new(BPF_FETCH_LOCAL_IDX, bpf_fetch_local),
-    HelperFunction::new(BPF_FETCH_GLOBAL_IDX, bpf_fetch_global),
-    HelperFunction::new(BPF_MEMCPY_IDX, bpf_memcpy),
+    HelperFunction::new(helpers::BPF_TRACE_PRINTK_IDX, 0, helpers::bpf_trace_printf),
+    HelperFunction::new(BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
+    HelperFunction::new(BPF_PRINTF_IDX, 2, bpf_printf),
+    HelperFunction::new(BPF_STORE_LOCAL_IDX, 3, bpf_store_local),
+    HelperFunction::new(BPF_STORE_GLOBAL_IDX, 4, bpf_store_global),
+    HelperFunction::new(BPF_FETCH_LOCAL_IDX, 5, bpf_fetch_local),
+    HelperFunction::new(BPF_FETCH_GLOBAL_IDX, 6, bpf_fetch_global),
+    HelperFunction::new(BPF_MEMCPY_IDX, 7, bpf_memcpy),
     // Time(r) functions
-    HelperFunction::new(BPF_NOW_MS_IDX, bpf_now_ms),
-    HelperFunction::new(BPF_ZTIMER_NOW_IDX, bpf_ztimer_now),
-    HelperFunction::new(BPF_ZTIMER_PERIODIC_WAKEUP_IDX, bpf_ztimer_periodic_wakeup),
+    HelperFunction::new(BPF_NOW_MS_IDX, 8, bpf_now_ms),
+    HelperFunction::new(BPF_ZTIMER_NOW_IDX, 9, bpf_ztimer_now),
+    HelperFunction::new(BPF_ZTIMER_PERIODIC_WAKEUP_IDX, 10, bpf_ztimer_periodic_wakeup),
     // Saul functions
-    HelperFunction::new(BPF_SAUL_REG_FIND_NTH_IDX, bpf_saul_reg_find_nth),
-    HelperFunction::new(BPF_SAUL_REG_FIND_TYPE_IDX, bpf_saul_reg_find_type),
-    HelperFunction::new(BPF_SAUL_REG_WRITE_IDX, bpf_saul_reg_write),
-    HelperFunction::new(BPF_SAUL_REG_READ_IDX, bpf_saul_reg_read),
-    HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, bpf_gcoap_resp_init),
-    HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, bpf_coap_opt_finish),
-    HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, bpf_coap_add_format),
-    HelperFunction::new(BPF_COAP_GET_PDU_IDX, bpf_coap_get_pdu),
-    HelperFunction::new(BPF_FMT_S16_DFP_IDX, bpf_fmt_s16_dfp),
-    HelperFunction::new(BPF_FMT_U32_DEC_IDX, bpf_fmt_u32_dec),
-    HelperFunction::new(BPF_GPIO_READ_INPUT, bpf_gpio_read_input),
-    HelperFunction::new(BPF_GPIO_READ_RAW, bpf_gpio_read_raw),
-    HelperFunction::new(BPF_GPIO_WRITE, bpf_gpio_write),
+    HelperFunction::new(BPF_SAUL_REG_FIND_NTH_IDX, 11, bpf_saul_reg_find_nth),
+    HelperFunction::new(BPF_SAUL_REG_FIND_TYPE_IDX, 12, bpf_saul_reg_find_type),
+    HelperFunction::new(BPF_SAUL_REG_WRITE_IDX, 13, bpf_saul_reg_write),
+    HelperFunction::new(BPF_SAUL_REG_READ_IDX, 14, bpf_saul_reg_read),
+    HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
+    HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
+    HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
+    HelperFunction::new(BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
+    HelperFunction::new(BPF_FMT_S16_DFP_IDX, 19, bpf_fmt_s16_dfp),
+    HelperFunction::new(BPF_FMT_U32_DEC_IDX, 20, bpf_fmt_u32_dec),
+    HelperFunction::new(BPF_GPIO_READ_INPUT, 21, bpf_gpio_read_input),
+    HelperFunction::new(BPF_GPIO_READ_RAW, 22, bpf_gpio_read_raw),
+    HelperFunction::new(BPF_GPIO_WRITE, 23, bpf_gpio_write),
 ];
+
+pub fn encode_helpers(helpers: Vec<HelperFunction>) -> u32 {
+    let mut output = 0;
+    for helper in helpers {
+      output |= 1 << helper.index;
+    }
+    return output;
+}
 
 /// Different versions of the rBPF VM have different implementations of the function
 /// for registering helpers, however there is no common trait which encapsulates
@@ -440,25 +454,25 @@ pub trait AcceptingHelpers {
 /* Implementations of the custom trait for all rBPF VMs */
 impl AcceptingHelpers for rbpf::EbpfVmFixedMbuff<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.id, helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmRaw<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.id, helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmNoData<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.id, helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmMbuff<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.index, helper.function);
+        let _ = self.register_helper(helper.id, helper.function);
     }
 }
 

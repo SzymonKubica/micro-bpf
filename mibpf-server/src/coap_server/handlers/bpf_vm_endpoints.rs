@@ -15,10 +15,14 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::{
     infra::suit_storage,
+    model::{
+        enumerations::TargetVM,
+        requests::{VMExecutionRequest, VMExecutionRequestMsg},
+    },
     vm::{
-        middleware::{self, encode_helpers}, FemtoContainerVm, RbpfVm,
-        VirtualMachine, VM_EXEC_REQUEST,
-    }, model::{requests::{VMExecutionRequestMsg, VMExecutionRequest}, enumerations::TargetVM},
+        middleware::{self, encode_helpers},
+        FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST,
+    },
 };
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
@@ -79,7 +83,7 @@ impl VMExecutionOnCoapPktHandler {
     }
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
-       format_execution_response(self.execution_time, self.result, response, request);
+        format_execution_response(self.execution_time, self.result, response, request);
     }
 }
 
@@ -152,8 +156,7 @@ pub fn execute_vm_no_data() -> impl coap_handler::Handler {
 }
 
 struct VMLongExecutionHandler {
-    execution_send:
-        Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {
@@ -166,11 +169,16 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             Err(code) => return code,
         };
 
+        let allowed_helpers = encode_helpers(Vec::from(middleware::ALL_HELPERS));
+
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
             suit_slot: request_data.suit_slot as u8,
             vm_target: request_data.vm_target.into(),
             binary_layout: request_data.binary_layout.into(),
-            allowed_helpers: encode_helpers(Vec::from(middleware::ALL_HELPERS)),
+            allowed_helpers_set0: allowed_helpers[0],
+            allowed_helpers_set1: allowed_helpers[1],
+            allowed_helpers_set2: allowed_helpers[2],
+            allowed_helpers_set3: allowed_helpers[3],
         }) {
             info!("VM execution request sent successfully");
         } else {
@@ -225,7 +233,8 @@ fn preprocess_request(request: &impl ReadableMessage) -> Result<VMExecutionReque
     };
 
     println!("Request payload received: {}", s);
-    let Ok((request_data, _length)): Result<(VMExecutionRequest, usize), _> = serde_json_core::from_str(s)
+    let Ok((request_data, _length)): Result<(VMExecutionRequest, usize), _> =
+        serde_json_core::from_str(s)
     else {
         return Err(coap_numbers::code::BAD_REQUEST);
     };

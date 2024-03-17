@@ -7,6 +7,7 @@
 // cases, in order to respect this convention.
 // Question: why do we need this convention?
 
+use core::cmp::max;
 use core::ffi::{c_char, CStr};
 
 use alloc::vec::Vec;
@@ -416,7 +417,11 @@ pub const ALL_HELPERS: [HelperFunction; 24] = [
     // Time(r) functions
     HelperFunction::new(BPF_NOW_MS_IDX, 8, bpf_now_ms),
     HelperFunction::new(BPF_ZTIMER_NOW_IDX, 9, bpf_ztimer_now),
-    HelperFunction::new(BPF_ZTIMER_PERIODIC_WAKEUP_IDX, 10, bpf_ztimer_periodic_wakeup),
+    HelperFunction::new(
+        BPF_ZTIMER_PERIODIC_WAKEUP_IDX,
+        10,
+        bpf_ztimer_periodic_wakeup,
+    ),
     // Saul functions
     HelperFunction::new(BPF_SAUL_REG_FIND_NTH_IDX, 11, bpf_saul_reg_find_nth),
     HelperFunction::new(BPF_SAUL_REG_FIND_TYPE_IDX, 12, bpf_saul_reg_find_type),
@@ -433,12 +438,24 @@ pub const ALL_HELPERS: [HelperFunction; 24] = [
     HelperFunction::new(BPF_GPIO_WRITE, 23, bpf_gpio_write),
 ];
 
-pub fn encode_helpers(helpers: Vec<HelperFunction>) -> u32 {
-    let mut output = 0;
-    for helper in helpers {
-      output |= 1 << helper.index;
+pub fn encode_helpers(helpers: Vec<HelperFunction>) -> Vec<u8> {
+    let mut set0 = 0;
+    let mut set1 = 0;
+    let mut set2 = 0;
+    let mut set3 = 0;
+
+    for (i, helper) in helpers.iter().enumerate() {
+        if i < 8 {
+            set0 |= 1 << helper.index;
+        } else if i < 16 {
+            set1 |= 1 << helper.index;
+        } else if i < 24 {
+            set2 |= 1 << helper.index;
+        } else {
+            set3 |= 1 << helper.index;
+        }
     }
-    return output;
+    return alloc::vec![set0, set1, set2, set3];
 }
 
 /// Different versions of the rBPF VM have different implementations of the function

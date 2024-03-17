@@ -48,12 +48,16 @@ impl VMExecutionShellCommandHandler {
             BinaryFileLayout::FunctionRelocationMetadata
         });
 
+        let allowed_helpers = encode_helpers(Vec::from(middleware::ALL_HELPERS));
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
             suit_slot: slot,
             vm_target,
             binary_layout: binary_layout.into(),
-            allowed_helpers: encode_helpers(Vec::from(middleware::ALL_HELPERS)),
+            allowed_helpers_set0: allowed_helpers[0],
+            allowed_helpers_set1: allowed_helpers[1],
+            allowed_helpers_set2: allowed_helpers[2],
+            allowed_helpers_set3: allowed_helpers[3],
         }) {
             writeln!(stdio, "VM execution request sent successfully").unwrap();
         } else {

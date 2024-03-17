@@ -16,7 +16,10 @@ pub struct VMExecutionRequest {
     pub vm_target: TargetVM,
     pub binary_layout: BinaryFileLayout,
     pub suit_slot: usize,
-    pub allowed_helpers: u32,
+    pub allowed_helpers_set0: u8,
+    pub allowed_helpers_set1: u8,
+    pub allowed_helpers_set2: u8,
+    pub allowed_helpers_set3: u8,
 }
 
 impl VMExecutionRequest {
@@ -25,7 +28,10 @@ impl VMExecutionRequest {
             suit_slot: suit_location,
             vm_target,
             binary_layout,
-            allowed_helpers: 0,
+            allowed_helpers_set0: 0,
+            allowed_helpers_set1: 0,
+            allowed_helpers_set2: 0,
+            allowed_helpers_set3: 0,
         }
     }
 }
@@ -36,7 +42,10 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
             suit_slot: request.suit_slot as usize,
             vm_target: TargetVM::from(request.vm_target),
             binary_layout: BinaryFileLayout::from(request.binary_layout),
-            allowed_helpers: request.allowed_helpers.clone(),
+            allowed_helpers_set0: request.allowed_helpers_set0,
+            allowed_helpers_set1: request.allowed_helpers_set1,
+            allowed_helpers_set2: request.allowed_helpers_set2,
+            allowed_helpers_set3: request.allowed_helpers_set3,
         }
     }
 }
@@ -59,7 +68,10 @@ pub struct VMExecutionRequestMsg {
     pub vm_target: u8,
     pub binary_layout: u8,
     pub suit_slot: u8,
-    pub allowed_helpers: u32,
+    pub allowed_helpers_set0: u8,
+    pub allowed_helpers_set1: u8,
+    pub allowed_helpers_set2: u8,
+    pub allowed_helpers_set3: u8,
 }
 
 impl Into<msg_t> for VMExecutionRequestMsg {

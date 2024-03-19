@@ -1,7 +1,8 @@
 use core::ffi::c_void;
 
 use crate::{
-    model::enumerations::BinaryFileLayout, model::enumerations::TargetVM,
+    model::enumerations::BinaryFileLayout,
+    model::enumerations::TargetVM,
     vm::middleware::{decode_helpers, HelperFunction},
 };
 use alloc::vec::Vec;
@@ -45,7 +46,7 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
 /// should be loaded. For instance, 0 corresponds to '.ram.0'. The vm_target
 /// specifies which implementation of the VM should be used (FemtoContainers or
 /// rBPF). 0 corresponds to rBPF and 1 corresponds to FemtoContainers. The
-/// reason an enum isn't used here is that this struct is send in messages via
+/// reason an enum isn't used here is that this struct is sent in messages via
 /// IPC api and adding an enum there resulted in the struct being too large to
 /// send. It also specifies the binary layout format that the VM should expect
 /// in the loaded program

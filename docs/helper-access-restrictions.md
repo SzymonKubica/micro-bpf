@@ -66,6 +66,13 @@ Given this architecture, we could specify the list of helpers that should be
 accessible for all VM instances running on a particular worker and then
 possibly allow for overriding that later on (by means of message passing IPC).
 
+The diagram below illustrates the 'VM Worker' workflow. The workers are spawned
+and then wait for execution requests. Once an execution request is received,
+the VM Executor Thread (should be named 'manager' or something) routes the
+request to one of the workers that is currently available. This 'routing' is
+done via message-passing and so the amount of data that can be passed to a given
+VM worker is limited.
+
 ![System design diagram](./two-workflows-architecture.png)
 
 ## Motivation for controlling access to helper calls

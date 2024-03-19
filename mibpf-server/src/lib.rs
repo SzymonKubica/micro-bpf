@@ -18,10 +18,10 @@ use riot_wrappers::{cstr::cstr, mutex::Mutex, println, riot_main, thread};
 
 mod coap_server;
 mod infra;
+mod model;
 mod shell;
 mod util;
 mod vm;
-mod model;
 
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.

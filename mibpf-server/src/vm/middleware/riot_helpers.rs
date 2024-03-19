@@ -452,11 +452,11 @@ pub struct HelperSet {
 }
 
 impl HelperSet {
-    pub fn decode(allowed_indices: u8) -> Vec<HelperFunction> {
-        let available_helpers = alloc::vec![];
-        for i in range(helpers.len) {
-            if allowed_indices & (1 << i) {
-                available_helpers.push(helpers[i]);
+    pub fn decode(&self, allowed_indices: u8) -> Vec<HelperFunction> {
+        let mut available_helpers = alloc::vec![];
+        for i in 0..self.helpers.len() {
+            if allowed_indices & (1 << i) > 0 {
+                available_helpers.push(self.helpers[i]);
             }
         }
         return available_helpers;

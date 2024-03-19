@@ -21,7 +21,7 @@ use crate::{
         requests::{VMExecutionCompleteMsg, VMExecutionRequest, VMExecutionRequestMsg},
     },
     spawn_thread,
-    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
+    vm::{middleware::{self, HELPER_SETS, HelperSet}, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
 
 static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
@@ -154,7 +154,6 @@ impl VMExecutionManager {
     }
 
     pub fn handle_execution_request(workers: &mut Vec<i16>, request: VMExecutionRequestMsg) {
-        let target = TargetVM::from(request.vm_target);
         if workers.is_empty() {
             error!("No free workers to execute the request.");
             return;
@@ -199,9 +198,12 @@ fn vm_main_thread(send_port: &CompletionSendPortHandle) {
             program.len()
         );
 
+        let helper_set: &HelperSet = &HELPER_SETS[execution_request.helper_set as usize];
+        let allowed_helpers = helper_set.decode(execution_request.helper_indices);
+
         let vm: Box<dyn VirtualMachine> = match execution_request.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
-                Vec::from(middleware::ALL_HELPERS),
+                allowed_helpers,
                 execution_request.binary_layout,
             )),
             TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),

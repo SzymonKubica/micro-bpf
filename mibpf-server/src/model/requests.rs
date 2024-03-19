@@ -16,9 +16,8 @@ pub struct VMExecutionRequest {
     pub vm_target: TargetVM,
     pub binary_layout: BinaryFileLayout,
     pub suit_slot: usize,
-    pub allowed_helpers_set0: u8,
-    pub allowed_helpers_set1: u8,
-    pub allowed_helpers_set2: u8,
+    pub helper_set: u8,
+    pub helper_indices: u8,
 }
 
 impl VMExecutionRequest {
@@ -27,9 +26,8 @@ impl VMExecutionRequest {
             suit_slot: suit_location,
             vm_target,
             binary_layout,
-            allowed_helpers_set0: 0,
-            allowed_helpers_set1: 0,
-            allowed_helpers_set2: 0,
+            helper_set: 0,
+            helper_indices: 0,
         }
     }
 }
@@ -38,11 +36,10 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
     fn from(request: &VMExecutionRequestMsg) -> Self {
         VMExecutionRequest {
             suit_slot: request.suit_slot as usize,
-            vm_target: TargetVM::from(request.vm_target),
+            vm_target: TargetVM::Rbpf,
             binary_layout: BinaryFileLayout::from(request.binary_layout),
-            allowed_helpers_set0: request.allowed_helpers_set0,
-            allowed_helpers_set1: request.allowed_helpers_set1,
-            allowed_helpers_set2: request.allowed_helpers_set2,
+            helper_set: request.helper_set,
+            helper_indices: request.helper_indices,
         }
     }
 }
@@ -60,13 +57,12 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
 /// It also specifies the helpers that the VM should be allowed to call, given
 /// that there are currently 24 available helper functions, we use an u32 to
 /// specify which ones are allowed.
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct VMExecutionRequestMsg {
-    pub vm_target: u8,
     pub binary_layout: u8,
     pub suit_slot: u8,
-    pub allowed_helpers_index: u8,
-    pub allowed_helpers_set: u8,
+    pub helper_set: u8,
+    pub helper_indices: u8,
 }
 
 impl Into<msg_t> for VMExecutionRequestMsg {

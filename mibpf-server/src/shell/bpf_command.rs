@@ -1,8 +1,17 @@
-use alloc::{sync::Arc, vec::{self, Vec}};
+use alloc::{
+    sync::Arc,
+    vec::{self, Vec},
+};
 use core::{fmt::Write, str::FromStr};
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
-use crate::{vm::{VM_EXEC_REQUEST, middleware::{encode_helpers, self}}, model::{requests::VMExecutionRequestMsg, enumerations::BinaryFileLayout}};
+use crate::{
+    model::{enumerations::BinaryFileLayout, requests::VMExecutionRequestMsg},
+    vm::{
+        middleware::{self, HelperSet},
+        VM_EXEC_REQUEST,
+    },
+};
 
 pub struct VMExecutionShellCommandHandler {
     execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
@@ -48,15 +57,14 @@ impl VMExecutionShellCommandHandler {
             BinaryFileLayout::FunctionRelocationMetadata
         });
 
-        let allowed_helpers = encode_helpers(Vec::from(middleware::ALL_HELPERS));
+        let helper_set = 1;
+        let allowed_helpers = HelperSet::encode(&[0, 1, 2, 5, 6]);
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
             suit_slot: slot,
-            vm_target,
             binary_layout: binary_layout.into(),
-            allowed_helpers_set0: allowed_helpers[0],
-            allowed_helpers_set1: allowed_helpers[1],
-            allowed_helpers_set2: allowed_helpers[2],
+            helper_set,
+            helper_indices: allowed_helpers,
         }) {
             writeln!(stdio, "VM execution request sent successfully").unwrap();
         } else {

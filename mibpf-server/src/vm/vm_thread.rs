@@ -21,7 +21,10 @@ use crate::{
         requests::{VMExecutionCompleteMsg, VMExecutionRequest, VMExecutionRequestMsg},
     },
     spawn_thread,
-    vm::{middleware::{self, HELPER_SETS, HelperSet}, FemtoContainerVm, RbpfVm, VirtualMachine},
+    vm::{
+        middleware::{self, decode_helpers},
+        FemtoContainerVm, RbpfVm, VirtualMachine,
+    },
 };
 
 static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
@@ -189,22 +192,20 @@ fn vm_main_thread(send_port: &CompletionSendPortHandle) {
         let execution_request_msg: &VMExecutionRequestMsg = msg.into();
         let execution_request = VMExecutionRequest::from(execution_request_msg);
 
+        let vm_config = execution_request.configuration;
         let mut program_buffer: [u8; 1024] = [0; 1024];
-        let program = suit_storage::load_program(&mut program_buffer, execution_request.suit_slot);
+        let program = suit_storage::load_program(&mut program_buffer, vm_config.suit_slot);
 
         info!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            execution_request.suit_slot,
+            vm_config.suit_slot,
             program.len()
         );
 
-        let helper_set: &HelperSet = &HELPER_SETS[execution_request.helper_set as usize];
-        let allowed_helpers = helper_set.decode(execution_request.helper_indices);
-
-        let vm: Box<dyn VirtualMachine> = match execution_request.vm_target {
+        let vm: Box<dyn VirtualMachine> = match vm_config.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
-                allowed_helpers,
-                execution_request.binary_layout,
+                execution_request.available_helpers,
+                vm_config.binary_layout,
             )),
             TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),
         };

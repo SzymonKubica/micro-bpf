@@ -3,12 +3,16 @@ use alloc::{
     vec::{self, Vec},
 };
 use core::{fmt::Write, str::FromStr};
+use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 use crate::{
-    model::{enumerations::BinaryFileLayout, requests::VMExecutionRequestMsg},
+    model::{
+        enumerations::{BinaryFileLayout, TargetVM, VMConfiguration},
+        requests::VMExecutionRequestMsg,
+    },
     vm::{
-        middleware::{self, HelperSet},
+        middleware::{self, ALL_HELPERS, encode_helpers},
         VM_EXEC_REQUEST,
     },
 };
@@ -42,14 +46,12 @@ impl VMExecutionShellCommandHandler {
             return usage();
         }
 
-        let Ok(slot) = args[2].parse::<u8>() else {
+        let Ok(slot) = args[2].parse::<usize>() else {
             return usage();
         };
 
-        let vm_target: u8 = match &args[1] {
-            "rBPF" => 0,
-            "FemtoContainer" => 1,
-            _ => return usage(),
+        let Ok(vm_target) = TargetVM::from_str(&args[1]) else {
+            return usage();
         };
 
         let binary_layout = BinaryFileLayout::from_str(&args[3]).unwrap_or_else(|err| {
@@ -57,14 +59,13 @@ impl VMExecutionShellCommandHandler {
             BinaryFileLayout::FunctionRelocationMetadata
         });
 
-        let helper_set = 1;
-        let allowed_helpers = HelperSet::encode(&[0, 1, 2, 5, 6]);
+        let vm_configuration = VMConfiguration::new(vm_target, binary_layout, slot);
+
+        let available_helpers = encode_helpers(Vec::from(ALL_HELPERS));
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
-            suit_slot: slot,
-            binary_layout: binary_layout.into(),
-            helper_set,
-            helper_indices: allowed_helpers,
+            configuration: vm_configuration.encode(),
+            available_helpers,
         }) {
             writeln!(stdio, "VM execution request sent successfully").unwrap();
         } else {

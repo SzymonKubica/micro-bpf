@@ -178,7 +178,6 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             allowed_helpers_set0: allowed_helpers[0],
             allowed_helpers_set1: allowed_helpers[1],
             allowed_helpers_set2: allowed_helpers[2],
-            allowed_helpers_set3: allowed_helpers[3],
         }) {
             info!("VM execution request sent successfully");
         } else {

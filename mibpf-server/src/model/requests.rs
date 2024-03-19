@@ -19,7 +19,6 @@ pub struct VMExecutionRequest {
     pub allowed_helpers_set0: u8,
     pub allowed_helpers_set1: u8,
     pub allowed_helpers_set2: u8,
-    pub allowed_helpers_set3: u8,
 }
 
 impl VMExecutionRequest {
@@ -31,7 +30,6 @@ impl VMExecutionRequest {
             allowed_helpers_set0: 0,
             allowed_helpers_set1: 0,
             allowed_helpers_set2: 0,
-            allowed_helpers_set3: 0,
         }
     }
 }
@@ -45,7 +43,6 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
             allowed_helpers_set0: request.allowed_helpers_set0,
             allowed_helpers_set1: request.allowed_helpers_set1,
             allowed_helpers_set2: request.allowed_helpers_set2,
-            allowed_helpers_set3: request.allowed_helpers_set3,
         }
     }
 }
@@ -68,10 +65,8 @@ pub struct VMExecutionRequestMsg {
     pub vm_target: u8,
     pub binary_layout: u8,
     pub suit_slot: u8,
-    pub allowed_helpers_set0: u8,
-    pub allowed_helpers_set1: u8,
-    pub allowed_helpers_set2: u8,
-    pub allowed_helpers_set3: u8,
+    pub allowed_helpers_index: u8,
+    pub allowed_helpers_set: u8,
 }
 
 impl Into<msg_t> for VMExecutionRequestMsg {

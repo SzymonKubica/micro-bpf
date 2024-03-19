@@ -11,6 +11,7 @@ use core::cmp::max;
 use core::ffi::{c_char, CStr};
 
 use alloc::vec::Vec;
+use log::error;
 use rbpf::helpers;
 use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
@@ -438,25 +439,56 @@ pub const ALL_HELPERS: [HelperFunction; 24] = [
     HelperFunction::new(BPF_GPIO_WRITE, 23, bpf_gpio_write),
 ];
 
-pub fn encode_helpers(helpers: Vec<HelperFunction>) -> Vec<u8> {
-    let mut set0 = 0;
-    let mut set1 = 0;
-    let mut set2 = 0;
-    let mut set3 = 0;
-
-    for (i, helper) in helpers.iter().enumerate() {
-        if i < 8 {
-            set0 |= 1 << helper.index;
-        } else if i < 16 {
-            set1 |= 1 << helper.index;
-        } else if i < 24 {
-            set2 |= 1 << helper.index;
-        } else {
-            set3 |= 1 << helper.index;
-        }
-    }
-    return alloc::vec![set0, set1, set2, set3];
+/// Responsible for restricting access to the helpers that are available to a
+/// particular instance of the VM. Because of the constraints imposed by the
+/// message passing IPC infrastructure in RIOT, the helper set can only contain
+/// 8 helpers. This is because in an [`crate::model::requests::VMExecutionRequestMsg`]
+/// each VM can have access to one helper set and a selected number of helpers in
+/// that set. This is represented by two u8 numbers, one specifying the global
+/// id of the set from which we want to choose the helpers and the other encoding
+/// access to the helpers in an 8-bit bitstring.
+pub struct HelperSet {
+    pub helpers: [HelperFunction; 8],
 }
+
+impl HelperSet {
+    pub fn decode(allowed_indices: u8) -> Vec<HelperFunction> {
+        let available_helpers = alloc::vec![];
+        for i in range(helpers.len) {
+            if allowed_indices & (1 << i) {
+                available_helpers.push(helpers[i]);
+            }
+        }
+        return available_helpers;
+    }
+
+    pub fn encode(available_indices: &[u8]) -> u8 {
+        let mut encoding = 0;
+        for i in available_indices {
+            encoding |= 1 << i;
+        }
+        return encoding;
+    }
+}
+
+pub const DEFAULT_HELPERS: HelperSet = HelperSet {
+    helpers: [
+        HelperFunction::new(BPF_PRINTF_IDX, 2, bpf_printf),
+        HelperFunction::new(BPF_STORE_GLOBAL_IDX, 4, bpf_store_global),
+        HelperFunction::new(BPF_FETCH_GLOBAL_IDX, 6, bpf_fetch_global),
+        HelperFunction::new(BPF_SAUL_REG_FIND_TYPE_IDX, 12, bpf_saul_reg_find_type),
+        HelperFunction::new(BPF_SAUL_REG_READ_IDX, 14, bpf_saul_reg_read),
+        HelperFunction::new(BPF_SAUL_REG_WRITE_IDX, 13, bpf_saul_reg_write),
+        HelperFunction::new(BPF_ZTIMER_NOW_IDX, 9, bpf_ztimer_now),
+        HelperFunction::new(
+            BPF_ZTIMER_PERIODIC_WAKEUP_IDX,
+            10,
+            bpf_ztimer_periodic_wakeup,
+        ),
+    ],
+};
+
+pub const HELPER_SETS: [HelperSet; 1] = [DEFAULT_HELPERS];
 
 /// Different versions of the rBPF VM have different implementations of the function
 /// for registering helpers, however there is no common trait which encapsulates

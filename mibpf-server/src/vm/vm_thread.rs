@@ -22,7 +22,7 @@ use crate::{
     },
     spawn_thread,
     vm::{
-        middleware::{self, decode_helpers},
+        middleware,
         FemtoContainerVm, RbpfVm, VirtualMachine,
     },
 };
@@ -35,6 +35,7 @@ static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;
 pub const VM_COMPLETE_NOTIFICATION: u16 = 24;
+
 pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequestMsg, VM_EXEC_REQUEST>;
 pub type VMExecutionCompletePort = ReceivePort<VMExecutionCompleteMsg, VM_COMPLETE_NOTIFICATION>;
 pub type ExecutionSendPortHandle = Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>;

@@ -3,7 +3,7 @@ use core::ffi::c_void;
 use crate::{
     model::enumerations::BinaryFileLayout,
     model::enumerations::TargetVM,
-    vm::middleware::{decode_helpers, HelperFunction},
+    vm::middleware::helpers::{HelperFunction, HelperFunctionEncoding},
 };
 use alloc::vec::Vec;
 use log::debug;
@@ -13,10 +13,8 @@ use serde::{Deserialize, Serialize};
 use super::enumerations::VMConfiguration;
 
 /// Models a request to start an execution of a given instance of a eBPF VM,
-/// specifies the target implementation of the VM, the layout of the binary that
-/// the VM should expect and the SUIT storage location from where the binary
-/// should be loaded. It also specifies the list of helper functions that
-/// can be used by the VM.
+/// it specifies the configuration of the VM instance and the list of helper
+/// functions that should be made available to the program running in the VM.
 pub struct VMExecutionRequest {
     pub configuration: VMConfiguration,
     pub available_helpers: Vec<HelperFunction>,
@@ -35,7 +33,7 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
     fn from(request: &VMExecutionRequestMsg) -> Self {
         VMExecutionRequest {
             configuration: VMConfiguration::decode(request.configuration),
-            available_helpers: decode_helpers(request.available_helpers),
+            available_helpers: HelperFunctionEncoding(request.available_helpers).into(),
         }
     }
 }

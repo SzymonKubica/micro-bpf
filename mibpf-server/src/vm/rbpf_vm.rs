@@ -1,16 +1,20 @@
-use crate::{vm::{middleware, VirtualMachine}, model::enumerations::BinaryFileLayout};
+use crate::{
+    model::enumerations::BinaryFileLayout,
+    vm::{middleware, VirtualMachine},
+};
 use alloc::{format, string::String, vec::Vec};
-use serde::Deserialize;
 use core::{ffi::c_void, ops::DerefMut, str::FromStr};
+use serde::Deserialize;
 
 use rbpf::without_std::Error;
 
 use riot_sys;
 use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
 
+use super::middleware::helpers::HelperFunction;
 
 pub struct RbpfVm {
-    pub registered_helpers: Vec<middleware::HelperFunction>,
+    pub registered_helpers: Vec<HelperFunction>,
     pub layout: BinaryFileLayout,
 }
 
@@ -29,7 +33,7 @@ impl Default for RbpfVm {
 }
 
 impl RbpfVm {
-    pub fn new(helpers: Vec<middleware::HelperFunction>, layout: BinaryFileLayout) -> Self {
+    pub fn new(helpers: Vec<HelperFunction>, layout: BinaryFileLayout) -> Self {
         RbpfVm {
             registered_helpers: helpers,
             layout,
@@ -37,7 +41,7 @@ impl RbpfVm {
     }
 
     #[allow(dead_code)]
-    pub fn add_helper(&mut self, helper: middleware::HelperFunction) {
+    pub fn add_helper(&mut self, helper: HelperFunction) {
         self.registered_helpers.push(helper);
     }
 
@@ -79,7 +83,7 @@ impl VirtualMachine for RbpfVm {
             _ => {}
         }
 
-        middleware::register_helpers(&mut vm, self.registered_helpers.clone());
+        middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
 
         let (ret, execution_time) = self.timed_execution(|| vm.execute_program());
         *result = ret;
@@ -96,7 +100,7 @@ impl VirtualMachine for RbpfVm {
         let mut vm = rbpf::EbpfVmRaw::new(Some(program)).unwrap();
         vm.override_interpreter(rbpf::InterpreterVariant::Extended);
 
-        middleware::register_helpers(&mut vm, self.registered_helpers.clone());
+        middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
 
         let mutex = Mutex::new(mem);
 

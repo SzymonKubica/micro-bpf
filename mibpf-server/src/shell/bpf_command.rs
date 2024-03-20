@@ -11,10 +11,7 @@ use crate::{
         enumerations::{BinaryFileLayout, TargetVM, VMConfiguration},
         requests::VMExecutionRequestMsg,
     },
-    vm::{
-        middleware::{self, ALL_HELPERS, encode_helpers},
-        VM_EXEC_REQUEST,
-    },
+    vm::{middleware::{helpers::HelperFunctionEncoding, ALL_HELPERS}, VM_EXEC_REQUEST},
 };
 
 pub struct VMExecutionShellCommandHandler {
@@ -61,7 +58,7 @@ impl VMExecutionShellCommandHandler {
 
         let vm_configuration = VMConfiguration::new(vm_target, binary_layout, slot);
 
-        let available_helpers = encode_helpers(Vec::from(ALL_HELPERS));
+        let available_helpers = HelperFunctionEncoding::from(Vec::from(ALL_HELPERS)).0;
 
         if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
             configuration: vm_configuration.encode(),

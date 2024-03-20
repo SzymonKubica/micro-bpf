@@ -6,8 +6,8 @@
 
 typedef struct {
     uint32_t hdr_p;       /* ptr to raw packet */
-    uint32_t token_p;     /* ptr to token      */
     uint32_t payload_p;   /* ptr to payload    */
+    uint32_t token_p;     /* ptr to token      */
     uint16_t payload_len; /* length of payload */
     uint16_t options_len; /* length of options */
 } bpf_coap_pkt_t;
@@ -25,6 +25,7 @@ int coap_test(bpf_coap_ctx_t *gcoap)
 
     char stringified[20];
     size_t str_len = bpf_fmt_u32_dec(stringified, counter);
+    bpf_printf("Length of the payload string: %d\n", str_len);
 
     // The coap helpers modify the packet, as a consequence the length of the
     // payload changes. We log it to the console to ensure that the helper
@@ -55,8 +56,9 @@ int coap_test(bpf_coap_ctx_t *gcoap)
     bpf_printf("Payload length before bpf_coap_opt_finish: %d\n", pkt->payload_len);
     ssize_t pdu_len = bpf_coap_opt_finish(gcoap, COAP_OPT_FINISH_PAYLOAD);
     bpf_printf("Payload length after bpf_coap_opt_finish: %d\n", pkt->payload_len);
+    bpf_printf("PDU length: %d\n", pdu_len);
 
-    uint8_t *payload = (uint8_t *)(intptr_t)(pkt->payload_p);
+    uint8_t *payload = (uint8_t *)(pkt->payload_p);
 
     if (pkt->payload_len >= str_len) {
         bpf_memcpy(payload, stringified, str_len);

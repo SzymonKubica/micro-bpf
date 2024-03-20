@@ -31,12 +31,8 @@ struct VMExecutionOnCoapPktHandler {
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
-        let request_data = self.handle_request(pkt);
-        //let mut lengthwrapped = ResponseMessage::new(pkt);
-        //self.build_response(&mut lengthwrapped, request_data);
-        //let length = lengthwrapped.finish();
-        //println!("Response length: {}", length);
-        131
+        let response_len = self.handle_request(pkt);
+        response_len as isize
     }
 }
 
@@ -79,7 +75,8 @@ impl VMExecutionOnCoapPktHandler {
 
         let end: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
         println!("Total request processing time: {} [us]", end - start);
-        coap_numbers::code::CHANGED
+        // The program needs to return the length of the Payload + PDU
+        self.result as u8
     }
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
@@ -94,10 +91,6 @@ pub fn execute_vm_on_coap_pkt() -> impl riot_wrappers::gcoap::Handler {
     }
 }
 
-/// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
-/// to the executed program. The eBPF script can access the CoAP packet data.
-/// Its fields are used to store the results of the most recent VM execution
-/// which are then used to construct the CoAP response.
 struct VMExecutionNoDataHandler {
     execution_time: u32,
     result: i64,

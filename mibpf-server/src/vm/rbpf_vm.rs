@@ -91,6 +91,8 @@ impl VirtualMachine for RbpfVm {
     }
     fn execute_on_coap_pkt(&self, program: &[u8], pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
         // Memory for the packet.
+        // TODO: allow rbpf to access the packet memory directly instead of doing
+        // this packet copy process.
         let mut mem: [u8; 512] = [0; 512];
         unsafe { copy_packet(pkt as *mut _ as *mut c_void, mem.as_mut_ptr() as *mut u8) };
 

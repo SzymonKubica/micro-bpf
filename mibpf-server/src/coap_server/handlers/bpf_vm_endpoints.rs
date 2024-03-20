@@ -52,8 +52,10 @@ impl VMExecutionOnCoapPktHandler {
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
-        let program =
-            suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot as usize);
+        let program = suit_storage::load_program(
+            &mut program_buffer,
+            request_data.configuration.suit_slot as usize,
+        );
 
         println!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
@@ -111,8 +113,8 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
-        let program = suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
-
+        let program =
+            suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
 
         debug!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",

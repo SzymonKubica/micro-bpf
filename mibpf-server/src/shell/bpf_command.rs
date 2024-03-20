@@ -11,7 +11,10 @@ use crate::{
         enumerations::{BinaryFileLayout, TargetVM, VMConfiguration},
         requests::VMExecutionRequestMsg,
     },
-    vm::{middleware::{helpers::HelperFunctionEncoding, ALL_HELPERS}, VM_EXEC_REQUEST},
+    vm::{
+        middleware::{helpers::HelperFunctionEncoding, ALL_HELPERS},
+        VM_EXEC_REQUEST,
+    },
 };
 
 pub struct VMExecutionShellCommandHandler {
@@ -35,6 +38,11 @@ impl VMExecutionShellCommandHandler {
                 stdio,
                 "usage: {} [rBPF | FemtoContainer] <suit-storage-slot (int)> <bytecode-layout-option>",
                 &args[0]
+            )
+            .unwrap();
+            writeln!(
+                stdio,
+                "Available bytecode layout options: OnlyTextSection, FemtoContainersHeader, FunctionRelocationMetadata, RawObjectFile",
             )
             .unwrap();
         };

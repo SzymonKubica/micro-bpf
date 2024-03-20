@@ -2,7 +2,7 @@
 #include <string.h>
 #include "../helpers.h"
 
-int __attribute__((noinline)) helper_function();
+static int __attribute__((noinline)) helper_function();
 int test_printf(void *ctx)
 {
 
@@ -10,10 +10,10 @@ int test_printf(void *ctx)
     return 0;
 }
 
-int __attribute__((noinline)) helper_function()
+static int __attribute__((noinline)) helper_function()
 {
     // Here we use the macro to avoid defining the format string explicitly
-    print("printf accepts up to 4 args: %d %d %d %d\n", 1, 2, 3, 4);
+    bpf_printf("printf accepts up to 4 args: %d %d %d %d\n", 1, 2, 3, 4);
 
     // We can also use the helper directly, however in that case we need to
     // first declare the char[]

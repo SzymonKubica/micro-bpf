@@ -3,10 +3,19 @@ use core::str::FromStr;
 use alloc::{format, string::String};
 use serde::{Deserialize, Serialize};
 
+/// Configures a particular instance of the eBPF VM, it specifies the target version
+/// of the VM implementation, the binary file layout that the VM should expect
+/// in the loaded bytecode and the SUIT storage slot from where the program
+/// should be loaded.
 #[derive(Serialize, Deserialize)]
 pub struct VMConfiguration {
+    /// The version of the VM implementation that will be used by the VM instance.
     pub vm_target: TargetVM,
+    /// Defines the order of information present in the loaded program. It is
+    /// needed by the VM to correctly find the first instruction in the program
+    /// and extract the metadata.
     pub binary_layout: BinaryFileLayout,
+    /// The SUIT storage slot from where the program should be loaded.
     pub suit_slot: usize,
 }
 
@@ -21,7 +30,7 @@ impl VMConfiguration {
 
     /// Encodes the VM configuration into a u8. The reason we need this is that
     /// RIOT message passing IPC infrastructure limits the size of the transported
-    /// messages to 64 bits. In order to fully specify a given VM execution,
+    /// messages to 32 bits. In order to fully specify a given VM execution,
     /// we need all fields of the VMConfiguration struct and the metadata specifying
     /// which helper functions the VM is allowed to call. Encoding the configuration
     /// as a single u8 allows us to use the remaining bits to specify the helper
@@ -36,6 +45,20 @@ impl VMConfiguration {
     /// - The remaining bits are used to encode the binary layout that the VM
     /// should expect in the loaded program bytecode. Currently there are only 4
     /// options so 2 bits are sufficient. This can be adapted in the future.
+    ///
+    /// # Example
+    /// ```
+    /// // Initialize the configuration object.
+    /// let config = VMConfiguration::new(TargetVM::FemtoContainer, BinaryFileLayout::FemtoContainersHeader, 0);
+    ///
+    /// // Encode the configuration.
+    /// let encoding = config.encode();
+    /// // The encoded value represented as a bit string will be 0b001001
+    /// //                                                           ^l^s
+    /// // Where l above points to the the set bit corresponding to 2 which
+    /// // is the value of the FemtoContainersHeader variant of the enum and
+    /// // s points to the suit_slot field of the configuation
+    /// ```
     pub fn encode(&self) -> u8 {
         let mut encoding: u8 = 0;
         encoding |= self.vm_target as u8;
@@ -55,10 +78,10 @@ impl VMConfiguration {
 }
 
 /// Specifies the different binary file layouts that are supported by the VMs
-/// Note that only the FemtoContainersHeader layout is compatible with the
-/// FemtoContainer VM.
-#[derive(Eq, PartialEq, Debug, Deserialize, Serialize, Copy, Clone)]
+/// Note that only the FemtoContainer VM is only compatible with the FemtoContainersHeader
+/// binary layout.
 #[repr(u8)]
+#[derive(Eq, PartialEq, Debug, Deserialize, Serialize, Copy, Clone)]
 pub enum BinaryFileLayout {
     /// The most basic layout of the produced binary. Used by the original version
     /// of the rBPF VM. It only includes the .text section from the ELF file.
@@ -117,7 +140,9 @@ impl FromStr for BinaryFileLayout {
     }
 }
 
-/// The target VM for the execution request
+/// The target implementation of the VM used to run the program.
+/// The reason we need this is that we want to compare the rbpf VM implementaion
+/// against the baseline implementation of the Femto-Containers VM.
 #[derive(Debug, Copy, Clone, Serialize, Deserialize)]
 pub enum TargetVM {
     Rbpf,

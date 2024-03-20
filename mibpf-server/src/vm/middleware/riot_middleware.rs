@@ -3,9 +3,8 @@
 // drop-in replacement for the Femto-Container VM.
 //
 // The prototype for helpers follows the convention used by rBpF: five `u64` as arguments, and a
-// `u64` as a return value. Hence some helpers have _a arguments, or return a 0 value in all
+// `u64` as a return value. Hence some helpers have unused arguments, or return a 0 value in all
 // cases, in order to respect this convention.
-// Question: why do we need this convention?
 
 use core::cmp::max;
 use core::ffi::{c_char, CStr};
@@ -327,15 +326,17 @@ pub fn bpf_gpio_read_input(port: u64, pin_num: u64, _a3: u64, _a4: u64, _a5: u64
     }
     return 0;
 }
-// Reads raw state of the pin, can be used to inspect the state of outputs without
-// changing it. E.g. if we have a pin powering a led and then turn it to input
-// to read its state, it will return 0 as changing a pin to input changes its
-// state
+
+/// Reads raw state of the pin, can be used to inspect the state of outputs without
+/// changing it. E.g. if we have a pin powering a led and then turn it to input
+/// to read its state, it will return 0 as changing a pin to input changes its
+/// state
 pub fn bpf_gpio_read_raw(port: u64, pin_num: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     let pin_state =
         unsafe { riot_sys::gpio_read(riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32)) };
     return pin_state as u64;
 }
+
 pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _a4: u64, _a5: u64) -> u64 {
     let pin = gpio::GPIO::from_c(unsafe { riot_sys::macro_GPIO_PIN(port as u32, pin_num as u32) })
         .unwrap();
@@ -346,6 +347,3 @@ pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _a4: u64, _a5: u64) -> 
     }
     return 0;
 }
-
-
-

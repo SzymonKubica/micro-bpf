@@ -21,10 +21,7 @@ use crate::{
         requests::{VMExecutionCompleteMsg, VMExecutionRequest, VMExecutionRequestMsg},
     },
     spawn_thread,
-    vm::{
-        middleware,
-        FemtoContainerVm, RbpfVm, VirtualMachine,
-    },
+    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
 
 static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);

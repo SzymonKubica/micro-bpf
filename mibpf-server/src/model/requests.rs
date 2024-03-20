@@ -38,20 +38,10 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
     }
 }
 
-/// TODO: update documentation comment
-/// Represents a request to execute an eBPF program on a particular VM. The
-/// suit_location is the index of the SUIT storage slot from which the program
-/// should be loaded. For instance, 0 corresponds to '.ram.0'. The vm_target
-/// specifies which implementation of the VM should be used (FemtoContainers or
-/// rBPF). 0 corresponds to rBPF and 1 corresponds to FemtoContainers. The
-/// reason an enum isn't used here is that this struct is sent in messages via
-/// IPC api and adding an enum there resulted in the struct being too large to
-/// send. It also specifies the binary layout format that the VM should expect
-/// in the loaded program
-///
-/// It also specifies the helpers that the VM should be allowed to call, given
-/// that there are currently 24 available helper functions, we use an u32 to
-/// specify which ones are allowed.
+/// Encoded transfer object representing a request to start a given execution
+/// of the eBPF VM. It contains the encoded configuration of the vm as well as
+/// a bitstring (in a form of 3 u8s) specifying which helper functions can be
+/// called by the program running in the VM.
 #[derive(Clone, Serialize, Deserialize)]
 #[repr(C, packed)]
 pub struct VMExecutionRequestMsg {
@@ -63,7 +53,6 @@ impl Into<msg_t> for VMExecutionRequestMsg {
     fn into(mut self) -> msg_t {
         let mut msg: msg_t = Default::default();
         msg.type_ = 0;
-        // The content of the message specifies which SUIT slot to load from
         msg.content = riot_sys::msg_t__bindgen_ty_1 {
             ptr: &mut self as *mut VMExecutionRequestMsg as *mut c_void,
         };
@@ -82,9 +71,7 @@ impl From<msg_t> for &VMExecutionRequestMsg {
 // We need to implement Drop for the execution request so that it can be
 // dealocated after it is decoded an processed in the message channel.
 impl Drop for VMExecutionRequestMsg {
-    fn drop(&mut self) {
-        debug!("Dropping execution request message now.");
-    }
+    fn drop(&mut self) {}
 }
 
 /// Responsible for notifying the VM manager that the execution of a given

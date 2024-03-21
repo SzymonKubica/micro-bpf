@@ -3,11 +3,9 @@ use core::convert::TryInto;
 
 use log::{debug, error, info};
 use serde::Deserialize;
-// The riot_sys reimported through the wrappers doesn't seem to work.
 
-use riot_sys;
 use riot_wrappers::{
-    coap_message::ResponseMessage, gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex,
+    coap_message::ResponseMessage, gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys,
     stdio::println,
 };
 
@@ -24,27 +22,23 @@ use crate::{
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
 /// to the executed program. The eBPF script can access the CoAP packet data.
-struct VMExecutionOnCoapPktHandler {
-    execution_time: u32,
-    result: i64,
+struct VMExecutionOnCoapPktHandler {}
+// Wrapper function which returns the Handler struct, it is required by
+// the riot_wrappers infrastructure for adding CoAP request handlers.
+pub fn execute_vm_on_coap_pkt() -> impl riot_wrappers::gcoap::Handler {
+    VMExecutionOnCoapPktHandler {}
 }
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
-        let response_len = self.handle_request(pkt);
-        response_len as isize
-    }
-}
-
-impl VMExecutionOnCoapPktHandler {
-    fn handle_request(&mut self, request: &mut PacketBuffer) -> u8 {
         // Measure the total request processing time.
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let start: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
-        let preprocessing_result = preprocess_request(request);
-        let request_data = match preprocessing_result {
-            Ok(request_data) => request_data,
-            Err(code) => return code,
+
+        let Ok(request_data) = preprocess_request(pkt) else {
+            // Handler needs to return the length of Payload + PDU, in case
+            // of failure it is 0.
+            return 0;
         };
 
         let request_data = VMExecutionRequest::from(&request_data);
@@ -57,7 +51,7 @@ impl VMExecutionOnCoapPktHandler {
             request_data.configuration.suit_slot as usize,
         );
 
-        println!(
+        debug!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
             request_data.configuration.suit_slot,
             program.len()
@@ -66,30 +60,31 @@ impl VMExecutionOnCoapPktHandler {
         // Dynamically dispatch between the two different VM implementations
         // depending on the request data.
         let vm: Box<dyn VirtualMachine> = match request_data.configuration.vm_target {
-            TargetVM::Rbpf => Box::new(RbpfVm::new(
-                Vec::from(middleware::ALL_HELPERS),
-                request_data.configuration.binary_layout,
-            )),
+            TargetVM::Rbpf => {
+                // When executing on a CoAP packet, the VM needs to have access
+                // to the CoAP helpers plus any additional helpers specified by
+                // the user.
+                let mut helpers = Vec::from(middleware::COAP_HELPERS);
+                helpers.append(&mut request_data.available_helpers.clone());
+                Box::new(RbpfVm::new(
+                    helpers,
+                    request_data.configuration.binary_layout,
+                ))
+            }
             TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),
         };
 
-        self.execution_time = vm.execute_on_coap_pkt(&program, request, &mut self.result);
+        // It is very important that the program executing on the CoAP packet returns
+        // the length of the payload + PDU so that the handler can send the
+        // response accordingly.
+        let mut result = 0;
+        let execution_time = vm.execute_on_coap_pkt(&program, pkt, &mut result);
 
         let end: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
         println!("Total request processing time: {} [us]", end - start);
-        // The program needs to return the length of the Payload + PDU
-        self.result as u8
-    }
 
-    fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
-        format_execution_response(self.execution_time, self.result, response, request);
-    }
-}
-
-pub fn execute_vm_on_coap_pkt() -> impl riot_wrappers::gcoap::Handler {
-    VMExecutionOnCoapPktHandler {
-        execution_time: 0,
-        result: 0,
+        // The eBPF program needs to return the length of the Payload + PDU
+        result as isize
     }
 }
 
@@ -182,7 +177,6 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        // TODO: add meaningful response
         response.set_payload("VM spawned successfully".as_bytes());
     }
 }

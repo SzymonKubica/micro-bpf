@@ -89,6 +89,13 @@ pub const ALL_HELPERS: [HelperFunction; 24] = [
     HelperFunction::new(BPF_GPIO_WRITE, 23, bpf_gpio_write),
 ];
 
+pub const COAP_HELPERS : [HelperFunction; 4] = [
+    HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
+    HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
+    HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
+    HelperFunction::new(BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
+];
+
 /* Print/debug helper functions - implementation */
 
 /// Allows for printing arbitrary text to the RIOT shell console output.

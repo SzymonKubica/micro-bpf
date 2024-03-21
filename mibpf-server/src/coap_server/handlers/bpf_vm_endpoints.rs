@@ -43,6 +43,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         let request_data = VMExecutionRequest::from(&request_data);
 
+        println!("Received request to execute VM with config: {:?}", request_data.configuration);
         // The SUIT ram storage for the program is 2048 bytes large so we won't
         // be able to load larger images. Hence 2048 byte buffer is sufficient
         let mut program_buffer: [u8; 2048] = [0; 2048];
@@ -161,6 +162,9 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             Ok(request_data) => request_data,
             Err(code) => return code,
         };
+
+        let internal = VMExecutionRequest::from(&request_data);
+        println!("Received request to execute VM with config: {:?}", internal.configuration);
 
         if let Ok(()) = self.execution_send.lock().try_send(request_data) {
             info!("VM execution request sent successfully");

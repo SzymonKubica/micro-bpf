@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// of the VM implementation, the binary file layout that the VM should expect
 /// in the loaded bytecode and the SUIT storage slot from where the program
 /// should be loaded.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct VMConfiguration {
     /// The version of the VM implementation that will be used by the VM instance.
     pub vm_target: TargetVM,

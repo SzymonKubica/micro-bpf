@@ -42,8 +42,7 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
 /// of the eBPF VM. It contains the encoded configuration of the vm as well as
 /// a bitstring (in a form of 3 u8s) specifying which helper functions can be
 /// called by the program running in the VM.
-#[derive(Clone, Serialize, Deserialize)]
-#[repr(C, packed)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct VMExecutionRequestMsg {
     pub configuration: u8,
     pub available_helpers: [u8; 3],

@@ -187,9 +187,12 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
             let _ = riot_sys::msg_receive(&mut msg);
         }
         let execution_request_msg: &VMExecutionRequestMsg = msg.into();
+        println!("Received a message: {:?}", execution_request_msg);
         let execution_request = VMExecutionRequest::from(execution_request_msg);
 
         let vm_config = execution_request.configuration;
+
+        info!("Received an execution request to spawn a VM with configuration: {:?}", vm_config);
 
         let mut program_buffer: [u8; 1024] = [0; 1024];
         let program = suit_storage::load_program(&mut program_buffer, vm_config.suit_slot);

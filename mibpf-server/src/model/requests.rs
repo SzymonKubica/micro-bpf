@@ -43,6 +43,7 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
 /// a bitstring (in a form of 3 u8s) specifying which helper functions can be
 /// called by the program running in the VM.
 #[derive(Clone, Serialize, Deserialize, Debug)]
+#[repr(C, packed)]
 pub struct VMExecutionRequestMsg {
     pub configuration: u8,
     pub available_helpers: [u8; 3],
@@ -50,20 +51,32 @@ pub struct VMExecutionRequestMsg {
 
 impl Into<msg_t> for VMExecutionRequestMsg {
     fn into(mut self) -> msg_t {
+        let mut value: u32 = 0;
+        value |= (self.configuration as u32) << 24;
+        for i in 0..3 {
+            value |= (self.available_helpers[i] as u32) << (8 * (2 - i));
+        }
         let mut msg: msg_t = Default::default();
         msg.type_ = 0;
-        msg.content = riot_sys::msg_t__bindgen_ty_1 {
-            ptr: &mut self as *mut VMExecutionRequestMsg as *mut c_void,
-        };
+        msg.content = riot_sys::msg_t__bindgen_ty_1 { value };
         msg
     }
 }
 
-impl From<msg_t> for &VMExecutionRequestMsg {
+impl From<msg_t> for VMExecutionRequestMsg {
     fn from(msg: msg_t) -> Self {
-        let execution_request_ptr: *mut VMExecutionRequestMsg =
-            unsafe { msg.content.ptr as *mut VMExecutionRequestMsg };
-        unsafe { &*execution_request_ptr }
+        let value: u32 = unsafe { msg.content.value };
+
+        let configuration = ((value >> 24) & 0xFF) as u8;
+        let mut available_helpers = [0; 3];
+        for i in 0..3 {
+            available_helpers[i] = ((value >> (8 * (2 - i))) & 0xFF) as u8;
+        }
+
+        VMExecutionRequestMsg {
+            configuration,
+            available_helpers,
+        }
     }
 }
 

@@ -186,9 +186,9 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
         unsafe {
             let _ = riot_sys::msg_receive(&mut msg);
         }
-        let execution_request_msg: &VMExecutionRequestMsg = msg.into();
+        let execution_request_msg: VMExecutionRequestMsg = msg.into();
         println!("Received a message: {:?}", execution_request_msg);
-        let execution_request = VMExecutionRequest::from(execution_request_msg);
+        let execution_request = VMExecutionRequest::from(&execution_request_msg);
 
         let vm_config = execution_request.configuration;
 

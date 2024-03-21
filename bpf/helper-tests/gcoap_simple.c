@@ -18,13 +18,20 @@ typedef struct __attribute__((packed)) {
     uint16_t id;
 } coap_hdr_t;
 
+
+typedef struct {
+    void* pkt;      /**< Opaque pointer to the coap_pkt_t struct */
+    uint8_t* buf;   /**< Packet buffer */
+    size_t buf_len; /**< Packet buffer length */
+} coap_context_t;
+
 int coap_test(bpf_coap_ctx_t *gcoap)
 {
     bpf_printf("Coap context address %p\n", gcoap);
     bpf_coap_pkt_t *pkt = gcoap->pkt;
     bpf_printf("Coap packet address %p\n", pkt);
-    bpf_printf("Packet buffer address %p\n", gcoap->buf);
-    bpf_printf("Packet buffer length %d\n", gcoap->buf_len);
+    bpf_printf("Packet buffer address %p\n", ((coap_context_t *) gcoap)->buf);
+    bpf_printf("Packet buffer length %d\n", ((coap_context_t *) gcoap)->buf_len);
     uint32_t counter = 123;
 
     char stringified[20];

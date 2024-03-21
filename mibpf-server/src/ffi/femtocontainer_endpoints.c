@@ -168,7 +168,6 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_b
         .buf = buf,
         .buf_len = len,
     };
-    LOG_DEBUG("[BPF]: executing gcoap handler\n");
 
     f12r_setup(&_bpf);
     f12r_add_region(&_bpf, &mem_pdu, pdu->hdr, 256,
@@ -176,7 +175,6 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_b
     f12r_add_region(&_bpf, &mem_pkt, pdu, sizeof(coap_pkt_t),
                     FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);
     // Allow for reading and writing to the whole packet payload,
-    // TODO: remove
     f12r_add_region(&_bpf, &mem_buff, pdu->payload, 512,
                     FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);
 

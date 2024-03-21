@@ -89,7 +89,7 @@ pub const ALL_HELPERS: [HelperFunction; 24] = [
     HelperFunction::new(BPF_GPIO_WRITE, 23, bpf_gpio_write),
 ];
 
-pub const COAP_HELPERS : [HelperFunction; 4] = [
+pub const COAP_HELPERS: [HelperFunction; 4] = [
     HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
     HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
     HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
@@ -190,12 +190,11 @@ pub fn bpf_saul_reg_write(dev_ptr: u64, data_ptr: u64, _a3: u64, _a4: u64, _a5: 
     unsafe { riot_sys::saul_reg_write(dev, data) as u64 }
 }
 
-
 #[derive(Debug)]
 pub struct CoapContext {
-    pkt: *mut riot_sys::coap_pkt_t,
-    buf: *mut u8,
-    len: usize,
+    pub pkt: *mut riot_sys::coap_pkt_t,
+    pub buf: *mut u8,
+    pub len: usize,
 }
 
 /* (g)coap functions */

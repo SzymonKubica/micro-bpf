@@ -3,7 +3,7 @@ use crate::{
     vm::{middleware, VirtualMachine},
 };
 use alloc::{format, string::String, vec::Vec};
-use core::{ffi::c_void, ops::DerefMut, str::FromStr, slice::from_raw_parts_mut};
+use core::{ffi::c_void, ops::DerefMut, slice::from_raw_parts_mut, str::FromStr};
 use serde::Deserialize;
 
 use rbpf::without_std::Error;
@@ -98,24 +98,38 @@ impl VirtualMachine for RbpfVm {
         unsafe { copy_packet(pkt as *mut _ as *mut c_void, mem.as_mut_ptr() as *mut u8) };
         */
 
-
         // Initialise the VM operating on a fixed memory buffer.
-        let mut vm = rbpf::EbpfVmRaw::new(Some(program)).unwrap();
+        let mut vm = rbpf::EbpfVmMbuff::new(Some(program)).unwrap();
         vm.override_interpreter(rbpf::InterpreterVariant::Extended);
 
         middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
 
-        unsafe {
+
+        let buffer: &mut [u8] = unsafe {
             let ctx = pkt as *mut _ as *mut PacketBuffer;
             println!("Context: {:?}", *ctx);
-        }
-        let mem: &mut [u8] = unsafe { from_raw_parts_mut(pkt as *mut PacketBuffer as *mut u8, 256) };
-        let mutex = Mutex::new(mem);
+            from_raw_parts_mut(ctx as *mut u8, 32)
+        };
+
+        let buffer_mutex = Mutex::new(buffer);
+
+        // Actual packet data, it is pointed to by the header of the packet buffer
+        let mem = unsafe {
+            let ctx = pkt as *mut _ as *mut CoapContext;
+            println!("Coap context: {:?}", *ctx);
+            from_raw_parts_mut((*ctx).pkt as *mut u8, (*ctx).len)
+        };
+        //let mem: &mut [u8] = &mut [0; 512];
+        let mem_mutex = Mutex::new(mem);
 
         // Here we need to do some hacking with locks as closures don't like
         // capturing &mut references from environment. It does make sense.
-        let (ret, execution_time) =
-            self.timed_execution(|| vm.execute_program(mutex.lock().deref_mut()));
+        let (ret, execution_time) = self.timed_execution(|| {
+            vm.execute_program(
+                mem_mutex.lock().deref_mut(),
+                buffer_mutex.lock().deref_mut(),
+            )
+        });
         *result = ret;
         execution_time
     }

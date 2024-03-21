@@ -190,21 +190,12 @@ pub fn bpf_saul_reg_write(dev_ptr: u64, data_ptr: u64, _a3: u64, _a4: u64, _a5: 
     unsafe { riot_sys::saul_reg_write(dev, data) as u64 }
 }
 
-#[repr(align(8))]
-#[derive(Debug)]
-/// Wrapper for struct fields that need to be aligned at the 8-bytest binary.
-/// It is introduced to mimic the __attribute__((aligned(8))) that is used
-/// on bpf_coap_ctx_t on the eBPF C code side.
-struct Align8<T>(pub T);
 
 #[derive(Debug)]
-struct CoapContext {
-    /// Opaque pointer to the coap_pkt_t struct
-    pkt: Align8<*mut riot_sys::coap_pkt_t>,
-    /// Packet buffer
-    buf: Align8<*mut u8>,
-    /// Packet buffer length
-    buf_len: usize,
+pub struct CoapContext {
+    pkt: *mut riot_sys::coap_pkt_t,
+    buf: *mut u8,
+    len: usize,
 }
 
 /* (g)coap functions */
@@ -217,13 +208,13 @@ pub fn bpf_gcoap_resp_init(coap_ctx_p: u64, resp_code: u64, _a3: u64, _a4: u64, 
 
     unsafe {
         debug!("coap_ctx: {:?}", *coap_ctx);
-        debug!("buf_len: {:?}", (*coap_ctx).buf_len);
-        debug!("packet payload len: {:?}", (*(*coap_ctx).pkt.0).payload_len);
+        debug!("buf_len: {:?}", (*coap_ctx).len);
+        debug!("packet payload len: {:?}", (*(*coap_ctx).pkt).payload_len);
         debug!("resp code: {:?}", resp_code);
         let res = riot_sys::gcoap_resp_init(
-            (*coap_ctx).pkt.0,
-            (*coap_ctx).buf.0,
-            (*coap_ctx).buf_len as u32,
+            (*coap_ctx).pkt,
+            (*coap_ctx).buf,
+            (*coap_ctx).len as u32,
             resp_code,
         ) as u64;
         return res;
@@ -234,9 +225,9 @@ pub fn bpf_coap_opt_finish(coap_ctx_p: u64, flags_u: u64, _a3: u64, _a4: u64, _a
     let coap_ctx: *const CoapContext = coap_ctx_p as *const CoapContext;
     unsafe {
         debug!("coap_ctx: {:?}", *coap_ctx);
-        debug!("buf_len: {:?}", (*coap_ctx).buf_len);
-        debug!("packet payload len: {:?}", (*(*coap_ctx).pkt.0).payload_len);
-        return riot_sys::coap_opt_finish((*coap_ctx).pkt.0, flags_u as u16) as u64;
+        debug!("buf_len: {:?}", (*coap_ctx).len);
+        debug!("packet payload len: {:?}", (*(*coap_ctx).pkt).payload_len);
+        return riot_sys::coap_opt_finish((*coap_ctx).pkt, flags_u as u16) as u64;
     }
 }
 
@@ -245,12 +236,12 @@ pub fn bpf_coap_add_format(coap_ctx_p: u64, format: u64, _a3: u64, _a4: u64, _a5
     let coap_ctx: *const CoapContext = coap_ctx_p as *const CoapContext;
     unsafe {
         debug!("coap_ctx: {:?}", *coap_ctx);
-        debug!("buf_len: {:?}", (*coap_ctx).buf_len);
-        debug!("packet payload len: {:?}", (*(*coap_ctx).pkt.0).payload_len);
+        debug!("buf_len: {:?}", (*coap_ctx).len);
+        debug!("packet payload len: {:?}", (*(*coap_ctx).pkt).payload_len);
         // Again the type cast hacking is needed because we are using the function
         // from the inline module.
         return riot_sys::inline::coap_opt_add_format(
-            (*coap_ctx).pkt.0 as *mut riot_sys::inline::coap_pkt_t,
+            (*coap_ctx).pkt as *mut riot_sys::inline::coap_pkt_t,
             format as u16,
         ) as u64;
     }

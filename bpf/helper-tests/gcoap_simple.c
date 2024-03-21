@@ -20,7 +20,11 @@ typedef struct __attribute__((packed)) {
 
 int coap_test(bpf_coap_ctx_t *gcoap)
 {
+    bpf_printf("Coap context address %p\n", gcoap);
     bpf_coap_pkt_t *pkt = gcoap->pkt;
+    bpf_printf("Coap packet address %p\n", pkt);
+    bpf_printf("Packet buffer address %p\n", gcoap->buf);
+    bpf_printf("Packet buffer length %d\n", gcoap->buf_len);
     uint32_t counter = 123;
 
     char stringified[20];

@@ -3,7 +3,7 @@ use crate::{
     vm::{middleware, VirtualMachine},
 };
 use alloc::{format, string::String, vec::Vec};
-use core::{ffi::c_void, ops::DerefMut, str::FromStr};
+use core::{ffi::c_void, ops::DerefMut, str::FromStr, slice::from_raw_parts_mut};
 use serde::Deserialize;
 
 use rbpf::without_std::Error;
@@ -11,7 +11,7 @@ use rbpf::without_std::Error;
 use riot_sys;
 use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
 
-use super::middleware::helpers::HelperFunction;
+use super::middleware::{helpers::HelperFunction, CoapContext};
 
 pub struct RbpfVm {
     pub registered_helpers: Vec<HelperFunction>,
@@ -93,10 +93,11 @@ impl VirtualMachine for RbpfVm {
         // Memory for the packet.
         // TODO: allow rbpf to access the packet memory directly instead of doing
         // this packet copy process.
+        /* Instead of copying the packet we need to give a pointer to it
         let mut mem: [u8; 512] = [0; 512];
         unsafe { copy_packet(pkt as *mut _ as *mut c_void, mem.as_mut_ptr() as *mut u8) };
+        */
 
-        println!("Packet copy size: {}", mem.len());
 
         // Initialise the VM operating on a fixed memory buffer.
         let mut vm = rbpf::EbpfVmRaw::new(Some(program)).unwrap();
@@ -104,6 +105,11 @@ impl VirtualMachine for RbpfVm {
 
         middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
 
+        unsafe {
+            let ctx = pkt as *mut _ as *mut PacketBuffer;
+            println!("Context: {:?}", *ctx);
+        }
+        let mem: &mut [u8] = unsafe { from_raw_parts_mut(pkt as *mut PacketBuffer as *mut u8, 256) };
         let mutex = Mutex::new(mem);
 
         // Here we need to do some hacking with locks as closures don't like

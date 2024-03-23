@@ -182,11 +182,10 @@ impl VMExecutionManager {
         notification: &VMExecutionCompleteMsg,
     ) {
         info!(
-            "Received notification from worker with PID: {}",
+            "Received notification from worker with PID: {}
+            Adding worker back to the pool of free workers.",
             notification.worker_pid
         );
-
-        info!("Adding worker back to the pool of free workers.");
         workers.push(notification.worker_pid)
     }
 }

@@ -92,3 +92,9 @@ impl Drop for VMExecutionRequestMsg {
 pub struct VMExecutionCompleteMsg {
     pub worker_pid: i16,
 }
+
+impl VMExecutionCompleteMsg {
+    pub fn new(worker_pid: i16) -> Self {
+        VMExecutionCompleteMsg { worker_pid }
+    }
+}

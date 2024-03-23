@@ -28,14 +28,12 @@ pub struct VMExecutionOnCoapPktHandler;
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
         let Ok(request_data) = preprocess_request(pkt) else {
-            // Handler needs to return the length of Payload + PDU, in case
-            // of failure it is 0.
             return 0;
         };
 
         let request_data = VMExecutionRequest::from(&request_data);
 
-        println!(
+        debug!(
             "Received request to execute VM with config: {:?}",
             request_data.configuration
         );
@@ -173,6 +171,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
             info!("VM execution request sent successfully");
         } else {
             error!("Failed to send execution request message.");
+            return coap_numbers::code::INTERNAL_SERVER_ERROR;
         }
 
         coap_numbers::code::CHANGED
@@ -184,6 +183,6 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        response.set_payload("VM spawned successfully".as_bytes());
+        response.set_payload(b"VM Execution request sent successfully!")
     }
 }

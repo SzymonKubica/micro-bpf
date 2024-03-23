@@ -192,9 +192,14 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
 
         let vm_config = execution_request.configuration;
 
-        info!("Received an execution request to spawn a VM with configuration: {:?}", vm_config);
+        info!(
+            "Received an execution request to spawn a VM with configuration: {:?}",
+            vm_config
+        );
 
-        let mut program_buffer: [u8; 1024] = [0; 1024];
+        const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
+        let mut program_buffer: [u8; SUIT_STORAGE_SLOT_SIZE] = [0; SUIT_STORAGE_SLOT_SIZE];
+
         let program = suit_storage::load_program(&mut program_buffer, vm_config.suit_slot);
 
         info!(

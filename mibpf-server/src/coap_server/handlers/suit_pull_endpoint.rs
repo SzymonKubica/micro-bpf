@@ -7,6 +7,8 @@ use riot_wrappers::stdio::println;
 
 use crate::infra::suit_storage;
 
+use super::util::preprocess_request;
+
 pub struct SuitPullHandler {
     last_fetched_manifest: Option<String>,
 }
@@ -33,25 +35,17 @@ impl coap_handler::Handler for SuitPullHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        if request.code().into() != coap_numbers::code::POST {
-            return coap_numbers::code::METHOD_NOT_ALLOWED;
-        }
+        let preprocessing_result: Result<SuitPullRequest, u8> = preprocess_request(request);
 
-        // Request payload determines from which SUIT manifest is used to fetch
-        // the program image. It also contains the host ip address.
-        let Ok(s) = core::str::from_utf8(request.payload()) else {
-            return coap_numbers::code::BAD_REQUEST;
+        let Ok(request_data) = preprocessing_result else {
+            return preprocessing_result.err().unwrap();
         };
 
-        println!("Request payload received: {}", s);
-
-        let Ok((request_data, _length)): Result<(SuitPullRequest, usize), _> =
-            serde_json_core::from_str(s)
-        else {
-            return coap_numbers::code::BAD_REQUEST;
-        };
-
-        suit_storage::suit_fetch(request_data.ip_addr, request_data.riot_network_interface, request_data.manifest);
+        suit_storage::suit_fetch(
+            request_data.ip_addr,
+            request_data.riot_network_interface,
+            request_data.manifest,
+        );
 
         self.last_fetched_manifest = Some(String::from(request_data.manifest));
 
@@ -68,6 +62,6 @@ impl coap_handler::Handler for SuitPullHandler {
         request: Self::RequestData,
     ) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        response.set_payload(b"Success");
+        response.set_payload(b"SUIT pull request processed successfully!");
     }
 }

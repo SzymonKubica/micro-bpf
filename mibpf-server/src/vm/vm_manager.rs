@@ -44,10 +44,21 @@ pub type CompletionSendPort = Arc<Mutex<SendPort<VMExecutionCompleteMsg, VM_COMP
 /// messages from other parts of the system that are requesting that a particular
 /// instance of the VM should be started and execute a specified program.
 pub struct VMExecutionManager {
+    /// The port for receiving the VM execution requests from the CoAP server
+    /// and the shell.
     request_receive_port: VMExecutionRequestPort,
+    /// Send port for messages that request initiating an execution, it should
+    /// be cloned and passed into any threads that want to send messages to the
+    /// VM executor.
     request_send_port: ExecutionSendPort,
+    /// The port used by the manager to learn that a particular VM has finished
+    /// executing its eBPF program and is now free to be allocated a new workload.
     notification_receive_port: VMExecutionCompletePort,
+    /// Send port that is passed to the worker threads to allow them to send
+    /// execution completion notifications.
     notification_send_port: CompletionSendPort,
+    /// Message semantics specifying the two available types of IPC messages
+    /// that can be sent to the manager.
     message_semantics: Processing<
         Processing<NoConfiguredMessages, VMExecutionRequestMsg, VM_EXEC_REQUEST>,
         VMExecutionCompleteMsg,
@@ -100,9 +111,9 @@ impl VMExecutionManager {
         let notification_port = self.notification_send_port.clone();
 
         let mut worker_0_main = || vm_main_thread(&notification_port);
-        let mut worker_1_main = || vm_main_thread(&notification_port);
-        let mut worker_2_main = || vm_main_thread(&notification_port);
-        let mut worker_3_main = || vm_main_thread(&notification_port);
+        let mut worker_1_main = worker_0_main.clone();
+        let mut worker_2_main = worker_0_main.clone();
+        let mut worker_3_main = worker_0_main.clone();
 
         thread::scope(|ts| {
             let pri = riot_sys::THREAD_PRIORITY_MAIN;
@@ -180,16 +191,24 @@ impl VMExecutionManager {
     }
 }
 
+/// Each VM worker thread waits for incoming messages from the `VMExecutionManager`
+/// that represent requests to start executing an instance of the eBPF VM. Once
+/// a message is received, the worker starts executing the program until it
+/// terminates. Current limitation is that the worker has no way of preempting
+/// the executing program unless it crashes or voluntarily terminates.
 fn vm_main_thread(send_port: &CompletionSendPort) {
     loop {
+        // Here we use the msg v1 RIOT API as each VM worker cannot pass the
+        // send port back to the VM manager (who created it).
         let mut msg: msg_t = Default::default();
         unsafe {
             let _ = riot_sys::msg_receive(&mut msg);
         }
-        let execution_request_msg: VMExecutionRequestMsg = msg.into();
-        println!("Received a message: {:?}", execution_request_msg);
-        let execution_request = VMExecutionRequest::from(&execution_request_msg);
 
+        let execution_request_msg: VMExecutionRequestMsg = msg.into();
+        debug!("Received a message: {:?}", execution_request_msg);
+
+        let execution_request = VMExecutionRequest::from(&execution_request_msg);
         let vm_config = execution_request.configuration;
 
         info!(
@@ -199,9 +218,7 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
 
         const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
         let mut program_buffer: [u8; SUIT_STORAGE_SLOT_SIZE] = [0; SUIT_STORAGE_SLOT_SIZE];
-
         let program = suit_storage::load_program(&mut program_buffer, vm_config.suit_slot);
-
         info!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
             vm_config.suit_slot,
@@ -218,16 +235,15 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
 
         let mut result: i64 = 0;
         let execution_time = vm.execute(&program, &mut result);
+        debug!("Execution_time: {}, result: {}", execution_time, result);
 
-        let resp = format!("Execution_time: {}, result: {}", execution_time, result);
-        println!("{}", &resp);
-
-        if let Ok(()) = send_port.lock().try_send(VMExecutionCompleteMsg {
-            worker_pid: riot_wrappers::thread::get_pid().into(),
-        }) {
-            info!("VM execution completion notification sent successfully");
-        } else {
-            error!("Failed to send notification message.");
+        // Now we notify the VM execution manager that the eBPF program has
+        // terminated and so the manager add us to the pool of free workers
+        // and send new execution requests
+        let completion_notification = VMExecutionCompleteMsg::new(thread::get_pid().into());
+        match send_port.lock().try_send(completion_notification) {
+            Ok(()) => info!("VM execution completion notification sent successfully"),
+            Err(_) => error!("Failed to send notification message."),
         }
     }
 }

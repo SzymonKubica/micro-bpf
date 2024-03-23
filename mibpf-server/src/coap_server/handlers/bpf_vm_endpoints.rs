@@ -12,6 +12,7 @@ use riot_wrappers::{
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::{
+    coap_server::handlers::util::preprocess_request,
     infra::suit_storage,
     model::{
         enumerations::TargetVM,
@@ -22,19 +23,10 @@ use crate::{
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
 /// to the executed program. The eBPF script can access the CoAP packet data.
-struct VMExecutionOnCoapPktHandler {}
-// Wrapper function which returns the Handler struct, it is required by
-// the riot_wrappers infrastructure for adding CoAP request handlers.
-pub fn execute_vm_on_coap_pkt() -> impl riot_wrappers::gcoap::Handler {
-    VMExecutionOnCoapPktHandler {}
-}
+pub struct VMExecutionOnCoapPktHandler;
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
-        // Measure the total request processing time.
-        let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-        let start: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
-
         let Ok(request_data) = preprocess_request(pkt) else {
             // Handler needs to return the length of Payload + PDU, in case
             // of failure it is 0.
@@ -47,13 +39,11 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
             "Received request to execute VM with config: {:?}",
             request_data.configuration
         );
-        // The SUIT ram storage for the program is 2048 bytes large so we won't
-        // be able to load larger images. Hence 2048 byte buffer is sufficient
-        let mut program_buffer: [u8; 2048] = [0; 2048];
-        let program = suit_storage::load_program(
-            &mut program_buffer,
-            request_data.configuration.suit_slot as usize,
-        );
+
+        const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
+        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
+        let program =
+            suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
 
         debug!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
@@ -61,8 +51,6 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
             program.len()
         );
 
-        // Dynamically dispatch between the two different VM implementations
-        // depending on the request data.
         let vm: Box<dyn VirtualMachine> = match request_data.configuration.vm_target {
             TargetVM::Rbpf => {
                 // When executing on a CoAP packet, the VM needs to have access
@@ -81,20 +69,29 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // It is very important that the program executing on the CoAP packet returns
         // the length of the payload + PDU so that the handler can send the
         // response accordingly.
-        let mut result = 0;
-        let execution_time = vm.execute_on_coap_pkt(&program, pkt, &mut result);
-
-        let end: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
-        println!("Total request processing time: {} [us]", end - start);
+        let mut payload_length = 0;
+        let execution_time = vm.execute_on_coap_pkt(&program, pkt, &mut payload_length);
 
         // The eBPF program needs to return the length of the Payload + PDU
-        result as isize
+        payload_length as isize
     }
 }
 
-struct VMExecutionNoDataHandler {
+// Allows for executing an instance of the eBPF VM directly in the CoAP server
+// request handler callback. It stores the execution time and return value
+// of the program so that it can format the CoAP response with those values accordingly.
+pub struct VMExecutionNoDataHandler {
     execution_time: u32,
     result: i64,
+}
+
+impl VMExecutionNoDataHandler {
+    pub fn new() -> Self {
+        Self {
+            execution_time: 0,
+            result: 0,
+        }
+    }
 }
 
 impl coap_handler::Handler for VMExecutionNoDataHandler {
@@ -141,19 +138,25 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     }
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
-        format_execution_response(self.execution_time, self.result, response, request);
+        response.set_code(request.try_into().map_err(|_| ()).unwrap());
+        let resp = format!(
+            "{{\"execution_time\": {}, \"result\": {}}}",
+            self.execution_time, self.result
+        );
+        response.set_payload(resp.as_bytes());
     }
 }
 
-pub fn execute_vm_no_data() -> impl coap_handler::Handler {
-    VMExecutionNoDataHandler {
-        execution_time: 0,
-        result: 0,
-    }
-}
-
-struct VMLongExecutionHandler {
+pub struct VMLongExecutionHandler {
     execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+}
+
+impl VMLongExecutionHandler {
+    pub fn new(
+        execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    ) -> Self {
+        Self { execution_send }
+    }
 }
 
 impl coap_handler::Handler for VMLongExecutionHandler {
@@ -183,47 +186,4 @@ impl coap_handler::Handler for VMLongExecutionHandler {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         response.set_payload("VM spawned successfully".as_bytes());
     }
-}
-
-pub fn spawn_vm_execution(
-    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, 23>>>,
-) -> impl coap_handler::Handler {
-    VMLongExecutionHandler { execution_send }
-}
-
-/* Common utility functions for the handlers */
-
-fn format_execution_response(
-    execution_time: u32,
-    result: i64,
-    response: &mut impl MutableWritableMessage,
-    request: u8,
-) {
-    response.set_code(request.try_into().map_err(|_| ()).unwrap());
-    let resp = format!(
-        "{{\"execution_time\": {}, \"result\": {}}}",
-        execution_time, result
-    );
-    response.set_payload(resp.as_bytes());
-}
-
-fn preprocess_request(request: &impl ReadableMessage) -> Result<VMExecutionRequestMsg, u8> {
-    if request.code().into() != coap_numbers::code::POST {
-        return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
-    }
-
-    // Request payload determines from which SUIT storage slot we are
-    // reading the bytecode.
-    let Ok(s) = core::str::from_utf8(request.payload()) else {
-        return Err(coap_numbers::code::BAD_REQUEST);
-    };
-
-    println!("Request payload received: {}", s);
-    let Ok((request_data, _length)): Result<(VMExecutionRequestMsg, usize), _> =
-        serde_json_core::from_str(s)
-    else {
-        return Err(coap_numbers::code::BAD_REQUEST);
-    };
-
-    Ok(request_data)
 }

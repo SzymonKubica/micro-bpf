@@ -6,8 +6,17 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 use riot_wrappers::stdio::println;
 
 use crate::infra::suit_storage;
+
 pub struct SuitPullHandler {
     last_fetched_manifest: Option<String>,
+}
+
+impl SuitPullHandler {
+    pub fn new() -> Self {
+        Self {
+            last_fetched_manifest: None,
+        }
+    }
 }
 
 /// The handler expects to get a request which consists of the IPv6 address of
@@ -60,11 +69,5 @@ impl coap_handler::Handler for SuitPullHandler {
     ) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         response.set_payload(b"Success");
-    }
-}
-
-pub fn handle_suit_pull_request() -> impl coap_handler::Handler {
-    SuitPullHandler {
-        last_fetched_manifest: None,
     }
 }

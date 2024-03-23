@@ -1,7 +1,4 @@
-use alloc::{
-    sync::Arc,
-    vec::{self, Vec},
-};
+use alloc::{vec::{self, Vec}, sync::Arc};
 use core::{fmt::Write, str::FromStr};
 use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
@@ -22,9 +19,7 @@ pub struct VMExecutionShellCommandHandler {
 }
 
 impl VMExecutionShellCommandHandler {
-    pub fn new(
-        execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
-    ) -> Self {
+    pub fn new(execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>) -> Self {
         Self { execution_send }
     }
 

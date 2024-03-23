@@ -1,8 +1,8 @@
 use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
-use riot_wrappers::{stdio::println, riot_sys};
+use riot_wrappers::{riot_sys, stdio::println};
 
-struct RiotBoardHandler;
+pub struct RiotBoardHandler;
 impl coap_handler::Handler for RiotBoardHandler {
     type RequestData = u8;
 
@@ -30,12 +30,8 @@ impl coap_handler::Handler for RiotBoardHandler {
     }
 }
 
-pub fn handle_riot_board_query() -> impl coap_handler::Handler {
-    RiotBoardHandler
-}
-
-struct ConsoleWrite;
-impl coap_handler::Handler for ConsoleWrite {
+pub struct ConsoleWriteHandler;
+impl coap_handler::Handler for ConsoleWriteHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
@@ -64,8 +60,4 @@ impl coap_handler::Handler for ConsoleWrite {
         let result = "Success";
         response.set_payload(result.as_bytes());
     }
-}
-
-pub fn handle_console_write_request() -> impl coap_handler::Handler {
-    ConsoleWrite
 }

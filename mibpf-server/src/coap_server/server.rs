@@ -1,6 +1,6 @@
 use core::ffi::c_int;
 
-use alloc::sync::Arc;
+use alloc::{boxed::Box, sync::Arc};
 use riot_wrappers::{
     coap_handler::GcoapHandler,
     cstr::cstr,
@@ -13,12 +13,15 @@ use riot_wrappers::{
     thread, ztimer,
 };
 
-use crate::{
-    coap_server::handlers::{
-        execute_vm_no_data, execute_vm_on_coap_pkt, handle_console_write_request,
-        handle_riot_board_query, handle_suit_pull_request, spawn_vm_execution,
+use crate::{model::requests::VMExecutionRequestMsg, vm::VM_EXEC_REQUEST};
+
+use super::handlers::{
+    bpf_vm_endpoints::{
+        VMExecutionNoDataHandler, VMExecutionOnCoapPktHandler, VMLongExecutionHandler,
     },
-    vm::VM_EXEC_REQUEST, model::requests::VMExecutionRequestMsg,
+    miscellaneous::{ConsoleWriteHandler, RiotBoardHandler},
+    suit_pull_endpoint::SuitPullHandler,
+    TimedHandler,
 };
 
 pub fn gcoap_server_main(
@@ -29,14 +32,15 @@ pub fn gcoap_server_main(
     // and add it as a resource in the gcoap scope.
 
     // Example handlers
-    let mut console_write_handler = GcoapHandler(handle_console_write_request());
-    let mut riot_board_handler = GcoapHandler(handle_riot_board_query());
+    let mut console_write_handler = GcoapHandler(ConsoleWriteHandler);
+    let mut riot_board_handler = GcoapHandler(RiotBoardHandler);
+    let mut suit_pull_handler = GcoapHandler(SuitPullHandler::new());
 
-    let mut suit_pull_handler = GcoapHandler(handle_suit_pull_request());
-
-    let mut coap_pkt_execution_handler = execute_vm_on_coap_pkt();
-    let mut no_data_execution_handler = GcoapHandler(execute_vm_no_data());
-    let mut long_execution_handler = GcoapHandler(spawn_vm_execution(execution_send.clone()));
+    let mut coap_pkt_execution_handler = VMExecutionOnCoapPktHandler;
+    let mut coap_pkt_timed_execution_handler = TimedHandler::new(&mut coap_pkt_execution_handler);
+    let mut no_data_execution_handler = GcoapHandler(VMExecutionNoDataHandler::new());
+    let mut long_execution_handler =
+        GcoapHandler(VMLongExecutionHandler::new(execution_send.clone()));
 
     let mut console_write_listener = SingleHandlerListener::new(
         cstr!("/console/write"),
@@ -53,7 +57,7 @@ pub fn gcoap_server_main(
     let mut coap_pkt_vm_listener = SingleHandlerListener::new(
         cstr!("/vm/exec/coap-pkt"),
         riot_sys::COAP_POST,
-        &mut coap_pkt_execution_handler,
+        &mut coap_pkt_timed_execution_handler,
     );
 
     let mut vm_listener = SingleHandlerListener::new(

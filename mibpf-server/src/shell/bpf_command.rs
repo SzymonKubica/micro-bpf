@@ -1,4 +1,7 @@
-use alloc::{vec::{self, Vec}, sync::Arc};
+use alloc::{
+    sync::Arc,
+    vec::{self, Vec},
+};
 use core::{fmt::Write, str::FromStr};
 use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
@@ -19,7 +22,9 @@ pub struct VMExecutionShellCommandHandler {
 }
 
 impl VMExecutionShellCommandHandler {
-    pub fn new(execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>) -> Self {
+    pub fn new(
+        execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    ) -> Self {
         Self { execution_send }
     }
 
@@ -63,13 +68,14 @@ impl VMExecutionShellCommandHandler {
 
         let available_helpers = HelperFunctionEncoding::from(Vec::from(ALL_HELPERS)).0;
 
-        if let Ok(()) = self.execution_send.lock().try_send(VMExecutionRequestMsg {
+        let request_message = VMExecutionRequestMsg {
             configuration: vm_configuration.encode(),
             available_helpers,
-        }) {
-            writeln!(stdio, "VM execution request sent successfully").unwrap();
-        } else {
-            writeln!(stdio, "Failed to send VM execution request").unwrap();
+        };
+
+        match self.execution_send.lock().try_send(request_message) {
+            Ok(_) => writeln!(stdio, "VM execution request sent successfully").unwrap(),
+            Err(_) => writeln!(stdio, "Failed to send VM execution request").unwrap(),
         }
     }
 }

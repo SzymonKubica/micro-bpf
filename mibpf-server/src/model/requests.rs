@@ -49,6 +49,8 @@ pub struct VMExecutionRequestMsg {
     pub available_helpers: [u8; 3],
 }
 
+// We turn the DTO struct into a raw u32 value because passing pointers in messages
+// doesn't quite work.
 impl Into<msg_t> for VMExecutionRequestMsg {
     fn into(mut self) -> msg_t {
         let mut value: u32 = 0;

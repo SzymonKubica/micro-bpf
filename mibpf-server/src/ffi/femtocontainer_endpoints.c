@@ -1,10 +1,7 @@
 #include "femtocontainer/femtocontainer.h"
 #include "femtocontainer/shared.h"
-#include "fmt.h"
 #include "log.h"
 #include "suit/storage.h"
-#include "suit/storage/ram.h"
-#include "suit/transport/coap.h"
 #include <stdint.h>
 #include <stdlib.h>
 

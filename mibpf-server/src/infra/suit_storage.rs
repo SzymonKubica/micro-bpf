@@ -41,7 +41,7 @@ pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) {
 ///
 /// * `program_buffer` - A mutable slice of bytes to write the program into
 /// * `slot` - The index of the SUIT storage slot from which to load the bytes.
-pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a [u8] {
+pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a mut [u8] {
     let location = format!(".ram.{0}\0", slot);
     let length;
     unsafe {
@@ -49,5 +49,5 @@ pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a [u8] {
         let location_ptr = location.as_ptr();
         length = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
     };
-    &program_buffer[..(length as usize)]
+    &mut program_buffer[..(length as usize)]
 }

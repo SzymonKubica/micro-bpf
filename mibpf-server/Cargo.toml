@@ -33,6 +33,7 @@ rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
 embedded-hal = "0.2.2"
 embedded-nal = "0.6.0"
 log = "0.4.20"
+goblin = {version = "0.8.0", default_features = false , features = ["elf32", "elf64", "endian_fd"]}
 
 
 # While currently this exmple does not use any RIOT modules implemented in

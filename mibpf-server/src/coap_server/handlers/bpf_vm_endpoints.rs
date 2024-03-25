@@ -1,5 +1,12 @@
-use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    sync::Arc,
+    vec::Vec,
+};
 use core::convert::TryInto;
+use goblin::elf::{Elf, Reloc};
 
 use log::{debug, error, info};
 use serde::Deserialize;
@@ -15,7 +22,7 @@ use crate::{
     coap_server::handlers::util::preprocess_request,
     infra::suit_storage,
     model::{
-        enumerations::TargetVM,
+        enumerations::{BinaryFileLayout, TargetVM},
         requests::{VMExecutionRequest, VMExecutionRequestMsg},
     },
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
@@ -40,8 +47,15 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-        let program =
+        let mut program =
             suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
+
+        // We need to perform relocations on the raw object file.
+        if request_data.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
+            let Ok(()) = resolve_relocations(program) else {
+                return 0;
+            };
+        }
 
         debug!(
             "Loaded program bytecode from SUIT storage slot {}, program length: {}",
@@ -73,6 +87,67 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // The eBPF program needs to return the length of the Payload + PDU
         payload_length as isize
     }
+}
+
+fn resolve_relocations(program: &mut [u8]) -> Result<(), String> {
+    unsafe {
+        let program_start = program.as_mut_ptr() as u32;
+        info!(
+            "Performing relocations for program staring at {}",
+            program_start
+        );
+    }
+
+    let Ok(binary) = goblin::elf::Elf::parse(program) else {
+        return Err("Failed to parse the Elf binary".to_string());
+    };
+
+    let relocations = find_relocations(&binary, program);
+    for relocation in relocations {
+        if let Some(symbol) = binary.syms.get(relocation.r_sym) {
+            debug!("Relocation symbol: {} ", relocation.r_sym);
+            let section = binary.section_headers.get(symbol.st_shndx).unwrap();
+            match symbol.st_type() {
+                STT_SECTION => {
+                    debug!(
+                        "Relocation at instruction {} for symbol {}",
+                        relocation.r_offset, relocation.r_sym
+                    )
+                }
+                STT_FUNC => continue, // We don't patch for functions
+                _ => {
+                    let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
+                    debug!(
+                        "Relocation at instruction {} for symbol {} in at {}",
+                        relocation.r_offset, symbol_name, symbol.st_value
+                    )
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
+    let mut relocations = alloc::vec![];
+    for section in &binary.section_headers {
+        if section.sh_type == goblin::elf::section_header::SHT_REL {
+            let offset = section.sh_offset as usize;
+            let size = section.sh_size as usize;
+            let relocs = goblin::elf::reloc::RelocSection::parse(
+                &buffer,
+                offset,
+                size,
+                false,
+                goblin::container::Ctx::default(),
+            )
+            .unwrap();
+            relocs.iter().for_each(|reloc| relocations.push(reloc));
+        }
+    }
+
+    relocations
 }
 
 // Allows for executing an instance of the eBPF VM directly in the CoAP server

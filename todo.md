@@ -6,12 +6,13 @@
     - f12r_vm_coap_get_pdu;
 
 - fix the benchmark endpoint
-- clean up unused gcoap endpoints
 - update tools to allow for switching between the patching script backend.
 - build testsuite on native
-- clean up the logging situation with rBPF
+- fix the verifier for the raw elf file
 
 # Done:
+- clean up the logging situation with rBPF
+- clean up unused gcoap endpoints
 - investigate why gcoap finish call is broken (all fc gcoap and fmt helpers were
   broken as they passed the function arguments incorrrectly)
 - gcoap_resp_init fails for some reason (ISR stack overflow). (see above)

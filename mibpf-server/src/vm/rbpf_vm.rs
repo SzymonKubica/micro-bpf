@@ -80,6 +80,9 @@ impl VirtualMachine for RbpfVm {
             | BinaryFileLayout::FunctionRelocationMetadata => {
                 vm.override_interpreter(rbpf::InterpreterVariant::Extended);
             }
+            BinaryFileLayout::RawObjectFile => {
+                vm.override_interpreter(rbpf::InterpreterVariant::RawElfFile);
+            }
             _ => {}
         }
 
@@ -100,10 +103,18 @@ impl VirtualMachine for RbpfVm {
 
         // Initialise the VM operating on a fixed memory buffer.
         let mut vm = rbpf::EbpfVmMbuff::new(Some(program)).unwrap();
-        vm.override_interpreter(rbpf::InterpreterVariant::Extended);
+        match self.layout {
+            BinaryFileLayout::FemtoContainersHeader
+            | BinaryFileLayout::FunctionRelocationMetadata => {
+                vm.override_interpreter(rbpf::InterpreterVariant::Extended);
+            }
+            BinaryFileLayout::RawObjectFile => {
+                vm.override_interpreter(rbpf::InterpreterVariant::RawElfFile);
+            }
+            _ => {}
+        }
 
         middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
-
 
         let buffer: &mut [u8] = unsafe {
             let ctx = pkt as *mut _ as *mut PacketBuffer;

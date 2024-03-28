@@ -1,21 +1,15 @@
+use crate::vm::{
+    middleware::{helpers::HelperFunctionEncoding, ALL_HELPERS},
+    VM_EXEC_REQUEST,
+};
 use alloc::{
     sync::Arc,
     vec::{self, Vec},
 };
 use core::{fmt::Write, str::FromStr};
+use internal_representation::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
 use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
-
-use crate::{
-    model::{
-        enumerations::{BinaryFileLayout, TargetVM, VMConfiguration},
-        requests::VMExecutionRequestMsg,
-    },
-    vm::{
-        middleware::{helpers::HelperFunctionEncoding, ALL_HELPERS},
-        VM_EXEC_REQUEST,
-    },
-};
 
 pub struct VMExecutionShellCommandHandler {
     execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,

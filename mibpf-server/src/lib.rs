@@ -7,6 +7,7 @@
 #![no_std]
 
 extern crate alloc;
+extern crate internal_representation;
 extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;

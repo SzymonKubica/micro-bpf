@@ -12,8 +12,8 @@ use riot_wrappers::{
     stdio::println,
     thread, ztimer,
 };
-
-use crate::{model::requests::VMExecutionRequestMsg, vm::VM_EXEC_REQUEST};
+use internal_representation::VMExecutionRequestMsg;
+use crate::vm::VM_EXEC_REQUEST;
 
 use super::handlers::{
     bpf_vm_endpoints::{

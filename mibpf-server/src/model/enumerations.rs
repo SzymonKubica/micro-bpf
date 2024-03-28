@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// of the VM implementation, the binary file layout that the VM should expect
 /// in the loaded bytecode and the SUIT storage slot from where the program
 /// should be loaded.
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct VMConfiguration {
     /// The version of the VM implementation that will be used by the VM instance.
     pub vm_target: TargetVM,
@@ -99,8 +99,6 @@ pub enum BinaryFileLayout {
     /// Raw object files are sent to the device and the relocations are performed
     /// there. This allows for maximum compatibility (e.g. .data relocations)
     /// however it comes with a burden of an increased memory requirements.
-    /// TODO: figure out if it is even feasible to perform that on the embedded
-    /// device.
     RawObjectFile = 3,
 }
 

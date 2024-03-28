@@ -29,7 +29,9 @@ coap-handler = "0.1.6"
 riot-coap-handler-demos = { git = "https://gitlab.com/etonomy/riot-module-examples/", features = [ "vfs" ] }
 riot-shell-commands = { git = "https://gitlab.com/etonomy/riot-module-examples", features = ["ztimer"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"] }
+serde-json-core = "0.5.1"
 rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
+internal-representation = { path = "../internal-representation" }
 embedded-hal = "0.2.2"
 embedded-nal = "0.6.0"
 log = "0.4.20"
@@ -41,4 +43,3 @@ goblin = {version = "0.8.0", default_features = false , features = ["elf32", "el
 # its own top-level Rust crate to include rust_riotmodules from inside
 # RIOTBASE.
 rust_riotmodules = { path = "../RIOT/sys/rust_riotmodules/" }
-serde-json-core = "0.5.1"

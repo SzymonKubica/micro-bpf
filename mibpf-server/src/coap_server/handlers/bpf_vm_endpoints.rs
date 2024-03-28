@@ -21,13 +21,15 @@ use riot_wrappers::{
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
+use crate::model::requests::VMExecutionRequest;
+
+use internal_representation::{
+    BinaryFileLayout, TargetVM, VMExecutionRequestMsg,
+};
+
 use crate::{
     coap_server::handlers::util::preprocess_request,
     infra::suit_storage,
-    model::{
-        enumerations::{BinaryFileLayout, TargetVM},
-        requests::{VMExecutionRequest, VMExecutionRequestMsg},
-    },
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 

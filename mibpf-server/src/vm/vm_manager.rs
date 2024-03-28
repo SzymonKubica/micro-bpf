@@ -14,12 +14,11 @@ use riot_wrappers::{
 use riot_sys;
 use riot_sys::msg_t;
 
+use internal_representation::{TargetVM, VMExecutionRequestMsg};
+
 use crate::{
     infra::suit_storage,
-    model::{
-        enumerations::TargetVM,
-        requests::{VMExecutionCompleteMsg, VMExecutionRequest, VMExecutionRequestMsg},
-    },
+    model::requests::{VMExecutionCompleteMsg, VMExecutionRequest},
     spawn_thread,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
@@ -171,7 +170,7 @@ impl VMExecutionManager {
         }
         let pid: riot_sys::kernel_pid_t = workers.pop().unwrap();
         info!("Sending execution request to the worker with PID: {}", pid);
-        let mut msg: msg_t = request.into();
+        let mut msg: msg_t = VMExecutionRequest::from(&request).into();
         unsafe {
             riot_sys::msg_send(&mut msg, pid);
         };
@@ -204,10 +203,7 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
             let _ = riot_sys::msg_receive(&mut msg);
         }
 
-        let execution_request_msg: VMExecutionRequestMsg = msg.into();
-        debug!("Received a message: {:?}", execution_request_msg);
-
-        let execution_request = VMExecutionRequest::from(&execution_request_msg);
+        let execution_request: VMExecutionRequest = msg.into();
         let vm_config = execution_request.configuration;
 
         info!(

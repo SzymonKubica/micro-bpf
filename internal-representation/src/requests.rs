@@ -1,4 +1,5 @@
-use serde_derive::{Deserialize, Serialize};
+use alloc::string::String;
+use serde::{Deserialize, Serialize};
 
 /// Encoded transfer object representing a request to start a given execution
 /// of the eBPF VM. It contains the encoded configuration of the vm as well as

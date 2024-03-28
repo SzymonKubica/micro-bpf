@@ -6,7 +6,8 @@
 use core::fmt;
 use core::str::FromStr;
 
-use serde_derive::{Deserialize, Serialize};
+use alloc::{string::String, format};
+use serde::{Deserialize, Serialize};
 
 /// Configures a particular instance of the eBPF VM, it specifies the target version
 /// of the VM implementation, the binary file layout that the VM should expect
@@ -152,14 +153,15 @@ pub enum BinaryFileLayout {
     RawObjectFile = 3,
 }
 
-impl From<&str> for BinaryFileLayout {
-    fn from(s: &str) -> Self {
+impl FromStr for BinaryFileLayout {
+    type Err = String;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "OnlyTextSection" => BinaryFileLayout::OnlyTextSection,
-            "FemtoContainersHeader" => BinaryFileLayout::FemtoContainersHeader,
-            "FunctionRelocationMetadata" => BinaryFileLayout::FunctionRelocationMetadata,
-            "RawObjectFile" => BinaryFileLayout::RawObjectFile,
-            _ => panic!("Invalid binary layout: {}", s),
+            "OnlyTextSection" => Ok(BinaryFileLayout::OnlyTextSection),
+            "FemtoContainersHeader" => Ok(BinaryFileLayout::FemtoContainersHeader),
+            "FunctionRelocationMetadata" => Ok(BinaryFileLayout::FunctionRelocationMetadata),
+            "RawObjectFile" => Ok(BinaryFileLayout::RawObjectFile),
+            _ => Err(format!("Unknown binary file layout: {}", s)),
         }
     }
 }
@@ -175,7 +177,6 @@ impl From<u8> for BinaryFileLayout {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {

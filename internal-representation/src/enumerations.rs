@@ -6,7 +6,7 @@
 use core::fmt;
 use core::str::FromStr;
 
-use alloc::{string::String, format};
+use alloc::{format, string::String};
 use serde::{Deserialize, Serialize};
 
 /// Configures a particular instance of the eBPF VM, it specifies the target version

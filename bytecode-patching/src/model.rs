@@ -2,16 +2,8 @@
 // the binary file.
 use log::debug;
 
-pub const INSTRUCTION_SIZE: usize = 8;
-pub const LDDW_INSTRUCTION_SIZE: usize = 16;
+use crate::common::Symbol;
 
-pub const HEADER_SIZE: usize = 28;
-pub const SYMBOL_SIZE: usize = 6;
-pub const RELOCATED_CALL_SIZE: usize = 8;
-
-pub const LDDWD_OPCODE: u32 = 0xB8;
-pub const LDDWR_OPCODE: u32 = 0xD8;
-pub const LDDW_OPCODE: u32 = 0x18;
 
 /// The binary generated after the relocation script has the following format:
 /// - Header: Contains the information about the lengths of the remaining sections
@@ -70,21 +62,6 @@ pub struct Header {
     pub functions_len: u32,
 }
 
-/// A symbol struct represents a function.
-#[repr(C, packed)]
-pub struct Symbol {
-    // Offset to the name of the function in the .rodata section
-    pub name_offset: u16,
-    pub flags: u16,
-    // Offset of the function in the .text section
-    pub location_offset: u16,
-}
-
-impl<'a> Into<&'a [u8]> for &'a Symbol {
-    fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, SYMBOL_SIZE) }
-    }
-}
 
 /// Load-double-word instruction, needed for bytecode patching for loads from
 /// .data and .rodata sections.

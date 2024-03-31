@@ -4,10 +4,7 @@ mod model;
 mod relocation_resolution;
 extern crate alloc;
 
-use goblin::{
-    elf::{Elf, Reloc},
-    elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION},
-};
+use femtocontainer_relocations::assemble_femtocontainer_binary;
 use log::{debug, log_enabled, Level};
 
 use common::*;
@@ -33,32 +30,6 @@ pub fn perform_relocations(
     Ok(())
 }
 
-pub fn strip_binary(source_object_file: &str, binary_file: Option<&String>) -> Result<(), String> {
-    // strip bpf/helper-tests/out/gcoap.o -d -R .BTF -R .BTF.ext -o test
-    let file_name = if let Some(binary_file) = binary_file {
-        binary_file.clone()
-    } else {
-        "a.bin".to_string()
-    };
-
-    let result = Command::new("strip")
-        .arg(source_object_file)
-        .arg("-d")
-        .arg("-R")
-        .arg(".BTF")
-        .arg("-R")
-        .arg(".BTF.ext")
-        .arg("-o")
-        .arg(file_name)
-        .spawn()
-        .expect("Failed to compile the eBPF bytecode.")
-        .wait();
-
-    match result {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to strip the binary: {}", e)),
-    }
-}
 pub fn relocate_in_place(buffer: &mut [u8]) -> Result<(), String> {
     let program_address = buffer.as_ptr() as usize;
     let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
@@ -129,4 +100,3 @@ pub fn relocate_in_place(buffer: &mut [u8]) -> Result<(), String> {
 
     Ok(())
 }
-

@@ -5,6 +5,7 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
+use bytecode_patching::resolve_relocations;
 use core::convert::TryInto;
 use goblin::{
     container::{Container, Endian},
@@ -57,7 +58,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         // We need to perform relocations on the raw object file.
         if request_data.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
-            let Ok(()) = relocate_in_place(program) else {
+            let Ok(()) = resolve_relocations(program) else {
                 return 0;
             };
         }
@@ -92,145 +93,6 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // The eBPF program needs to return the length of the Payload + PDU
         payload_length as isize
     }
-}
-
-fn print_bytes(bytes: &[u8]) {
-    for (i, byte) in bytes.iter().enumerate() {
-        if i % INSTRUCTION_SIZE == 0 {
-            println!("{:02x}: ", i);
-        }
-        println!("{:02x} ", byte);
-        if (i + 1) % INSTRUCTION_SIZE == 0 {
-            println!("");
-        }
-    }
-}
-
-const INSTRUCTION_SIZE: usize = 8;
-const LDDW_INSTRUCTION_SIZE: usize = 16;
-const LDDW_OPCODE: u32 = 0x18;
-
-/// Load-double-word instruction, needed for bytecode patching for loads from
-/// .data and .rodata sections.
-#[repr(C, packed)]
-struct Lddw {
-    opcode: u8,
-    registers: u8,
-    offset: u16,
-    immediate_l: u32,
-    null1: u8,
-    null2: u8,
-    null3: u16,
-    immediate_h: u32,
-}
-
-impl From<&[u8]> for Lddw {
-    fn from(bytes: &[u8]) -> Self {
-        unsafe { core::ptr::read(bytes.as_ptr() as *const _) }
-    }
-}
-
-impl<'a> Into<&'a [u8]> for &'a Lddw {
-    fn into(self) -> &'a [u8] {
-        unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
-    }
-}
-
-pub fn relocate_in_place(buffer: &mut [u8]) -> Result<(), String> {
-    let program_address = buffer.as_ptr() as usize;
-
-    let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
-        return Err("Failed to parse the ELF binary".to_string());
-    };
-
-    let text_section = binary.section_headers.get(1).unwrap();
-
-    let relocations = find_relocations(&binary, &buffer);
-    let mut relocations_to_patch = alloc::vec![];
-    for relocation in relocations {
-        debug!(
-            "Relocation found: offset: {:x}, r_addend: {:?}, r_sym: {}, r_type: {}",
-            relocation.r_offset, relocation.r_addend, relocation.r_sym, relocation.r_type,
-        );
-        if let Some(symbol) = binary.syms.get(relocation.r_sym) {
-            // Here the value of the relocation tells us the offset in the binary
-            // where the data that needs to be relocated is located.
-            debug!(
-                "Looking up the relocation symbol: name: {}, section: {}, value: {:x}, is_function? : {}",
-                symbol.st_name,
-                symbol.st_shndx,
-                symbol.st_value,
-                symbol.is_function()
-            );
-            let section = binary.section_headers.get(symbol.st_shndx).unwrap();
-            debug!(
-                "The relocation symbol section is located at offset {:x}",
-                section.sh_offset
-            );
-
-            debug!(
-                "The program address is {:x}, the section offset is {:x}, the symbol value is {:x}, adding a relocation to process",
-                program_address, section.sh_offset, symbol.st_value
-            );
-            relocations_to_patch.push((
-                relocation.r_offset as usize,
-                program_address as u32 + section.sh_offset as u32 + symbol.st_value as u32,
-            ));
-        }
-    }
-
-    let text = &mut buffer
-        [text_section.sh_offset as usize..(text_section.sh_offset + text_section.sh_size) as usize];
-    for (offset, value) in relocations_to_patch {
-        if offset > text.len() {
-            continue;
-        }
-
-        debug!(
-            "Patching text section at offset: {:x} with new immediate value: {:x}",
-            offset, value
-        );
-        // we patch the text here
-        // We only patch LDDW instructions
-        if text[offset] != LDDW_OPCODE as u8 {
-            debug!("No LDDW instruction at {} offset in .text section", offset);
-            continue;
-        }
-
-        // We instantiate the instruction struct to modify it
-        let instr_bytes = &text[offset..offset + 16];
-
-        let mut instr: Lddw = Lddw::from(instr_bytes);
-        // Also add the program base address here when relocating on the actual device
-        instr.immediate_l += value;
-        text[offset..offset + 16].copy_from_slice((&instr).into());
-
-        //info!("Patched text section: ");
-        //print_bytes(&text);
-    }
-
-    Ok(())
-}
-
-fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
-    let mut relocations = alloc::vec![];
-
-    println!("Binary is little endian? : {}", binary.little_endian);
-    let context = goblin::container::Ctx::new(Container::Big, Endian::Little);
-    println!("Context: {:?}", context);
-
-    for section in &binary.section_headers {
-        if section.sh_type == goblin::elf::section_header::SHT_REL {
-            let offset = section.sh_offset as usize;
-            let size = section.sh_size as usize;
-            let relocs =
-                goblin::elf::reloc::RelocSection::parse(&buffer, offset, size, false, context)
-                    .unwrap();
-            relocs.iter().for_each(|reloc| relocations.push(reloc));
-        }
-    }
-
-    relocations
 }
 
 // Allows for executing an instance of the eBPF VM directly in the CoAP server

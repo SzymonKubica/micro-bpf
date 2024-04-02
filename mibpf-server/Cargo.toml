@@ -32,6 +32,7 @@ serde = { version = "1.0", default-features = false, features = ["alloc"] }
 serde-json-core = "0.5.1"
 rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
 internal-representation = { path = "../internal-representation" }
+bytecode-patching = { path = "../bytecode-patching" }
 embedded-hal = "0.2.2"
 embedded-nal = "0.6.0"
 log = "0.4.20"

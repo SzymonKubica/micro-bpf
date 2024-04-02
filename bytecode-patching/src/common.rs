@@ -3,6 +3,7 @@ use alloc::{
     string::{String, ToString},
     vec,
 };
+use goblin::container::{Container, Endian};
 use goblin::elf::{Elf, Reloc};
 use log::{debug, log_enabled, Level};
 
@@ -110,8 +111,9 @@ pub fn extract_section_bytes(
 
 pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
     let mut relocations = alloc::vec![];
-    let context = goblin::container::Ctx::default();
-    debug!("Relocation parsing context: {:?}", context);
+
+    let context = goblin::container::Ctx::new(Container::Big, Endian::Little);
+
     for section in &binary.section_headers {
         if section.sh_type == goblin::elf::section_header::SHT_REL {
             let offset = section.sh_offset as usize;

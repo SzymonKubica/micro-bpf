@@ -1,16 +1,72 @@
+#![no_std]
+#![warn(missing_docs)]
+
+//! Library for manipulating ELF files to allow for executing them on different
+//! implementations of an eBPF VM on microcontrollers.
+//!
+//! The main purpose of this library it to act similar to a static linker for
+//! eBPF programs to allow for executing them in constrained environments.
+//! Depending on implementations details of the eBPF VM used for executing the
+//! programs, different pre-processing steps of the object files are required.
+//!
+//! The program lifecycle is as follows:
+//! - The program is compiled using `clang` and `llc` for the `bpf` target ISA.
+//! - The resulting object file is processed to make it compatible with a particular
+//!   version of the VM.
+//!
+//! Currently the following pre-processing steps are supported:
+//! - Extracting the `.text` section from the ELF file and executing only that
+//!   (this is used by the original version of the rbpf VM and is the simplest
+//!   approach, albeit it lacks generality and the space of supported programs
+//!   is limited)
+//! - Applying ahead-of-time relocations used by the Femto-Container version
+//!   of the VM. This allows for accessing the `.data` and `.rodata` sections
+//!   of the program by using special instructions that weren't originally included
+//!   in the eBPF ISA.
+//! - Applying extended AOT relocations to allow for calling non-static functions
+//!   inside of the eBPF programs (adds support for non-PC-relative function calls)
+//!
+//! The second workflow that supported by the library involves sending raw ELF
+//! object files to the target microcontroller device and performing relocations
+//! there once the program memory address is known. This allows for achieving
+//! the best compatibility, however it comes with a performance overhead of
+//! parsing the ELF file on the device each time the program is loaded.
+//!
+//! In order to support the second type of the relocation workflow, this library
+//! supports `no_std`.
 mod common;
 mod femtocontainer_relocations;
 mod model;
 mod relocation_resolution;
 extern crate alloc;
 
-pub use femtocontainer_relocations::assemble_femtocontainer_binary;
+use alloc::{string::String, vec};
 pub use common::print_program_bytes;
+pub use femtocontainer_relocations::assemble_femtocontainer_binary;
 use log::debug;
 
 use common::*;
 use model::*;
 
+/// Extracts the section with a given name from the ELF binary.
+///
+/// It returns a slice containing the bytes corresponding to the required section
+/// inside of the ELF file. This relies on the section headers and the string
+/// symbol table being present in the ELF file whose bytes are given in the
+/// `program` argument. If this information has been stripped off the ELF file,
+/// this function will fail to find it and return an error.
+///
+/// # Examples
+/// For instance, we can extract the bytes contained in the `.text` section
+/// inside of the elf file as follows:
+/// ```
+/// let program_bytes = read_bytes_from_file(source_object_file);
+/// let text_section_bytes = extract_section(".text", &program_bytes)?;
+/// ```
+/// The `program_bytes` variable above contains **all** bytes in the ELF file
+/// (together with the header section). It is very important that the array of
+/// bytes corresponds to an actual ELF file, otherwise the function will not
+/// be able to parse it correctly and the required section will not be found.
 pub fn extract_section<'a>(
     section_name: &'static str,
     program: &'a [u8],

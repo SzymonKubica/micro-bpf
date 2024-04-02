@@ -5,6 +5,7 @@ mod relocation_resolution;
 extern crate alloc;
 
 pub use femtocontainer_relocations::assemble_femtocontainer_binary;
+pub use common::print_program_bytes;
 use log::debug;
 
 use common::*;
@@ -94,7 +95,7 @@ pub fn relocate_in_place(program: &mut [u8]) -> Result<(), String> {
         text[offset..offset + 16].copy_from_slice((&instr).into());
 
         println!("Patched text section: ");
-        print_bytes(&text);
+        print_program_bytes(&text);
     }
 
     Ok(())

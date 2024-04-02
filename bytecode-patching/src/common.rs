@@ -41,7 +41,7 @@ pub fn extract_section_bytes(
 
             if log_enabled!(Level::Debug) {
                 debug!("Extracted bytes:");
-                print_bytes(&section_bytes);
+                print_program_bytes(&section_bytes);
             };
             return section_bytes;
         }
@@ -68,7 +68,7 @@ pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
     relocations
 }
 
-pub fn print_bytes(bytes: &[u8]) {
+pub fn print_program_bytes(bytes: &[u8]) {
     for (i, byte) in bytes.iter().enumerate() {
         if i % INSTRUCTION_SIZE == 0 {
             print!("{:02x}: ", i);

@@ -2,11 +2,10 @@ use alloc::{
     string::{String, ToString},
     vec,
 };
-use log::debug;
+use log::{debug, error};
 
 use crate::{
-    common::{find_relocations, LDDW_OPCODE},
-    debug_print_program_bytes,
+    common::{find_relocations, get_section_reference_mut, LDDW_OPCODE},
     model::Lddw,
 };
 
@@ -31,47 +30,38 @@ use crate::{
 ///   with the `strip` command to remove the redundant debug information before
 ///   it is sent to the microcontroller where the actual relocations take place.
 pub fn resolve_relocations(program: &mut [u8]) -> Result<(), String> {
-    let program_address = program.as_ptr() as usize;
+    let program_addr = program.as_ptr() as usize;
     let Ok(binary) = goblin::elf::Elf::parse(&program) else {
         return Err("Failed to parse the ELF binary".to_string());
     };
 
-    let text_section = binary.section_headers.get(1).unwrap();
-
     let relocations = find_relocations(&binary, &program);
     let mut relocations_to_patch = vec![];
     for relocation in relocations {
-        debug!(
-            "Relocation found: offset: {:x}, r_addend: {:?}, r_sym: {}, r_type: {}",
-            relocation.r_offset, relocation.r_addend, relocation.r_sym, relocation.r_type
-        );
+        debug!("Relocation found: {:?}", relocation);
         if let Some(symbol) = binary.syms.get(relocation.r_sym) {
             // Here the value of the relocation tells us the offset in the binary
             // where the data that needs to be relocated is located.
-            debug!(
-                "Looking up the relocation symbol: name: {}, section: {}, value: {:x}, is_function? : {}",
-                symbol.st_name,
-                symbol.st_shndx,
-                symbol.st_value,
-                symbol.is_function()
-            );
+            debug!("Relocation symbol found: {:?}", symbol);
             let section = binary.section_headers.get(symbol.st_shndx).unwrap();
             debug!(
-                "The relocation symbol section is located at offset {:x}",
+                "Symbol is located in section at offset {:x}",
                 section.sh_offset
             );
 
-            relocations_to_patch.push((
-                relocation.r_offset as usize,
-                program_address as u32 + section.sh_offset as u32 + symbol.st_value as u32,
-            ));
+            let relocated_addr = (program_addr as u64 + section.sh_offset + symbol.st_value) as u32;
+            relocations_to_patch.push((relocation.r_offset as usize, relocated_addr));
         }
     }
 
-    let text = &mut program
-        [text_section.sh_offset as usize..(text_section.sh_offset + text_section.sh_size) as usize];
+    let Some(text_section) = binary.section_headers.get(1) else {
+        return Err("Failed to find the .text section".to_string());
+    };
+    let text = get_section_reference_mut(text_section, program);
+
     for (offset, value) in relocations_to_patch {
         if offset >= text.len() {
+            error!("Found a relocation outside of the .text section");
             continue;
         }
 
@@ -94,8 +84,8 @@ pub fn resolve_relocations(program: &mut [u8]) -> Result<(), String> {
         instr.immediate_l += value;
         text[offset..offset + 16].copy_from_slice((&instr).into());
 
-        debug!("Patched text section: ");
-        debug_print_program_bytes(&text);
+        //debug!("Patched text section: ");
+        //debug_print_program_bytes(&text);
     }
 
     Ok(())

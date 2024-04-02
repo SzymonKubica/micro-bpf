@@ -30,7 +30,7 @@ use goblin::{
 use log::debug;
 
 use crate::{
-    common::{extract_section_bytes, find_relocations, round_section_length, Symbol, LDDW_OPCODE},
+    common::{get_section_bytes, find_relocations, round_section_length, Symbol, LDDW_OPCODE},
     model::Lddw,
 };
 
@@ -111,9 +111,9 @@ pub fn assemble_femtocontainer_binary(program: &[u8]) -> Result<Vec<u8>, String>
     };
 
     // First extract the bytes contained in all three main sections
-    let mut text: Vec<u8> = extract_section_bytes(".text", &binary, &program);
-    let mut data: Vec<u8> = extract_section_bytes(".data", &binary, &program);
-    let mut rodata: Vec<u8> = extract_section_bytes(".rodata", &binary, &program);
+    let mut text: Vec<u8> = get_section_bytes(".text", &binary, &program);
+    let mut data: Vec<u8> = get_section_bytes(".data", &binary, &program);
+    let mut rodata: Vec<u8> = get_section_bytes(".rodata", &binary, &program);
 
     // Now we need to collect all global functions and append their names
     // to the rodata section. We also need to maintain the information

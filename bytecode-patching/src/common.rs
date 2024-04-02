@@ -1,10 +1,7 @@
+use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use alloc::{
-    string::{String, ToString},
-    vec,
-};
 use goblin::container::{Container, Endian};
-use goblin::elf::{Elf, Reloc};
+use goblin::elf::{Elf, Reloc, SectionHeader};
 use log::{debug, log_enabled, Level};
 
 pub const INSTRUCTION_SIZE: usize = 8;
@@ -72,10 +69,45 @@ pub fn extract_section<'a>(
     };
 
     for section in &binary.section_headers {
-        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
-            let section_start = section.sh_offset as usize;
-            let section_end = (section.sh_offset + section.sh_size) as usize;
-            return Ok(&program[section_start..section_end]);
+        if let Some(name) = binary.strtab.get_at(section.sh_name) {
+            if name == section_name {
+                let section_start = section.sh_offset as usize;
+                let section_end = (section.sh_offset + section.sh_size) as usize;
+                return Ok(&program[section_start..section_end]);
+            }
+        }
+    }
+
+    return Err("Section not found".to_string());
+}
+
+pub fn get_section_reference_mut<'a>(
+    section: &SectionHeader,
+    program: &'a mut [u8],
+) -> &'a mut [u8] {
+    let section_start = section.sh_offset as usize;
+    let section_end = (section.sh_offset + section.sh_size) as usize;
+    &mut program[section_start..section_end]
+}
+
+/// Extracts a mutable reference to a section with a given name from the ELF binary.
+/// See [`extract_section`] for more details.
+pub fn extract_section_mut<'a>(
+    section_name: &'static str,
+    program: &'a mut [u8],
+) -> Result<&'a mut [u8], String> {
+    let Ok(binary) = goblin::elf::Elf::parse(&program) else {
+        return Err("Failed to parse the ELF binary".to_string());
+    };
+
+    for section in &binary.section_headers {
+        if let Some(name) = binary.strtab.get_at(section.sh_name) {
+            debug!("Section name: {}", name);
+            if name == section_name {
+                let section_start = section.sh_offset as usize;
+                let section_end = (section.sh_offset + section.sh_size) as usize;
+                return Ok(&mut program[section_start..section_end]);
+            }
         }
     }
 
@@ -83,11 +115,7 @@ pub fn extract_section<'a>(
 }
 
 /// Copies the bytes contained in a specific section in the ELF file.
-pub fn extract_section_bytes(
-    section_name: &str,
-    binary: &Elf<'_>,
-    binary_buffer: &[u8],
-) -> Vec<u8> {
+pub fn get_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[u8]) -> Vec<u8> {
     debug!("Extracting section: {} ", section_name);
     let mut section_bytes: Vec<u8> = alloc::vec![];
     // Iterate over section headers to find the one with a matching name

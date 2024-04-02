@@ -24,9 +24,7 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::model::requests::VMExecutionRequest;
 
-use internal_representation::{
-    BinaryFileLayout, TargetVM, VMExecutionRequestMsg,
-};
+use internal_representation::{BinaryFileLayout, TargetVM, VMExecutionRequestMsg};
 
 use crate::{
     coap_server::handlers::util::preprocess_request,
@@ -56,10 +54,14 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         let mut program =
             suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
 
-        // We need to perform relocations on the raw object file.
         if request_data.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
-            let Ok(()) = resolve_relocations(program) else {
-                return 0;
+            // We need to perform relocations on the raw object file.
+            match resolve_relocations(&mut program) {
+                Ok(()) => {}
+                Err(e) => {
+                    debug!("Error resolving relocations in the program: {}", e);
+                    return 0;
+                }
             };
         }
 

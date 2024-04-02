@@ -1,20 +1,28 @@
-// This module reimplements the relocation logic that is used in the compilation
-// workflow of the Femto-Container version of the eBPF VM. It included here for
-// reference purposes and to ensure that the contribution is backwards-compatible
-// with the previous work.
-//
-// Please refer to `../RIOT/dist/tools/rbpf/rbpf` To see the implemetation details
-// of their version
-//
-// The key limitations of the implementation used by Femto-Containers version
-// of the VM are the following:
-//
-// - No support for read-only strings that aren't explicitly assigned to a
-//   variable (e.g. when calling the bpf_printf helper and using a string literal
-//   for formatting). Those strings are inserted into the `.rodata.str.1` section
-//   and aren't handled by this implementation. The extended version of the patching
-//   script that I implemented supports those strings.
+//! This module reimplements the relocation logic that is used in the compilation
+//! workflow of the Femto-Container version of the eBPF VM. It included here for
+//! reference purposes and to ensure that the contribution is backwards-compatible
+//! with the previous work.
+//!
+//! Please refer to `../RIOT/dist/tools/rbpf/rbpf` To see the implemetation details
+//! of their version
+//!
+//! The key limitations of the implementation used by Femto-Containers version
+//! of the VM are the following:
+//!
+//! - No support for read-only strings that aren't explicitly assigned to a
+//!   variable (e.g. when calling the bpf_printf helper and using a string literal
+//!   for formatting). Those strings are inserted into the `.rodata.str.1` section
+//!   and aren't handled by this implementation. The extended version of the patching
+//!   script that I implemented supports those strings.
+//! - No support for calling functions inside of the program that aren't PC-relative.
+//! - Extra instructions that aren't present in the eBPF ISA are introduced which
+//!   couples the VM implementation with the behaviour of this script.
 
+use alloc::{
+    ffi::CString,
+    string::{String, ToString},
+    vec::Vec,
+};
 use goblin::{
     elf::{Elf, Reloc},
     elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT},
@@ -75,7 +83,7 @@ pub struct FCHeader {
 impl Into<Vec<u8>> for FCBinary {
     fn into(self) -> Vec<u8> {
         let header_bytes = unsafe {
-            std::slice::from_raw_parts(&self.header as *const _ as *const u8, FC_HEADER_SIZE)
+            alloc::slice::from_raw_parts(&self.header as *const _ as *const u8, FC_HEADER_SIZE)
         };
         let mut binary = Vec::from(header_bytes);
         binary.extend(self.data);
@@ -142,7 +150,7 @@ pub fn assemble_femtocontainer_binary(program: &[u8]) -> Result<Vec<u8>, String>
 }
 
 fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbol> {
-    let mut symbol_structs: Vec<Symbol> = vec![];
+    let mut symbol_structs: Vec<Symbol> = alloc::vec![];
     for symbol in binary.syms.iter() {
         if symbol.st_type() == STT_FUNC && symbol.st_bind() == STB_GLOBAL {
             let symbol_name = binary.strtab.get_at(symbol.st_name).unwrap();
@@ -150,7 +158,7 @@ fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbo
             debug!("Found global function: {}", symbol_name);
             let offset_within_text = symbol.st_value as usize;
             let offset = rodata.len();
-            let name_cstr = std::ffi::CString::new(symbol_name).unwrap();
+            let name_cstr = CString::new(symbol_name).unwrap();
             rodata.extend(name_cstr.to_bytes().iter());
             // Added flags for compatiblity with rbpf
             let flags = 0;

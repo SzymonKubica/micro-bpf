@@ -1,8 +1,7 @@
 // This module contains constants and abstractions used for modelling
 // the binary file.
-use log::debug;
 
-use crate::common::{Symbol, LDDW_INSTRUCTION_SIZE};
+use crate::common::LDDW_INSTRUCTION_SIZE;
 
 /// Load-double-word instruction, needed for bytecode patching for loads from
 /// .data and .rodata sections.
@@ -20,13 +19,13 @@ pub struct Lddw {
 
 impl From<&[u8]> for Lddw {
     fn from(bytes: &[u8]) -> Self {
-        unsafe { std::ptr::read(bytes.as_ptr() as *const _) }
+        unsafe { core::ptr::read(bytes.as_ptr() as *const _) }
     }
 }
 
 impl<'a> Into<&'a [u8]> for &'a Lddw {
     fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
+        unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
     }
 }
 
@@ -44,6 +43,6 @@ pub struct RelocatedCall {
 
 impl<'a> Into<&'a [u8]> for &'a RelocatedCall {
     fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, RELOCATED_CALL_SIZE) }
+        unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, RELOCATED_CALL_SIZE) }
     }
 }

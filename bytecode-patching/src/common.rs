@@ -1,3 +1,8 @@
+use alloc::vec::Vec;
+use alloc::{
+    string::{String, ToString},
+    vec,
+};
 use goblin::elf::{Elf, Reloc};
 use log::{debug, log_enabled, Level};
 
@@ -19,8 +24,61 @@ pub struct Symbol {
 
 impl<'a> Into<&'a [u8]> for &'a Symbol {
     fn into(self) -> &'a [u8] {
-        unsafe { std::slice::from_raw_parts(self as *const _ as *const u8, SYMBOL_SIZE) }
+        unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, SYMBOL_SIZE) }
     }
+}
+
+/// Prints program bytes dividing them into rows of 8 bytes and printing the
+/// row number in hex. This is done to resemble the output of utilities such as
+/// `objdump`.
+pub fn debug_print_program_bytes(bytes: &[u8]) {
+    for (i, byte) in bytes.iter().enumerate() {
+        if i % INSTRUCTION_SIZE == 0 {
+            debug!("{:02x}: ", i);
+        }
+        debug!("{:02x} ", byte);
+        if (i + 1) % INSTRUCTION_SIZE == 0 {
+            debug!("");
+        }
+    }
+}
+
+/// Extracts the section with a given name from the ELF binary.
+///
+/// It returns a slice containing the bytes corresponding to the required section
+/// inside of the ELF file. This relies on the section headers and the string
+/// symbol table being present in the ELF file whose bytes are given in the
+/// `program` argument. If this information has been stripped off the ELF file,
+/// this function will fail to find it and return an error.
+///
+/// # Examples
+/// For instance, we can extract the bytes contained in the `.text` section
+/// inside of the elf file as follows:
+/// ```
+/// let program_bytes = read_bytes_from_file(source_object_file);
+/// let text_section_bytes = extract_section(".text", &program_bytes)?;
+/// ```
+/// The `program_bytes` variable above contains **all** bytes in the ELF file
+/// (together with the header section). It is very important that the array of
+/// bytes corresponds to an actual ELF file, otherwise the function will not
+/// be able to parse it correctly and the required section will not be found.
+pub fn extract_section<'a>(
+    section_name: &'static str,
+    program: &'a [u8],
+) -> Result<&'a [u8], String> {
+    let Ok(binary) = goblin::elf::Elf::parse(&program) else {
+        return Err("Failed to parse the ELF binary".to_string());
+    };
+
+    for section in &binary.section_headers {
+        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
+            let section_start = section.sh_offset as usize;
+            let section_end = (section.sh_offset + section.sh_size) as usize;
+            return Ok(&program[section_start..section_end]);
+        }
+    }
+
+    return Err("Section not found".to_string());
 }
 
 /// Copies the bytes contained in a specific section in the ELF file.
@@ -30,7 +88,7 @@ pub fn extract_section_bytes(
     binary_buffer: &[u8],
 ) -> Vec<u8> {
     debug!("Extracting section: {} ", section_name);
-    let mut section_bytes: Vec<u8> = vec![];
+    let mut section_bytes: Vec<u8> = alloc::vec![];
     // Iterate over section headers to find the one with a matching name
     for section in &binary.section_headers {
         if Some(section_name) == binary.strtab.get_at(section.sh_name) {
@@ -41,7 +99,7 @@ pub fn extract_section_bytes(
 
             if log_enabled!(Level::Debug) {
                 debug!("Extracted bytes:");
-                print_program_bytes(&section_bytes);
+                debug_print_program_bytes(&section_bytes);
             };
             return section_bytes;
         }
@@ -51,9 +109,9 @@ pub fn extract_section_bytes(
 }
 
 pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
-    let mut relocations = vec![];
+    let mut relocations = alloc::vec![];
     let context = goblin::container::Ctx::default();
-    print!("Relocation parsing context: {:?}", context);
+    debug!("Relocation parsing context: {:?}", context);
     for section in &binary.section_headers {
         if section.sh_type == goblin::elf::section_header::SHT_REL {
             let offset = section.sh_offset as usize;
@@ -68,21 +126,9 @@ pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
     relocations
 }
 
-pub fn print_program_bytes(bytes: &[u8]) {
-    for (i, byte) in bytes.iter().enumerate() {
-        if i % INSTRUCTION_SIZE == 0 {
-            print!("{:02x}: ", i);
-        }
-        print!("{:02x} ", byte);
-        if (i + 1) % INSTRUCTION_SIZE == 0 {
-            println!();
-        }
-    }
-}
-
 pub fn round_section_length(section: &mut Vec<u8>) {
     if section.len() % INSTRUCTION_SIZE != 0 {
         let padding = INSTRUCTION_SIZE - section.len() % INSTRUCTION_SIZE;
-        section.extend(vec![0; padding]);
+        section.extend(alloc::vec![0; padding]);
     }
 }

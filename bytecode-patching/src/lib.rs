@@ -4,41 +4,40 @@ mod model;
 mod relocation_resolution;
 extern crate alloc;
 
-use femtocontainer_relocations::assemble_femtocontainer_binary;
-use log::{debug, log_enabled, Level};
+pub use femtocontainer_relocations::assemble_femtocontainer_binary;
+use log::debug;
 
 use common::*;
 use model::*;
 
-/// Relocate subcommand is responsible for performing the post-processing of the
-/// compiled eBPF bytecode before it can be loaded onto the target device. It
-/// handles function relocations and read only data relocations.
-pub fn perform_relocations(
-    source_object_file: &str,
-    binary_file: Option<String>,
-    strip_debug: bool,
-) -> Result<(), String> {
-    let binary_data = assemble_femtocontainer_binary(&source_object_file)?;
+pub fn extract_section<'a>(
+    section_name: &'static str,
+    program: &'a [u8],
+) -> Result<&'a [u8], String> {
+    let Ok(binary) = goblin::elf::Elf::parse(&program) else {
+        return Err("Failed to parse the ELF binary".to_string());
+    };
 
-    let mut f = File::create(file_name).unwrap();
-    if log_enabled!(Level::Debug) {
-        debug!("Generated binary:");
-        print_bytes(&binary_data);
+    for section in &binary.section_headers {
+        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
+            let section_start = section.sh_offset as usize;
+            let section_end = (section.sh_offset + section.sh_size) as usize;
+            return Ok(&program[section_start..section_end]);
+        }
     }
-    f.write_all(&binary_data).unwrap();
 
-    Ok(())
+    return Err("Section not found".to_string());
 }
 
-pub fn relocate_in_place(buffer: &mut [u8]) -> Result<(), String> {
-    let program_address = buffer.as_ptr() as usize;
-    let Ok(binary) = goblin::elf::Elf::parse(&buffer) else {
+pub fn relocate_in_place(program: &mut [u8]) -> Result<(), String> {
+    let program_address = program.as_ptr() as usize;
+    let Ok(binary) = goblin::elf::Elf::parse(&program) else {
         return Err("Failed to parse the ELF binary".to_string());
     };
 
     let text_section = binary.section_headers.get(1).unwrap();
 
-    let relocations = find_relocations(&binary, &buffer);
+    let relocations = find_relocations(&binary, &program);
     let mut relocations_to_patch = vec![];
     for relocation in relocations {
         debug!(
@@ -68,7 +67,7 @@ pub fn relocate_in_place(buffer: &mut [u8]) -> Result<(), String> {
         }
     }
 
-    let text = &mut buffer
+    let text = &mut program
         [text_section.sh_offset as usize..(text_section.sh_offset + text_section.sh_size) as usize];
     for (offset, value) in relocations_to_patch {
         if offset >= text.len() {

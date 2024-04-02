@@ -30,6 +30,12 @@ use crate::{
 // used here are specific to the Femto-Container implementation of the VM.
 pub const FC_HEADER_SIZE: usize = 28;
 
+// Opcodes of the new instructions introduced into the eBPF ISA by the Femto-Containers
+// contribution. The purpose of those instructions is to indicate that a LDDW
+// instruction is supposed to treat the immediate operand as the offset relative
+// to the start of the .data or .rodata section respectively. This is done
+// because the exact memory address of those sections is not known before we
+// load the program into the memory of the microcontroller running the VM.
 pub const FC_LDDWD_OPCODE: u32 = 0xB8;
 pub const FC_LDDWR_OPCODE: u32 = 0xD8;
 

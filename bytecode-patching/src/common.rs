@@ -33,22 +33,20 @@ pub fn extract_section_bytes(
     let mut section_bytes: Vec<u8> = vec![];
     // Iterate over section headers to find the one with a matching name
     for section in &binary.section_headers {
-        let name = binary.strtab.get_at(section.sh_name);
+        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
+            section_bytes.extend(
+                &binary_buffer
+                    [section.sh_offset as usize..(section.sh_offset + section.sh_size) as usize],
+            );
 
-        if let Some(other_section_name) = name {
-            if other_section_name == section_name {
-                section_bytes.extend(
-                    &binary_buffer[section.sh_offset as usize
-                        ..(section.sh_offset + section.sh_size) as usize],
-                );
-            }
+            if log_enabled!(Level::Debug) {
+                debug!("Extracted bytes:");
+                print_bytes(&section_bytes);
+            };
+            return section_bytes;
         }
     }
 
-    if log_enabled!(Level::Debug) {
-        debug!("Extracted bytes:");
-        print_bytes(&section_bytes);
-    };
     section_bytes
 }
 
@@ -81,7 +79,6 @@ pub fn print_bytes(bytes: &[u8]) {
         }
     }
 }
-
 
 pub fn round_section_length(section: &mut Vec<u8>) {
     if section.len() % INSTRUCTION_SIZE != 0 {

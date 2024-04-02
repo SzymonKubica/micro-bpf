@@ -30,7 +30,7 @@ use goblin::{
 use log::debug;
 
 use crate::{
-    common::{get_section_bytes, find_relocations, round_section_length, Symbol, LDDW_OPCODE},
+    common::{find_relocations, get_section_bytes, round_section_length, Symbol, LDDW_OPCODE},
     model::Lddw,
 };
 

@@ -30,9 +30,8 @@
 #define TEMPERATURE_STORAGE_INDEX 0
 #define HUMIDITY_STORAGE_INDEX 1
 
-void set_led(uint32_t index, uint32_t value);
-void handle_temperature_data(uint16_t temp);
-void handle_humidity_data(uint16_t hum);
+void __attribute__((noinline)) handle_temperature_data(uint16_t temp);
+void __attribute__((noinline)) handle_humidity_data(uint16_t hum);
 
 
 int set_led_given_dht_data(void *ctx)
@@ -56,7 +55,7 @@ int set_led_given_dht_data(void *ctx)
     return 0;
 }
 
-void handle_temperature_data(uint16_t temp)
+void __attribute__((noinline)) handle_temperature_data(uint16_t temp)
 {
     if (temp > 250) {
         bpf_printf("Temperature above 25C detected, toggling Warning LED\n");
@@ -67,7 +66,7 @@ void handle_temperature_data(uint16_t temp)
     }
 }
 
-void handle_humidity_data(uint16_t hum)
+void __attribute__((noinline)) handle_humidity_data(uint16_t hum)
 {
     // Humidity is given by a percentage with one decimal point
     // so 80% is represented as 800

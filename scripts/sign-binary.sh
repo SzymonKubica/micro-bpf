@@ -41,7 +41,7 @@ echo "Finding the new sequence number..."
 get_sequence_number() {
   # extracts the sequence number from an existing suit manifest
   local manifest_file=$1
-  sequence_number=$(./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool parse -m $manifest_file | awk '/sequence-number/ {split($4, a, ":"); split(a[2], b, ","); print b[1]}')
+  sequence_number=$(../RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool parse -m $manifest_file | awk '/sequence-number/ {split($4, a, ":"); split(a[2], b, ","); print b[1]}')
   echo $sequence_number
 }
 
@@ -58,11 +58,11 @@ echo "New sequence number: $new_seq_num"
 manifest_file="suit_manifest$suit_storage_slot"
 manifest_signed=$coaproot_dir/"$manifest_file".signed
 
-./RIOT/dist/tools/suit/gen_manifest.py --urlroot "coap://[$ip_address]/" --seqnr $new_seq_num -o suit.tmp $binary_name:0:ram:$suit_storage_slot -C $board
+../RIOT/dist/tools/suit/gen_manifest.py --urlroot "coap://[$ip_address]/" --seqnr $new_seq_num -o suit.tmp $binary_name:0:ram:$suit_storage_slot -C $board
 echo "SUIT manifest template file created."
-./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool create -f suit -i suit.tmp -o $coaproot_dir/$manifest_file
+../RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool create -f suit -i suit.tmp -o $coaproot_dir/$manifest_file
 echo "SUIT manifest file generated: $coaproot_dir/$manifest_file"
 # the storage slot is written into the name of the suit manifest so that we can pull updates into both suit slots from a single coap server.
-./RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool sign -k $riot_keys  -m $coaproot_dir/$manifest_file -o $manifest_signed
+../RIOT/dist/tools/suit/suit-manifest-generator/bin/suit-tool sign -k $riot_keys  -m $coaproot_dir/$manifest_file -o $manifest_signed
 echo "Manifest file: $coaproot_dir/$manifest_file successfully signed!"
 echo "Created: $manifest_signed"

@@ -1,7 +1,7 @@
 // This module contains constants and abstractions used for modelling
 // the binary file.
 
-use crate::common::LDDW_INSTRUCTION_SIZE;
+use crate::common::{INSTRUCTION_SIZE, LDDW_INSTRUCTION_SIZE};
 
 /// Load-double-word instruction, needed for bytecode patching for loads from
 /// .data and .rodata sections.
@@ -26,6 +26,28 @@ impl From<&[u8]> for Lddw {
 impl<'a> Into<&'a [u8]> for &'a Lddw {
     fn into(self) -> &'a [u8] {
         unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, LDDW_INSTRUCTION_SIZE) }
+    }
+}
+
+/// Call instruction used for calling eBPF helper functions and program local
+/// function calls
+#[repr(C, packed)]
+pub struct Call {
+    pub opcode: u8,
+    pub registers: u8,
+    pub offset: u16,
+    pub immediate: u32,
+}
+
+impl From<&[u8]> for Call {
+    fn from(bytes: &[u8]) -> Self {
+        unsafe { core::ptr::read(bytes.as_ptr() as *const _) }
+    }
+}
+
+impl<'a> Into<&'a [u8]> for &'a Call {
+    fn into(self) -> &'a [u8] {
+        unsafe { core::slice::from_raw_parts(self as *const _ as *const u8, INSTRUCTION_SIZE) }
     }
 }
 

@@ -5,8 +5,11 @@ use alloc::{
 use log::{debug, error};
 
 use crate::{
-    common::{find_relocations, get_section_reference_mut, LDDW_OPCODE},
-    model::Lddw,
+    common::{
+        find_relocations, get_section_reference_mut, CALL_OPCODE, INSTRUCTION_SIZE,
+        LDDW_INSTRUCTION_SIZE, LDDW_OPCODE,
+    },
+    model::{Call, Lddw},
 };
 
 /// Applies relocations to the given program binary.
@@ -69,20 +72,22 @@ pub fn resolve_relocations(program: &mut [u8]) -> Result<(), String> {
             "Patching text section at offset: {:x} with new immediate value: {:x}",
             offset, value
         );
-        // we patch the text here
-        // We only patch LDDW instructions
-        if text[offset] != LDDW_OPCODE as u8 {
-            debug!("No LDDW instruction at {} offset in .text section", offset);
-            continue;
+        match text[offset] as u32 {
+            LDDW_OPCODE => {
+                let mut instr: Lddw = Lddw::from(&text[offset..offset + LDDW_INSTRUCTION_SIZE]);
+                instr.immediate_l = value;
+                text[offset..offset + LDDW_INSTRUCTION_SIZE].copy_from_slice((&instr).into());
+            }
+            CALL_OPCODE => {
+                let mut instr: Call = Call::from(&text[offset..offset + INSTRUCTION_SIZE]);
+                instr.registers = 0x3 << 4;
+                instr.immediate = value;
+                text[offset..offset + INSTRUCTION_SIZE].copy_from_slice((&instr).into());
+            }
+            _ => {
+                error!("Unsupported relocation opcode at offset: {:x}", offset);
+            }
         }
-
-        // We instantiate the instruction struct to modify it
-        let instr_bytes = &text[offset..offset + 16];
-
-        let mut instr: Lddw = Lddw::from(instr_bytes);
-        // Also add the program base address here when relocating on the actual device
-        instr.immediate_l += value;
-        text[offset..offset + 16].copy_from_slice((&instr).into());
 
         //debug!("Patched text section: ");
         //debug_print_program_bytes(&text);

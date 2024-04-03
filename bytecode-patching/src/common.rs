@@ -9,6 +9,7 @@ const SYMBOL_SIZE: usize = 6;
 
 pub const LDDW_INSTRUCTION_SIZE: usize = 16;
 pub const LDDW_OPCODE: u32 = 0x18;
+pub const CALL_OPCODE: u32 = 0x85;
 
 /// A symbol struct represents a function.
 #[repr(C, packed)]
@@ -81,6 +82,8 @@ pub fn extract_section<'a>(
     return Err("Section not found".to_string());
 }
 
+/// Given the section offset and length information contained in the SectionHeader
+/// it returns a mutable slice corresponding to the section data.
 pub fn get_section_reference_mut<'a>(
     section: &SectionHeader,
     program: &'a mut [u8],

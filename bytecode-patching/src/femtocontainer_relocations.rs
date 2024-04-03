@@ -179,7 +179,7 @@ fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbo
 /// of the VM and not compatible with the default eBPF standard.
 fn resolve_rodata_relocations(text: &mut Vec<u8>, binary: &Elf<'_>, buffer: &[u8]) {
     let relocations = find_relocations(binary, buffer);
-    for relocation in relocations {
+    for (_offset, relocation) in relocations {
         if let Some(symbol) = binary.syms.get(relocation.r_sym) {
             let section = binary.section_headers.get(symbol.st_shndx).unwrap();
             let section_name = binary.strtab.get_at(section.sh_name).unwrap();

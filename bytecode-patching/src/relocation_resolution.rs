@@ -40,7 +40,7 @@ pub fn resolve_relocations(program: &mut [u8]) -> Result<(), String> {
 
     let relocations = find_relocations(&binary, &program);
     let mut relocations_to_patch = vec![];
-    for relocation in relocations {
+    for (section_offset, relocation) in relocations {
         debug!("Relocation found: {:?}", relocation);
         if let Some(symbol) = binary.syms.get(relocation.r_sym) {
             // Here the value of the relocation tells us the offset in the binary
@@ -53,44 +53,45 @@ pub fn resolve_relocations(program: &mut [u8]) -> Result<(), String> {
             );
 
             let relocated_addr = (program_addr as u64 + section.sh_offset + symbol.st_value) as u32;
-            relocations_to_patch.push((relocation.r_offset as usize, relocated_addr));
+            relocations_to_patch.push((
+                section_offset + relocation.r_offset as usize,
+                relocated_addr,
+            ));
         }
     }
 
-    let Some(text_section) = binary.section_headers.get(1) else {
-        return Err("Failed to find the .text section".to_string());
-    };
-    let text = get_section_reference_mut(text_section, program);
-
     for (offset, value) in relocations_to_patch {
-        if offset >= text.len() {
-            error!("Found a relocation outside of the .text section");
-            continue;
-        }
-
         debug!(
-            "Patching text section at offset: {:x} with new immediate value: {:x}",
+            "Patching program at offset: {:x} with new immediate value: {:x}",
             offset, value
         );
-        match text[offset] as u32 {
+        match program[offset] as u32 {
             LDDW_OPCODE => {
-                let mut instr: Lddw = Lddw::from(&text[offset..offset + LDDW_INSTRUCTION_SIZE]);
-                instr.immediate_l = value;
-                text[offset..offset + LDDW_INSTRUCTION_SIZE].copy_from_slice((&instr).into());
+                let mut instr: Lddw = Lddw::from(&program[offset..offset + LDDW_INSTRUCTION_SIZE]);
+                instr.immediate_l += value;
+                program[offset..offset + LDDW_INSTRUCTION_SIZE].copy_from_slice((&instr).into());
             }
             CALL_OPCODE => {
-                let mut instr: Call = Call::from(&text[offset..offset + INSTRUCTION_SIZE]);
+                let mut instr: Call = Call::from(&program[offset..offset + INSTRUCTION_SIZE]);
+                // Both src and dst registers are specified usign one field so we
+                // need to set it like this. The src register value 3 tells the
+                // vm to treat the immediate operand of the call as the actual
+                // memory address of the function call.
                 instr.registers = 0x3 << 4;
                 instr.immediate = value;
-                text[offset..offset + INSTRUCTION_SIZE].copy_from_slice((&instr).into());
+                program[offset..offset + INSTRUCTION_SIZE].copy_from_slice((&instr).into());
+            }
+            0 => {
+                // When dealing with data relocations, the opcode is 0
+                let value_bytes = unsafe {
+                    core::slice::from_raw_parts(&value as *const _ as *const u8, INSTRUCTION_SIZE)
+                };
+                program[offset..offset + INSTRUCTION_SIZE].copy_from_slice(value_bytes);
             }
             _ => {
                 error!("Unsupported relocation opcode at offset: {:x}", offset);
             }
         }
-
-        //debug!("Patched text section: ");
-        //debug_print_program_bytes(&text);
     }
 
     Ok(())

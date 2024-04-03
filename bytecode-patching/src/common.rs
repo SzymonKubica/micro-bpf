@@ -140,19 +140,22 @@ pub fn get_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[
     section_bytes
 }
 
-pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
+pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<(usize, Reloc)> {
     let mut relocations = alloc::vec![];
 
     let context = goblin::container::Ctx::new(Container::Big, Endian::Little);
 
-    for section in &binary.section_headers {
+    for (i, section) in binary.section_headers.iter().enumerate() {
         if section.sh_type == goblin::elf::section_header::SHT_REL {
+            // Relocations section is always located immediately after the section
+            // that needs to have those relocations applied
+            let preceding_section_offset = binary.section_headers[i - 1].sh_offset as usize;
             let offset = section.sh_offset as usize;
             let size = section.sh_size as usize;
             let relocs =
                 goblin::elf::reloc::RelocSection::parse(&buffer, offset, size, false, context)
                     .unwrap();
-            relocs.iter().for_each(|reloc| relocations.push(reloc));
+            relocs.iter().for_each(|reloc| relocations.push((preceding_section_offset, reloc)));
         }
     }
 

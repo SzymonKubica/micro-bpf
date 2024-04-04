@@ -22,7 +22,16 @@ pub struct RiotLogger {
 }
 
 pub fn initialise_logger() {
-    if let Ok(()) = RiotLogger::init(log::LevelFilter::Debug) {
+    let log_level = env!("LOG_LEVEL");
+    let log_level = match log_level {
+        "LOG_TRACE" => log::LevelFilter::Trace,
+        "LOG_DEBUG" => log::LevelFilter::Debug,
+        "LOG_WARNING" => log::LevelFilter::Warn,
+        "LOG_ERROR" => log::LevelFilter::Error,
+        "LOG_TRACE" => log::LevelFilter::Trace,
+        _ => log::LevelFilter::Info,
+    };
+    if let Ok(()) = RiotLogger::init(log_level) {
         info!("Logger initialised");
     } else {
         println!("Failed to initialise logger");

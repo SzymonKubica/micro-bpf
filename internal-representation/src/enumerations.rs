@@ -178,6 +178,40 @@ impl From<u8> for BinaryFileLayout {
     }
 }
 
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExecutionModel {
+  /// The VM instance is spawned in the thread that is handling the network
+  /// request to execute the VM, the programs running using this model should be
+  /// short lived and terminate quickly enough so that the response can be sent
+  /// back to the client (this response usually contains the return value of the
+  /// program)
+  ShortLived,
+  /// Similar to the ShortLived execution model, but in this case the program has
+  /// access to the packet data and can write the response there using helpers.
+  /// The program can format the CoAP response accordingly and so it allows for
+  /// specifying custom responses.
+  WithAccessToCoapPacket,
+  /// The VM instances are spawned on a separate thread (by communicating a request
+  /// to start executing using message passing IPC provided by RIOT). The VM
+  /// can then run as long as needed and there is no way of early terminating
+  /// its execution
+  LongRunning,
+}
+
+impl FromStr for ExecutionModel {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "ShortLived" => Ok(ExecutionModel::ShortLived),
+            "WithAccessToCoapPacket" => Ok(ExecutionModel::WithAccessToCoapPacket),
+            "LongRunning" => Ok(ExecutionModel::LongRunning),
+            _ => Err(format!("Unknown execution model: {}", s)),
+        }
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;

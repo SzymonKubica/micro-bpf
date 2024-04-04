@@ -117,6 +117,16 @@ pub fn extract_section_mut<'a>(
     return Err("Section not found".to_string());
 }
 
+
+pub fn get_section_offset(section_name: &str, binary: &Elf<'_>, binary_buffer: &[u8]) -> Result<u64, String> {
+    for section in &binary.section_headers {
+        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
+            return Ok(section.sh_offset)
+        }
+    }
+    Err("Section not found".to_string())
+}
+
 /// Copies the bytes contained in a specific section in the ELF file.
 pub fn get_section_bytes(section_name: &str, binary: &Elf<'_>, binary_buffer: &[u8]) -> Vec<u8> {
     debug!("Extracting section: {} ", section_name);

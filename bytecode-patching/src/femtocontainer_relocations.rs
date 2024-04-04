@@ -30,7 +30,10 @@ use goblin::{
 use log::debug;
 
 use crate::{
-    common::{find_relocations, get_section_bytes, round_section_length, Symbol, LDDW_OPCODE},
+    common::{
+        find_relocations, get_section_bytes, get_section_offset, round_section_length, Symbol,
+        LDDW_OPCODE,
+    },
     model::Lddw,
 };
 
@@ -177,9 +180,15 @@ fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbo
 /// see [`Lddw`]) that indicate that the particular load instruction is supposed
 /// to target the .rodata or .data section. This is coupled with the implementation
 /// of the VM and not compatible with the default eBPF standard.
+/// In case of femtocontainers we only patch relocations that are inside of the
+/// text section.
 fn resolve_rodata_relocations(text: &mut Vec<u8>, binary: &Elf<'_>, buffer: &[u8]) {
     let relocations = find_relocations(binary, buffer);
-    for (_offset, relocation) in relocations {
+    let text_section_offset = get_section_offset(".text", binary, buffer).unwrap();
+    for (offset, relocation) in relocations {
+        if offset as u64 != text_section_offset  {
+            continue;
+        }
         if let Some(symbol) = binary.syms.get(relocation.r_sym) {
             let section = binary.section_headers.get(symbol.st_shndx).unwrap();
             let section_name = binary.strtab.get_at(section.sh_name).unwrap();

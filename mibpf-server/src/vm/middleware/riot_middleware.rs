@@ -45,7 +45,8 @@ pub const BPF_COAP_OPT_FINISH_IDX: u32 = 0x41;
 pub const BPF_COAP_ADD_FORMAT_IDX: u32 = 0x42;
 pub const BPF_COAP_GET_PDU_IDX: u32 = 0x43;
 
-/* Format functions */
+/* Format and string functions */
+pub const BPF_STRLEN: u32 = 0x52;
 pub const BPF_FMT_S16_DFP_IDX: u32 = 0x50;
 pub const BPF_FMT_U32_DEC_IDX: u32 = 0x51;
 
@@ -62,7 +63,7 @@ pub const BPF_GPIO_WRITE: u32 = 0x72;
 
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [HelperFunction; 24] = [
+pub const ALL_HELPERS: [HelperFunction; 25] = [
     HelperFunction::new(helpers::BPF_TRACE_PRINTK_IDX, 0, helpers::bpf_trace_printf),
     HelperFunction::new(BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
     HelperFunction::new(BPF_PRINTF_IDX, 2, bpf_printf),
@@ -82,11 +83,12 @@ pub const ALL_HELPERS: [HelperFunction; 24] = [
     HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
     HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
     HelperFunction::new(BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
-    HelperFunction::new(BPF_FMT_S16_DFP_IDX, 19, bpf_fmt_s16_dfp),
-    HelperFunction::new(BPF_FMT_U32_DEC_IDX, 20, bpf_fmt_u32_dec),
-    HelperFunction::new(BPF_GPIO_READ_INPUT, 21, bpf_gpio_read_input),
-    HelperFunction::new(BPF_GPIO_READ_RAW, 22, bpf_gpio_read_raw),
-    HelperFunction::new(BPF_GPIO_WRITE, 23, bpf_gpio_write),
+    HelperFunction::new(BPF_STRLEN, 19, bpf_strlen),
+    HelperFunction::new(BPF_FMT_S16_DFP_IDX, 20, bpf_fmt_s16_dfp),
+    HelperFunction::new(BPF_FMT_U32_DEC_IDX, 21, bpf_fmt_u32_dec),
+    HelperFunction::new(BPF_GPIO_READ_INPUT, 22, bpf_gpio_read_input),
+    HelperFunction::new(BPF_GPIO_READ_RAW, 23, bpf_gpio_read_raw),
+    HelperFunction::new(BPF_GPIO_WRITE, 24, bpf_gpio_write),
 ];
 
 pub const COAP_HELPERS: [HelperFunction; 4] = [
@@ -284,7 +286,15 @@ pub fn bpf_ztimer_periodic_wakeup(
     return 0;
 }
 
-/* Format functions - implementation */
+/* Format and string functions - implementation */
+
+pub fn bpf_strlen(str_ptr: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    let str_ptr = str_ptr as *const i8;
+    unsafe {
+        let c_str = CStr::from_ptr(str_ptr);
+        return c_str.to_bytes().len() as u64;
+    }
+}
 
 /// Convert 16-bit fixed point number to a decimal string.
 /// Returns the length of the resulting string.

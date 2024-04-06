@@ -19,12 +19,6 @@ typedef struct __attribute__((packed)) {
 } coap_hdr_t;
 
 
-typedef struct {
-    void* pkt;      /**< Opaque pointer to the coap_pkt_t struct */
-    uint8_t* buf;   /**< Packet buffer */
-    size_t buf_len; /**< Packet buffer length */
-} coap_context_t;
-
 #define HUMIDITY_STORAGE_INDEX 1
 
 int coap_test(bpf_coap_ctx_t *gcoap)

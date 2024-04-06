@@ -54,7 +54,7 @@ int coap_test(bpf_coap_ctx_t *gcoap)
     ssize_t pdu_len = bpf_coap_opt_finish(gcoap, COAP_OPT_FINISH_PAYLOAD);
     bpf_printf("Payload length after bpf_coap_opt_finish: %d\n", pkt->payload_len);
 
-    uint8_t *payload = (uint8_t *)(intptr_t)(pkt->payload_p);
+    uint8_t *payload = (uint8_t *)(pkt->payload_p);
 
     if (pkt->payload_len >= str_len) {
         bpf_memcpy(payload, stringified, str_len);

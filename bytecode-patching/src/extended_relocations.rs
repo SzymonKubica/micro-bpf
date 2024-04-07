@@ -34,9 +34,10 @@ struct Binary {
     text: Vec<u8>,
     functions: Vec<Symbol>,
     relocated_calls: Vec<RelocatedCall>,
+    allowed_helpers: Vec<u8>,
 }
 
-pub const HEADER_SIZE: usize = 28;
+pub const HEADER_SIZE: usize = 32;
 impl Into<Vec<u8>> for Binary {
     fn into(self) -> Vec<u8> {
         let header_bytes = unsafe {
@@ -60,6 +61,7 @@ impl Into<Vec<u8>> for Binary {
             binary.extend(call);
         }
 
+        binary.extend(self.allowed_helpers);
         binary
     }
 }
@@ -68,6 +70,9 @@ impl Into<Vec<u8>> for Binary {
 /// information about the length of the correspoinding sections in the binary
 /// so that the VM executing the code can access the .rodata and .data sections
 /// properly.
+///
+/// TODO: move this and the equivalent definition in rbpf into the shared internal
+/// representaion crate.
 #[repr(C, packed)]
 pub struct Header {
     magic: u32,
@@ -77,6 +82,7 @@ pub struct Header {
     rodata_len: u32,
     text_len: u32,
     functions_len: u32,
+    relocated_calls: u32, /*Number of relocated function calls in the program */
 }
 
 /// Applies ahead-of-time modifications to the binary to so that it can be
@@ -92,6 +98,9 @@ pub struct Header {
 /// -Containers. This means that programs produced by this script should still
 /// be executable on default version of the Femto-Container eBPF VM.
 pub fn assemble_binary(program: &[u8]) -> Result<Vec<u8>, String> {
+    assemble_binary_specifying_helpers(program, Vec::new())
+}
+pub fn assemble_binary_specifying_helpers(program: &[u8], allowed_helpers: Vec<u8>) -> Result<Vec<u8>, String> {
     let Ok(binary) = goblin::elf::Elf::parse(&program) else {
         return Err("Failed to parse the ELF binary".to_string());
     };
@@ -130,6 +139,7 @@ pub fn assemble_binary(program: &[u8]) -> Result<Vec<u8>, String> {
         rodata_len: rodata.len() as u32,
         text_len: text.len() as u32,
         functions_len: symbol_structs.len() as u32,
+        relocated_calls: relocated_calls.len() as u32,
     };
 
     let output_binary: Binary = Binary {
@@ -139,6 +149,7 @@ pub fn assemble_binary(program: &[u8]) -> Result<Vec<u8>, String> {
         text,
         functions: symbol_structs,
         relocated_calls,
+        allowed_helpers,
     };
 
     Ok(output_binary.into())

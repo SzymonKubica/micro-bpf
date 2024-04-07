@@ -11,7 +11,10 @@ use goblin::{
 use log::{debug, info};
 
 use crate::{
-    common::{get_section_bytes, round_section_length, Symbol, LDDW_OPCODE, get_section_header, find_relocations},
+    common::{
+        find_relocations, get_section_bytes, get_section_header, round_section_length, Symbol,
+        LDDW_OPCODE,
+    },
     femtocontainer_relocations::{FC_LDDWD_OPCODE, FC_LDDWR_OPCODE},
     model::{Lddw, RelocatedCall},
 };
@@ -325,9 +328,7 @@ fn patch_text(
     let mut instr: Lddw = Lddw::from(instr_bytes);
     instr.opcode = opcode as u8;
     let instr_imm = instr.immediate_l;
-    debug!(
-        "Adding offset {} to instr immediate {}", offset, instr_imm
-    );
+    debug!("Adding offset {} to instr immediate {}", offset, instr_imm);
     instr.immediate_l += offset as u32;
 
     text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice((&instr).into());

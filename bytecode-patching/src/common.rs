@@ -117,11 +117,26 @@ pub fn extract_section_mut<'a>(
     return Err("Section not found".to_string());
 }
 
-
-pub fn get_section_offset(section_name: &str, binary: &Elf<'_>, binary_buffer: &[u8]) -> Result<u64, String> {
+pub fn get_section_header<'a>(
+    section_name: &str,
+    binary: &'a Elf<'_>,
+) -> Result<&'a SectionHeader, String> {
     for section in &binary.section_headers {
         if Some(section_name) == binary.strtab.get_at(section.sh_name) {
-            return Ok(section.sh_offset)
+            return Ok(section);
+        }
+    }
+    Err("Section not found".to_string())
+}
+
+pub fn get_section_offset(
+    section_name: &str,
+    binary: &Elf<'_>,
+    binary_buffer: &[u8],
+) -> Result<u64, String> {
+    for section in &binary.section_headers {
+        if Some(section_name) == binary.strtab.get_at(section.sh_name) {
+            return Ok(section.sh_offset);
         }
     }
     Err("Section not found".to_string())
@@ -165,7 +180,9 @@ pub fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<(usize, Reloc)> 
             let relocs =
                 goblin::elf::reloc::RelocSection::parse(&buffer, offset, size, false, context)
                     .unwrap();
-            relocs.iter().for_each(|reloc| relocations.push((preceding_section_offset, reloc)));
+            relocs
+                .iter()
+                .for_each(|reloc| relocations.push((preceding_section_offset, reloc)));
         }
     }
 

@@ -8,10 +8,10 @@ use goblin::{
     elf::{Elf, Reloc},
     elf64::sym::{STB_GLOBAL, STT_FUNC, STT_OBJECT, STT_SECTION},
 };
-use log::debug;
+use log::{debug, info};
 
 use crate::{
-    common::{get_section_bytes, round_section_length, Symbol, LDDW_OPCODE},
+    common::{get_section_bytes, round_section_length, Symbol, LDDW_OPCODE, get_section_header, find_relocations},
     femtocontainer_relocations::{FC_LDDWD_OPCODE, FC_LDDWR_OPCODE},
     model::{Lddw, RelocatedCall},
 };
@@ -201,7 +201,12 @@ fn extract_function_symbols(rodata: &mut Vec<u8>, binary: &Elf<'_>) -> Vec<Symbo
 fn find_relocated_calls(binary: &Elf<'_>, buffer: &[u8]) -> Vec<RelocatedCall> {
     let mut relocated_calls: Vec<RelocatedCall> = alloc::vec![];
     let relocations = find_relocations(binary, buffer);
-    for reloc in relocations {
+    let text_section = get_section_header(".text", binary).unwrap();
+    for (preceding_section_offset, reloc) in relocations {
+        // We only patch inside of .text section
+        if preceding_section_offset != text_section.sh_offset as usize {
+            continue;
+        }
         debug!("Relocation found : {:?}", reloc);
         if let Some(symbol) = binary.syms.get(reloc.r_sym) {
             if symbol.st_type() == STT_FUNC {
@@ -232,7 +237,12 @@ fn resolve_rodata_relocations(
     str_section_offsets: &HashMap<&str, usize>,
 ) {
     let relocations = find_relocations(binary, buffer);
-    for relocation in relocations {
+    let text_section = get_section_header(".text", binary).unwrap();
+    for (preceding_section_offset, relocation) in relocations {
+        // We only patch inside of .text section
+        if preceding_section_offset != text_section.sh_offset as usize {
+            continue;
+        }
         if let Some(symbol) = binary.syms.get(relocation.r_sym) {
             let section = binary.section_headers.get(symbol.st_shndx).unwrap();
             let section_name = binary.strtab.get_at(section.sh_name).unwrap();
@@ -256,24 +266,6 @@ fn resolve_rodata_relocations(
 
         patch_text(text, binary, relocation, &str_section_offsets);
     }
-}
-
-fn find_relocations(binary: &Elf<'_>, buffer: &[u8]) -> Vec<Reloc> {
-    let mut relocations = alloc::vec![];
-    let context = goblin::container::Ctx::default();
-    debug!("Relocation parsing context: {:?}", context);
-    for section in &binary.section_headers {
-        if section.sh_type == goblin::elf::section_header::SHT_REL {
-            let offset = section.sh_offset as usize;
-            let size = section.sh_size as usize;
-            let relocs =
-                goblin::elf::reloc::RelocSection::parse(&buffer, offset, size, false, context)
-                    .unwrap();
-            relocs.iter().for_each(|reloc| relocations.push(reloc));
-        }
-    }
-
-    relocations
 }
 
 fn patch_text(
@@ -332,6 +324,10 @@ fn patch_text(
 
     let mut instr: Lddw = Lddw::from(instr_bytes);
     instr.opcode = opcode as u8;
+    let instr_imm = instr.immediate_l;
+    debug!(
+        "Adding offset {} to instr immediate {}", offset, instr_imm
+    );
     instr.immediate_l += offset as u32;
 
     text[reloc.r_offset as usize..reloc.r_offset as usize + 16].copy_from_slice((&instr).into());

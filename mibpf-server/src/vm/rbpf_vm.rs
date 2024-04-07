@@ -74,9 +74,11 @@ impl VirtualMachine for RbpfVm {
     fn execute(&self, program: &[u8], result: &mut i64) -> u32 {
         let mut vm = rbpf::EbpfVmNoData::new(Some(program)).unwrap();
         match self.layout {
-            BinaryFileLayout::FemtoContainersHeader
-            | BinaryFileLayout::FunctionRelocationMetadata => {
-                vm.override_interpreter(rbpf::InterpreterVariant::Extended);
+            BinaryFileLayout::FemtoContainersHeader => {
+                vm.override_interpreter(rbpf::InterpreterVariant::FemtoContainersHeader);
+            }
+            BinaryFileLayout::FunctionRelocationMetadata => {
+                vm.override_interpreter(rbpf::InterpreterVariant::ExtendedHeader);
             }
             BinaryFileLayout::RawObjectFile => {
                 vm.override_interpreter(rbpf::InterpreterVariant::RawElfFile);
@@ -102,9 +104,11 @@ impl VirtualMachine for RbpfVm {
         // Initialise the VM operating on a fixed memory buffer.
         let mut vm = rbpf::EbpfVmMbuff::new(Some(program)).unwrap();
         match self.layout {
-            BinaryFileLayout::FemtoContainersHeader
-            | BinaryFileLayout::FunctionRelocationMetadata => {
-                vm.override_interpreter(rbpf::InterpreterVariant::Extended);
+            BinaryFileLayout::FemtoContainersHeader => {
+                vm.override_interpreter(rbpf::InterpreterVariant::FemtoContainersHeader);
+            }
+            BinaryFileLayout::FunctionRelocationMetadata => {
+                vm.override_interpreter(rbpf::InterpreterVariant::ExtendedHeader);
             }
             BinaryFileLayout::RawObjectFile => {
                 vm.override_interpreter(rbpf::InterpreterVariant::RawElfFile);

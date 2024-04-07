@@ -104,7 +104,9 @@ impl From<Vec<HelperFunction>> for HelperFunctionEncoding {
 impl Into<Vec<HelperFunction>> for HelperFunctionEncoding {
     fn into(self) -> Vec<HelperFunction> {
         let mut available_helpers = alloc::vec![];
-        for i in 0..ALL_HELPERS.len() {
+        // TODO: design something to allow for more than 24 helpers to be defined
+        //for i in 0..ALL_HELPERS.len() {
+        for i in 0..24 {
             let bucket = (i / 8) as usize;
             if self.0[bucket] & (1 << (i % 8)) > 0 {
                 available_helpers.push(ALL_HELPERS[i]);

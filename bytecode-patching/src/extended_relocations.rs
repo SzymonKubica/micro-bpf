@@ -282,6 +282,10 @@ fn patch_text(
     reloc: Reloc,
     str_section_offsets: &HashMap<&str, usize>,
 ) {
+    if (reloc.r_offset as usize) >= text.len() {
+        debug!("We only patch inside the .text section, returning early");
+        return;
+    }
     debug!("Patching text for relocation symbol: {:?}", reloc);
     let symbol = binary.syms.get(reloc.r_sym).unwrap();
     let section = binary.section_headers.get(symbol.st_shndx).unwrap();
@@ -307,7 +311,7 @@ fn patch_text(
         offset = symbol.st_value as usize;
     }
 
-    // We only patch LDDW instructions
+    // We only patch LDDW instructions inside .text section
     if text[reloc.r_offset as usize] != LDDW_OPCODE as u8 {
         debug!("No LDDW instruction at {}", reloc.r_offset);
         return;

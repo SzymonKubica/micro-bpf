@@ -100,6 +100,7 @@ dependencies = [
  "goblin",
  "internal-representation",
  "log",
+ "rbpf",
 ]
 
 [[package]]
@@ -816,7 +817,7 @@ dependencies = [
  "combine",
  "goblin",
  "libm",
- "riot-wrappers",
+ "log",
  "time",
 ]
 

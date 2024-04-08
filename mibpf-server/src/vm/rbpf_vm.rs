@@ -70,21 +70,19 @@ impl RbpfVm {
     }
 }
 
+fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
+    match layout {
+        BinaryFileLayout::FemtoContainersHeader => rbpf::InterpreterVariant::FemtoContainersHeader,
+        BinaryFileLayout::FunctionRelocationMetadata => rbpf::InterpreterVariant::ExtendedHeader,
+        BinaryFileLayout::RawObjectFile => rbpf::InterpreterVariant::RawObjectFile,
+        BinaryFileLayout::OnlyTextSection => rbpf::InterpreterVariant::Default,
+    }
+}
+
 impl VirtualMachine for RbpfVm {
     fn execute(&self, program: &[u8], result: &mut i64) -> u32 {
-        let mut vm = rbpf::EbpfVmNoData::new(Some(program)).unwrap();
-        match self.layout {
-            BinaryFileLayout::FemtoContainersHeader => {
-                vm.override_interpreter(rbpf::InterpreterVariant::FemtoContainersHeader);
-            }
-            BinaryFileLayout::FunctionRelocationMetadata => {
-                vm.override_interpreter(rbpf::InterpreterVariant::ExtendedHeader);
-            }
-            BinaryFileLayout::RawObjectFile => {
-                vm.override_interpreter(rbpf::InterpreterVariant::RawElfFile);
-            }
-            _ => {}
-        }
+        let interpreter = map_interpreter(self.layout);
+        let mut vm = rbpf::EbpfVmNoData::new(Some(program), interpreter).unwrap();
 
         middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
 
@@ -93,29 +91,8 @@ impl VirtualMachine for RbpfVm {
         execution_time
     }
     fn execute_on_coap_pkt(&self, program: &[u8], pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
-        // Memory for the packet.
-        // TODO: allow rbpf to access the packet memory directly instead of doing
-        // this packet copy process.
-        /* Instead of copying the packet we need to give a pointer to it
-        let mut mem: [u8; 512] = [0; 512];
-        unsafe { copy_packet(pkt as *mut _ as *mut c_void, mem.as_mut_ptr() as *mut u8) };
-        */
-
-        // Initialise the VM operating on a fixed memory buffer.
-        let mut vm = rbpf::EbpfVmMbuff::new(Some(program)).unwrap();
-        match self.layout {
-            BinaryFileLayout::FemtoContainersHeader => {
-                vm.override_interpreter(rbpf::InterpreterVariant::FemtoContainersHeader);
-            }
-            BinaryFileLayout::FunctionRelocationMetadata => {
-                vm.override_interpreter(rbpf::InterpreterVariant::ExtendedHeader);
-            }
-            BinaryFileLayout::RawObjectFile => {
-                vm.override_interpreter(rbpf::InterpreterVariant::RawElfFile);
-            }
-            _ => {}
-        }
-
+        let interpreter = map_interpreter(self.layout);
+        let mut vm = rbpf::EbpfVmMbuff::new(Some(program), interpreter).unwrap();
         middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
 
         let buffer: &mut [u8] = unsafe {

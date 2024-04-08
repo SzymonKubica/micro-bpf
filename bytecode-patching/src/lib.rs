@@ -40,6 +40,7 @@
 //! env_logger. The reason raw print statements aren't used is to maintain the
 //! compatibility with `no_std`.
 extern crate alloc;
+extern crate rbpf;
 
 mod common;
 mod extended_relocations;

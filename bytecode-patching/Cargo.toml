@@ -9,4 +9,6 @@ edition = "2021"
 log = "0.4.21"
 goblin = {version = "0.8.0", default_features = false , features = ["elf32", "elf64", "endian_fd"]}
 internal-representation = { path = "../internal-representation" }
+rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
+
 

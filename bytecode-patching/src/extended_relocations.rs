@@ -1,6 +1,7 @@
 use alloc::{
     collections::btree_map::BTreeMap as HashMap,
     ffi::CString,
+    format,
     string::{String, ToString},
     vec::Vec,
 };
@@ -98,9 +99,12 @@ pub struct Header {
 /// -Containers. This means that programs produced by this script should still
 /// be executable on default version of the Femto-Container eBPF VM.
 pub fn assemble_binary(program: &[u8]) -> Result<Vec<u8>, String> {
-    assemble_binary_specifying_helpers(program, Vec::new())
+    assemble_binary_specifying_helpers(program, (0..127).into_iter().collect::<Vec<u8>>())
 }
-pub fn assemble_binary_specifying_helpers(program: &[u8], allowed_helpers: Vec<u8>) -> Result<Vec<u8>, String> {
+pub fn assemble_binary_specifying_helpers(
+    program: &[u8],
+    allowed_helpers: Vec<u8>,
+) -> Result<Vec<u8>, String> {
     let Ok(binary) = goblin::elf::Elf::parse(&program) else {
         return Err("Failed to parse the ELF binary".to_string());
     };
@@ -149,10 +153,19 @@ pub fn assemble_binary_specifying_helpers(program: &[u8], allowed_helpers: Vec<u
         text,
         functions: symbol_structs,
         relocated_calls,
-        allowed_helpers,
+        allowed_helpers: allowed_helpers.clone(),
     };
 
-    Ok(output_binary.into())
+    let assembled_program: Vec<u8> = output_binary.into();
+    let available_helpers: Vec<u32> = allowed_helpers.iter().map(|id| *id as u32).collect();
+
+    rbpf::check_helpers(
+        &assembled_program,
+        &available_helpers,
+        rbpf::InterpreterVariant::ExtendedHeader,
+    )
+    .map_err(|e| format!("Invalid helper configuration: {:?}", e))?;
+    Ok(assembled_program)
 }
 
 /// String literals used in e.g. calls to printf are loaded into the

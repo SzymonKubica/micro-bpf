@@ -51,6 +51,7 @@ mod relocation_resolution;
 // Only the below functions are exposed to the users of this library.
 pub use common::debug_print_program_bytes;
 pub use extended_relocations::assemble_binary;
+pub use extended_relocations::assemble_binary_specifying_helpers;
 pub use common::extract_section;
 pub use femtocontainer_relocations::assemble_femtocontainer_binary;
 pub use relocation_resolution::resolve_relocations;

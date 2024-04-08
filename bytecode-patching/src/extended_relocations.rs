@@ -101,6 +101,10 @@ pub struct Header {
 pub fn assemble_binary(program: &[u8]) -> Result<Vec<u8>, String> {
     assemble_binary_specifying_helpers(program, (0..127).into_iter().collect::<Vec<u8>>())
 }
+
+/// Applies ahead-of-time modifications to the binary similar to [`assemble_binary`]
+/// but allows for specifying a list of helper functions indices that the program
+/// running in the VM is allowed to access.
 pub fn assemble_binary_specifying_helpers(
     program: &[u8],
     allowed_helpers: Vec<u8>,

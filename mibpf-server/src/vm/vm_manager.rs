@@ -220,16 +220,17 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
             program.len()
         );
 
-        let vm: Box<dyn VirtualMachine> = match vm_config.vm_target {
+        let mut vm: Box<dyn VirtualMachine> = match vm_config.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
+                program,
                 execution_request.available_helpers,
                 vm_config.binary_layout,
             )),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {}),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {program}),
         };
 
         let mut result: i64 = 0;
-        let execution_time = vm.execute(&program, &mut result);
+        let execution_time = vm.execute(&mut result);
         debug!("Execution_time: {}, result: {}", execution_time, result);
 
         // Now we notify the VM execution manager that the eBPF program has

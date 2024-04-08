@@ -46,7 +46,7 @@ pub const BPF_COAP_ADD_FORMAT_IDX: u32 = 0x42;
 pub const BPF_COAP_GET_PDU_IDX: u32 = 0x43;
 
 /* Format and string functions */
-pub const BPF_STRLEN: u32 = 0x52;
+pub const BPF_STRLEN_IDX: u32 = 0x52;
 pub const BPF_FMT_S16_DFP_IDX: u32 = 0x50;
 pub const BPF_FMT_U32_DEC_IDX: u32 = 0x51;
 
@@ -83,7 +83,7 @@ pub const ALL_HELPERS: [HelperFunction; 25] = [
     HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
     HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
     HelperFunction::new(BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
-    HelperFunction::new(BPF_STRLEN, 19, bpf_strlen),
+    HelperFunction::new(BPF_STRLEN_IDX, 19, bpf_strlen),
     HelperFunction::new(BPF_FMT_S16_DFP_IDX, 20, bpf_fmt_s16_dfp),
     HelperFunction::new(BPF_FMT_U32_DEC_IDX, 21, bpf_fmt_u32_dec),
     HelperFunction::new(BPF_GPIO_READ_INPUT, 22, bpf_gpio_read_input),
@@ -209,6 +209,7 @@ pub fn bpf_gcoap_resp_init(coap_ctx_p: u64, resp_code: u64, _a3: u64, _a4: u64, 
 
     unsafe {
         debug!("coap_ctx: {:?}", *coap_ctx);
+        debug!("coap pkt: {:?}", (*coap_ctx).pkt);
         debug!("buf_len: {:?}", (*coap_ctx).len);
         debug!("packet payload len: {:?}", (*(*coap_ctx).pkt).payload_len);
         debug!("resp code: {:?}", resp_code);

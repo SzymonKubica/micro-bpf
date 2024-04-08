@@ -11,8 +11,9 @@ use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
 
 use super::middleware::{helpers::HelperFunction, CoapContext};
 
-pub struct RbpfVm {
+pub struct RbpfVm<'a> {
     pub registered_helpers: Vec<HelperFunction>,
+    pub vm: rbpf::EbpfVmMbuff<'a>,
     pub layout: BinaryFileLayout,
 }
 
@@ -23,17 +24,11 @@ extern "C" {
     /// executing the rBPF VM on raw packet data.
     fn copy_packet(buffer: *mut c_void, mem: *mut u8);
 }
-
-impl Default for RbpfVm {
-    fn default() -> Self {
-        Self::new(Vec::new(), BinaryFileLayout::FunctionRelocationMetadata)
-    }
-}
-
-impl RbpfVm {
-    pub fn new(helpers: Vec<HelperFunction>, layout: BinaryFileLayout) -> Self {
+impl<'a> RbpfVm<'a> {
+    pub fn new(program: &'a [u8], helpers: Vec<HelperFunction>, layout: BinaryFileLayout) -> RbpfVm<'a> {
         RbpfVm {
             registered_helpers: helpers,
+            vm: rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(layout)).unwrap(),
             layout,
         }
     }
@@ -79,24 +74,19 @@ fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
     }
 }
 
-impl VirtualMachine for RbpfVm {
-    fn execute(&self, program: &[u8], result: &mut i64) -> u32 {
-        let interpreter = map_interpreter(self.layout);
-        let mut vm = rbpf::EbpfVmNoData::new(Some(program), interpreter).unwrap();
+impl VirtualMachine for RbpfVm<'_> {
+    fn execute(&mut self, result: &mut i64) -> u32 {
+        middleware::helpers::register_helpers(&mut self.vm, self.registered_helpers.clone());
 
-        middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
-
-        let (ret, execution_time) = self.timed_execution(|| vm.execute_program());
+        let (ret, execution_time) = self.timed_execution(|| self.vm.execute_program(&alloc::vec![], &alloc::vec![]));
         *result = ret;
         execution_time
     }
-    fn execute_on_coap_pkt(&self, program: &[u8], pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
-        let interpreter = map_interpreter(self.layout);
-        let mut vm = rbpf::EbpfVmMbuff::new(Some(program), interpreter).unwrap();
-        middleware::helpers::register_helpers(&mut vm, self.registered_helpers.clone());
+    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
+        middleware::helpers::register_helpers(&mut self.vm, self.registered_helpers.clone());
 
         let buffer: &mut [u8] = unsafe {
-            let ctx = pkt as *mut _ as *mut PacketBuffer;
+            let ctx = pkt as *mut _ as *mut CoapContext;
             println!("Context: {:?}", *ctx);
             from_raw_parts_mut(ctx as *mut u8, 32)
         };
@@ -115,7 +105,7 @@ impl VirtualMachine for RbpfVm {
         // Here we need to do some hacking with locks as closures don't like
         // capturing &mut references from environment. It does make sense.
         let (ret, execution_time) = self.timed_execution(|| {
-            vm.execute_program(
+            self.vm.execute_program(
                 mem_mutex.lock().deref_mut(),
                 buffer_mutex.lock().deref_mut(),
             )

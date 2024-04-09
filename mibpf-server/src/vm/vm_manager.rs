@@ -1,6 +1,6 @@
 use core::ffi::c_void;
 
-use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, format, vec::Vec, sync::Arc};
 use log::{debug, error, info};
 
 use riot_wrappers::{
@@ -226,7 +226,7 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
                 execution_request.available_helpers,
                 vm_config.binary_layout,
             )),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {program}),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
         };
 
         let mut result: i64 = 0;

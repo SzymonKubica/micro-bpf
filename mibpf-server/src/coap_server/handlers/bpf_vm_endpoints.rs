@@ -2,8 +2,8 @@ use alloc::{
     boxed::Box,
     format,
     string::{String, ToString},
-    sync::Arc,
     vec::Vec,
+    sync::Arc,
 };
 use bytecode_patching::resolve_relocations;
 use core::convert::TryInto;
@@ -309,8 +309,8 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!(
-            "{{\"execution_time\": {}, \"result\": {}}}",
-            self.execution_time, self.result
+            "{{\"load_time\": {}, \"execution_time\": {},\"program_size\": {}, \"result\": {}}}",
+            self.load_time, self.execution_time, self.program_size, self.result
         );
         response.set_payload(resp.as_bytes());
     }

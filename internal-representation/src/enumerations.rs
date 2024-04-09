@@ -196,6 +196,8 @@ pub enum ExecutionModel {
   /// can then run as long as needed and there is no way of early terminating
   /// its execution
   LongRunning,
+  /// Similar as ShortLived but more data is collected when the vm runs.
+  Benchmark,
 }
 
 impl FromStr for ExecutionModel {

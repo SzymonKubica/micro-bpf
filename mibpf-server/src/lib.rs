@@ -40,6 +40,8 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     let display = modules::hd44780_lcd::Hd44780Lcd::new();
     display.print("Hello, world!");
 
+
+
     // We need to initialise the message queue so that the CoAP server can send
     // requests to the VM executor responsible for spawning instances of the VM.
     token.with_message_queue::<4, _>(|token| {

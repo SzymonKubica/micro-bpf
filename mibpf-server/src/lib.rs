@@ -24,6 +24,7 @@ mod model;
 mod shell;
 mod util;
 mod vm;
+mod modules;
 
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
@@ -35,6 +36,9 @@ riot_main!(main);
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     util::logger::initialise_logger();
+
+    let display = modules::hd44780_lcd::Hd44780Lcd::new();
+    display.print("Hello, world!");
 
     // We need to initialise the message queue so that the CoAP server can send
     // requests to the VM executor responsible for spawning instances of the VM.

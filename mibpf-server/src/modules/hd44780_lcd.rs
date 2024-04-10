@@ -1,5 +1,8 @@
 use core::ffi::c_void;
 
+use alloc::ffi::CString;
+use riot_wrappers::cstr::cstr;
+
 pub struct Hd44780Lcd {
     dev: *mut c_void,
 }
@@ -19,8 +22,9 @@ impl Hd44780Lcd {
     }
 
     pub fn print(&self, data: &str) {
+        let c_str = CString::new(data).unwrap();
         unsafe {
-            hd44780_print(self.dev as *const c_void, data.as_ptr() as *const char);
+            hd44780_print(self.dev as *const c_void, c_str.as_ptr() as *const char);
         }
     }
 }

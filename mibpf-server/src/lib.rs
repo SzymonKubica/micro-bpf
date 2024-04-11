@@ -37,8 +37,8 @@ riot_main!(main);
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     util::logger::initialise_logger();
 
-    let display = modules::hd44780_lcd::Hd44780Lcd::new();
-    display.print("Hello, world!");
+    let display = modules::hd44780_lcd::HD44780LCD::new();
+    display.print("Weather Station 2.0");
 
 
 

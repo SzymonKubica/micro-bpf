@@ -10,8 +10,8 @@
 #ifndef BPF_BPFAPI_HELPERS_H
 #define BPF_BPFAPI_HELPERS_H
 
-#include <stdint.h>
 #include "shared.h"
+#include <stdint.h>
 
 typedef signed ssize_t;
 
@@ -19,22 +19,22 @@ typedef signed ssize_t;
 // declare the format char[]. The do-while is needed in case the macro is
 // invoked after an if statement without braces.
 #define print(format, ...)                                                     \
-    do {                                                                       \
-        char fmt[] = format;                                                   \
-        bpf_printf(fmt, __VA_ARGS__);                                          \
-    } while (0);
+  do {                                                                         \
+    char fmt[] = format;                                                       \
+    bpf_printf(fmt, __VA_ARGS__);                                              \
+  } while (0);
 
 #define print_str(str)                                                         \
-    do {                                                                       \
-        char fmt[] = str;                                                      \
-        bpf_printf(fmt);                                                       \
-    } while (0);
+  do {                                                                         \
+    char fmt[] = str;                                                          \
+    bpf_printf(fmt);                                                           \
+  } while (0);
 
 #define PHYDAT_DIM (3U)
 typedef struct {
-    int16_t val[PHYDAT_DIM]; /**< the 3 generic dimensions of data */
-    uint8_t unit;            /**< the (physical) unit of the data */
-    int8_t scale;            /**< the scale factor, 10^*scale* */
+  int16_t val[PHYDAT_DIM]; /**< the 3 generic dimensions of data */
+  uint8_t unit;            /**< the (physical) unit of the data */
+  int8_t scale;            /**< the scale factor, 10^*scale* */
 } phydat_t;
 
 /**
@@ -101,5 +101,15 @@ static uint64_t (*bpf_gpio_read_raw)(uint32_t port, uint32_t pin) = (void *)
     BPF_FUNC_GPIO_READ_RAW;
 static void (*bpf_gpio_write)(uint32_t port, uint32_t pin,
                               uint32_t val) = (void *)BPF_FUNC_GPIO_WRITE;
+
+/* HD44780 calls */
+static uint64_t (*bpf_hd44780_init)() = (void *)BPF_FUNC_HD44780_INIT;
+static uint64_t (*bpf_hd44780_clear)(uint32_t dev) = (void *)
+    BPF_FUNC_HD44780_CLEAR;
+static uint64_t (*bpf_hd44780_print)(uint32_t dev, const char *data) = (void *)
+    BPF_FUNC_HD44780_PRINT;
+static uint64_t (*bpf_hd44780_set_cursor)(uint32_t dev, uint32_t row,
+                                          uint32_t col) = (void *)
+    BPF_FUNC_HD44780_SET_CURSOR;
 
 #endif /* BPF_APPLICATION_CALL_H */

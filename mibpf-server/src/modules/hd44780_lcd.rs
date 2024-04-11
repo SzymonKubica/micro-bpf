@@ -7,14 +7,10 @@ pub struct HD44780LCD {
     dev: *mut hd44780_t,
 }
 
-pub type hd44780_params_t = c_void;
-pub type hd44780_t = c_void;
-pub type hd44780_state_t = bool;
-
 impl HD44780LCD {
     pub fn new() -> Self {
         unsafe {
-            let dev = hd44780_init_default() as *mut c_void;
+            let dev = hd44780_init_default() as *mut hd44780_t;
             HD44780LCD { dev }
         }
     }
@@ -29,7 +25,7 @@ impl HD44780LCD {
     }
 
     pub fn clear(&self) {
-        unsafe { hd44780_clear(self.dev as *const c_void) }
+        unsafe { hd44780_clear(self.dev as *const hd44780_t) }
     }
     pub fn home(&self) {
         unsafe { hd44780_home(self.dev as *const hd44780_t) }
@@ -91,7 +87,7 @@ extern "C" {
     /// only have one display connected to the microcontroller.
     fn hd44780_init_default() -> i32;
     fn hd44780_init(dev: *mut hd44780_t, params: *const hd44780_params_t) -> i32;
-    fn hd44780_clear(dev: *const c_void);
+    fn hd44780_clear(dev: *const hd44780_t);
     fn hd44780_home(dev: *const hd44780_t);
     fn hd44780_set_cursor(dev: *const hd44780_t, col: u8, row: u8);
     fn hd44780_display(dev: *const hd44780_t, state: hd44780_state_t);
@@ -111,7 +107,6 @@ type gpio_t = u32;
 const HD44780_MAX_PINS: usize = 8;
 const HD44780_MAX_ROWS: usize = 4;
 
-/*
 /// Redefined parameters for the HD44780 LCD display to allow for using it
 /// within rust code
 #[allow(non_camel_case_types)]
@@ -143,4 +138,3 @@ enum hd44780_state_t {
     HD44780_OFF, /* disable feature */
     HD44780_ON,  /* enable feature */
 }
-*/

@@ -15,99 +15,53 @@ use rbpf::helpers;
 use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
 
-use crate::modules::hd44780_lcd::{HD44780LCD, hd44780_t};
+use crate::modules::hd44780_lcd::{hd44780_t, HD44780LCD};
 
+use super::helper_ids::HelperTableID as ID;
 use super::helpers::HelperFunction;
 
-/// Indices of the helper functions are defined to be exactly the same as in the
-/// case of Femto-Container eBPF VM to ensure compatibility.
-
-/* Print/debug helper functions */
-pub const BPF_PRINTF_IDX: u32 = 0x01;
-pub const BPF_DEBUG_PRINT_IDX: u32 = 0x03;
-
-/* Memory copy helper functions */
-pub const BPF_MEMCPY_IDX: u32 = 0x02;
-
-/* Key/value store functions */
-pub const BPF_STORE_LOCAL_IDX: u32 = 0x10;
-pub const BPF_STORE_GLOBAL_IDX: u32 = 0x11;
-pub const BPF_FETCH_LOCAL_IDX: u32 = 0x12;
-pub const BPF_FETCH_GLOBAL_IDX: u32 = 0x13;
-
-/* Saul functions */
-pub const BPF_SAUL_REG_FIND_NTH_IDX: u32 = 0x30;
-pub const BPF_SAUL_REG_FIND_TYPE_IDX: u32 = 0x31;
-pub const BPF_SAUL_REG_READ_IDX: u32 = 0x32;
-pub const BPF_SAUL_REG_WRITE_IDX: u32 = 0x33;
-
-/* (g)coap functions */
-pub const BPF_GCOAP_RESP_INIT_IDX: u32 = 0x40;
-pub const BPF_COAP_OPT_FINISH_IDX: u32 = 0x41;
-pub const BPF_COAP_ADD_FORMAT_IDX: u32 = 0x42;
-pub const BPF_COAP_GET_PDU_IDX: u32 = 0x43;
-
-/* Format and string functions */
-pub const BPF_STRLEN_IDX: u32 = 0x52;
-pub const BPF_FMT_S16_DFP_IDX: u32 = 0x50;
-pub const BPF_FMT_U32_DEC_IDX: u32 = 0x51;
-
-/* Time(r) functions */
-pub const BPF_NOW_MS_IDX: u32 = 0x20;
-
-/* ZTIMER */
-pub const BPF_ZTIMER_NOW_IDX: u32 = 0x60;
-pub const BPF_ZTIMER_PERIOD_WAKEUP_ID: u32 = 0x61;
-
-pub const BPF_GPIO_READ_INPUT: u32 = 0x70;
-pub const BPF_GPIO_READ_RAW: u32 = 0x71;
-pub const BPF_GPIO_WRITE: u32 = 0x72;
-
-/* HD44780 LCD */
-pub const BPF_HD44780_INIT: u32 = 0x70;
-pub const BPF_HD44780_CLEAR: u32 = 0x71;
-pub const BPF_HD44780_PRINT: u32 = 0x72;
-pub const BPF_HD44780_SET_CURSOR: u32 = 0x73;
+// Alias the type to make the table below more concise
+type HF = HelperFunction;
 
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [HelperFunction; 29] = [
-    HelperFunction::new(helpers::BPF_TRACE_PRINTK_IDX, 0, helpers::bpf_trace_printf),
-    HelperFunction::new(BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
-    HelperFunction::new(BPF_PRINTF_IDX, 2, bpf_printf),
-    HelperFunction::new(BPF_STORE_LOCAL_IDX, 3, bpf_store_local),
-    HelperFunction::new(BPF_STORE_GLOBAL_IDX, 4, bpf_store_global),
-    HelperFunction::new(BPF_FETCH_LOCAL_IDX, 5, bpf_fetch_local),
-    HelperFunction::new(BPF_FETCH_GLOBAL_IDX, 6, bpf_fetch_global),
-    HelperFunction::new(BPF_MEMCPY_IDX, 7, bpf_memcpy),
-    HelperFunction::new(BPF_NOW_MS_IDX, 8, bpf_now_ms),
-    HelperFunction::new(BPF_ZTIMER_NOW_IDX, 9, bpf_ztimer_now),
-    HelperFunction::new(BPF_ZTIMER_PERIOD_WAKEUP_ID, 10, bpf_ztimer_periodic_wakeup),
-    HelperFunction::new(BPF_SAUL_REG_FIND_NTH_IDX, 11, bpf_saul_reg_find_nth),
-    HelperFunction::new(BPF_SAUL_REG_FIND_TYPE_IDX, 12, bpf_saul_reg_find_type),
-    HelperFunction::new(BPF_SAUL_REG_WRITE_IDX, 13, bpf_saul_reg_write),
-    HelperFunction::new(BPF_SAUL_REG_READ_IDX, 14, bpf_saul_reg_read),
-    HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
-    HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
-    HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
-    HelperFunction::new(BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
-    HelperFunction::new(BPF_STRLEN_IDX, 19, bpf_strlen),
-    HelperFunction::new(BPF_FMT_S16_DFP_IDX, 20, bpf_fmt_s16_dfp),
-    HelperFunction::new(BPF_FMT_U32_DEC_IDX, 21, bpf_fmt_u32_dec),
-    HelperFunction::new(BPF_GPIO_READ_INPUT, 22, bpf_gpio_read_input),
-    HelperFunction::new(BPF_GPIO_READ_RAW, 23, bpf_gpio_read_raw),
-    HelperFunction::new(BPF_GPIO_WRITE, 24, bpf_gpio_write),
-    HelperFunction::new(BPF_HD44780_INIT, 25, bpf_hd44780_init),
-    HelperFunction::new(BPF_HD44780_CLEAR, 26, bpf_hd44780_clear),
-    HelperFunction::new(BPF_HD44780_PRINT, 27, bpf_hd44780_print),
-    HelperFunction::new(BPF_HD44780_SET_CURSOR, 28, bpf_hd44780_set_cursor),
+pub const ALL_HELPERS: [Helper; 29] = [
+    HF::new(helpers::BPF_TRACE_PRINTK_IDX, 0, helpers::bpf_trace_printf),
+    HF::new(ID::BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
+    HF::new(ID::BPF_PRINTF_IDX, 2, bpf_printf),
+    HF::new(ID::BPF_STORE_LOCAL_IDX, 3, bpf_store_local),
+    HF::new(ID::BPF_STORE_GLOBAL_IDX, 4, bpf_store_global),
+    HF::new(ID::BPF_FETCH_LOCAL_IDX, 5, bpf_fetch_local),
+    HF::new(ID::BPF_FETCH_GLOBAL_IDX, 6, bpf_fetch_global),
+    HF::new(ID::BPF_MEMCPY_IDX, 7, bpf_memcpy),
+    HF::new(ID::BPF_NOW_MS_IDX, 8, bpf_now_ms),
+    HF::new(ID::BPF_ZTIMER_NOW_IDX, 9, bpf_ztimer_now),
+    HF::new(ID::BPF_PERIODIC_WAKEUP_IDX, 10, bpf_periodic_wakeup),
+    HF::new(ID::BPF_SAUL_REG_FIND_NTH_IDX, 11, bpf_saul_reg_find_nth),
+    HF::new(ID::BPF_SAUL_REG_FIND_TYPE_IDX, 12, bpf_saul_reg_find_type),
+    HF::new(ID::BPF_SAUL_REG_WRITE_IDX, 13, bpf_saul_reg_write),
+    HF::new(ID::BPF_SAUL_REG_READ_IDX, 14, bpf_saul_reg_read),
+    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
+    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
+    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
+    HF::new(ID::BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
+    HF::new(ID::BPF_STRLEN_IDX, 19, bpf_strlen),
+    HF::new(ID::BPF_FMT_S16_DFP_IDX, 20, bpf_fmt_s16_dfp),
+    HF::new(ID::BPF_FMT_U32_DEC_IDX, 21, bpf_fmt_u32_dec),
+    HF::new(ID::BPF_GPIO_READ_INPUT, 22, bpf_gpio_read_input),
+    HF::new(ID::BPF_GPIO_READ_RAW, 23, bpf_gpio_read_raw),
+    HF::new(ID::BPF_GPIO_WRITE, 24, bpf_gpio_write),
+    HF::new(ID::BPF_HD44780_INIT, 25, bpf_hd44780_init),
+    HF::new(ID::BPF_HD44780_CLEAR, 26, bpf_hd44780_clear),
+    HF::new(ID::BPF_HD44780_PRINT, 27, bpf_hd44780_print),
+    HF::new(ID::BPF_HD44780_SET_CURSOR, 28, bpf_hd44780_set_cursor),
 ];
 
-pub const COAP_HELPERS: [HelperFunction; 4] = [
-    HelperFunction::new(BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
-    HelperFunction::new(BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
-    HelperFunction::new(BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
-    HelperFunction::new(BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
+pub const COAP_HELPERS: [Helper; 4] = [
+    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
+    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
+    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
+    HF::new(ID::BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
 ];
 
 /* Print/debug helper functions - implementation */
@@ -183,7 +137,7 @@ pub fn bpf_saul_reg_find_nth(saul_dev_index: u64, _a2: u64, _a3: u64, _a4: u64, 
 
 /// Find the first device of the given type. The saul_dev_type needs to match
 /// the list of all device classes is available here:
-/// https://api.riot-os.org/group__drivers__saul.html#:~:text=category%20IDs.%20More...-,enum,-%7B%0A%C2%A0%C2%A0SAUL_ACT_ANY
+/// https://api.riot-os.org/group__drivers__saul.html#:~:text=category%20ID.%20More...-,enum,-%7B%0A%C2%A0%C2%A0SAUL_ACT_ANY
 pub fn bpf_saul_reg_find_type(saul_dev_type: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     unsafe { return riot_sys::saul_reg_find_type(saul_dev_type as u8) as u64 }
 }
@@ -285,13 +239,7 @@ pub fn bpf_ztimer_now(_a1: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
 }
 
 /// Suspend the calling thread until the time (last_wakeup + period)
-pub fn bpf_ztimer_periodic_wakeup(
-    last_wakeup: u64,
-    period: u64,
-    _a3: u64,
-    _a4: u64,
-    _a5: u64,
-) -> u64 {
+pub fn bpf_periodic_wakeup(last_wakeup: u64, period: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     let last_wakeup: *mut u32 = last_wakeup as *mut u32;
     let period: u32 = period as u32;
     unsafe { riot_sys::ztimer_periodic_wakeup(riot_sys::ZTIMER_USEC, last_wakeup, period) }

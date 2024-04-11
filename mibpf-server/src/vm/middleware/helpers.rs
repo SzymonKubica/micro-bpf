@@ -1,14 +1,14 @@
 use alloc::vec::Vec;
 use log::error;
 
-use super::ALL_HELPERS;
+use super::{helper_ids::HelperTableID, ALL_HELPERS};
 
 #[derive(Copy, Clone)]
 pub struct HelperFunction {
     /// The ID of the helper function that is used by the VM to call the helper.
     /// It should be consistent with the one defined in the C header file with
     /// all the helpers that is used to compile the eBPF programs
-    pub id: u32,
+    pub id: HelperTableID,
     /// The ordinal number of the helper function in the list of all helpers, it
     /// is used for configuring the helpers that are accessible by a given instance
     /// of the VM.
@@ -22,7 +22,11 @@ pub struct HelperFunction {
 }
 
 impl HelperFunction {
-    pub const fn new(id: u32, index: u32, function: fn(u64, u64, u64, u64, u64) -> u64) -> Self {
+    pub const fn new(
+        id: HelperTableID,
+        index: u32,
+        function: fn(u64, u64, u64, u64, u64) -> u64,
+    ) -> Self {
         HelperFunction {
             id,
             index,
@@ -44,25 +48,25 @@ pub trait AcceptingHelpers {
 /* Implementations of the custom trait for all rBPF VMs */
 impl AcceptingHelpers for rbpf::EbpfVmFixedMbuff<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.id, helper.function);
+        let _ = self.register_helper(helper.id.into(), helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmRaw<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.id, helper.function);
+        let _ = self.register_helper(helper.id.into(), helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmNoData<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.id, helper.function);
+        let _ = self.register_helper(helper.id.into(), helper.function);
     }
 }
 
 impl AcceptingHelpers for rbpf::EbpfVmMbuff<'_> {
     fn register_helper(&mut self, helper: HelperFunction) {
-        let _ = self.register_helper(helper.id, helper.function);
+        let _ = self.register_helper(helper.id.into(), helper.function);
     }
 }
 

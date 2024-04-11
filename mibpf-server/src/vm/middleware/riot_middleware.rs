@@ -15,6 +15,8 @@ use rbpf::helpers;
 use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
 
+use crate::modules::hd44780_lcd::{HD44780LCD, hd44780_t};
+
 use super::helpers::HelperFunction;
 
 /// Indices of the helper functions are defined to be exactly the same as in the
@@ -61,9 +63,15 @@ pub const BPF_GPIO_READ_INPUT: u32 = 0x70;
 pub const BPF_GPIO_READ_RAW: u32 = 0x71;
 pub const BPF_GPIO_WRITE: u32 = 0x72;
 
+/* HD44780 LCD */
+pub const BPF_HD44780_INIT: u32 = 0x70;
+pub const BPF_HD44780_CLEAR: u32 = 0x71;
+pub const BPF_HD44780_PRINT: u32 = 0x72;
+pub const BPF_HD44780_SET_CURSOR: u32 = 0x73;
+
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [HelperFunction; 25] = [
+pub const ALL_HELPERS: [HelperFunction; 29] = [
     HelperFunction::new(helpers::BPF_TRACE_PRINTK_IDX, 0, helpers::bpf_trace_printf),
     HelperFunction::new(BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
     HelperFunction::new(BPF_PRINTF_IDX, 2, bpf_printf),
@@ -89,6 +97,10 @@ pub const ALL_HELPERS: [HelperFunction; 25] = [
     HelperFunction::new(BPF_GPIO_READ_INPUT, 22, bpf_gpio_read_input),
     HelperFunction::new(BPF_GPIO_READ_RAW, 23, bpf_gpio_read_raw),
     HelperFunction::new(BPF_GPIO_WRITE, 24, bpf_gpio_write),
+    HelperFunction::new(BPF_HD44780_INIT, 25, bpf_hd44780_init),
+    HelperFunction::new(BPF_HD44780_CLEAR, 26, bpf_hd44780_clear),
+    HelperFunction::new(BPF_HD44780_PRINT, 27, bpf_hd44780_print),
+    HelperFunction::new(BPF_HD44780_SET_CURSOR, 28, bpf_hd44780_set_cursor),
 ];
 
 pub const COAP_HELPERS: [HelperFunction; 4] = [
@@ -353,5 +365,31 @@ pub fn bpf_gpio_write(port: u64, pin_num: u64, val: u64, _a4: u64, _a5: u64) -> 
         unsafe { riot_sys::gpio_write(out_pin.to_c(), val as i32) };
         return 1;
     }
+    return 0;
+}
+
+pub fn bpf_hd44780_init(_a1: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    let dev = HD44780LCD::new();
+    let dev_ptr: *mut hd44780_t = dev.into();
+    return dev_ptr as u64;
+}
+
+pub fn bpf_hd44780_clear(dev: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    let dev = HD44780LCD::from(dev as *mut hd44780_t);
+    dev.clear();
+    return 0;
+}
+pub fn bpf_hd44780_print(dev: u64, data: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    let dev = HD44780LCD::from(dev as *mut hd44780_t);
+    let string = unsafe { CStr::from_ptr(data as *const i8) };
+    if let Ok(str) = string.to_str() {
+        dev.print(str);
+        return 0;
+    }
+    return 0;
+}
+pub fn bpf_hd44780_set_cursor(dev: u64, row: u64, column: u64, _a4: u64, _a5: u64) -> u64 {
+    let dev = HD44780LCD::from(dev as *mut hd44780_t);
+    dev.set_cursor(row as u8, column as u8);
     return 0;
 }

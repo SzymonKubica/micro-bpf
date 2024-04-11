@@ -38,9 +38,6 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     util::logger::initialise_logger();
 
     let display = modules::hd44780_lcd::HD44780LCD::new();
-    display.print("Weather Station 2.0");
-
-
 
     // We need to initialise the message queue so that the CoAP server can send
     // requests to the VM executor responsible for spawning instances of the VM.

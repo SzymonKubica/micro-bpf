@@ -16,5 +16,6 @@ int32_t hd44780_init_default(void)
         puts("[FAILED]");
         return -1;
     };
+    hd44780_clear(&dev);
     return (int32_t)&dev;
 }

@@ -25,8 +25,7 @@ type HF = HelperFunction;
 
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [Helper; 29] = [
-    HF::new(helpers::BPF_TRACE_PRINTK_IDX, 0, helpers::bpf_trace_printf),
+pub const ALL_HELPERS: [HelperFunction; 28] = [
     HF::new(ID::BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
     HF::new(ID::BPF_PRINTF_IDX, 2, bpf_printf),
     HF::new(ID::BPF_STORE_LOCAL_IDX, 3, bpf_store_local),
@@ -57,7 +56,7 @@ pub const ALL_HELPERS: [Helper; 29] = [
     HF::new(ID::BPF_HD44780_SET_CURSOR, 28, bpf_hd44780_set_cursor),
 ];
 
-pub const COAP_HELPERS: [Helper; 4] = [
+pub const COAP_HELPERS: [HelperFunction; 4] = [
     HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
     HF::new(ID::BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
     HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),

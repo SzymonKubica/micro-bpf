@@ -7,17 +7,17 @@ use alloc::{
     vec::{self, Vec},
 };
 use core::{fmt::Write, str::FromStr};
-use internal_representation::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
+use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
 use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 pub struct VMExecutionShellCommandHandler {
-    execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
 }
 
 impl VMExecutionShellCommandHandler {
     pub fn new(
-        execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+        execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
     ) -> Self {
         Self { execution_send }
     }

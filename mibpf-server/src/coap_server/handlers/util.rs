@@ -5,7 +5,7 @@ use riot_wrappers::gcoap::PacketBuffer;
 
 use log::{debug, info};
 
-use internal_representation::VMExecutionRequestMsg;
+use mibpf_common::VMExecutionRequestMsg;
 
 // This module contains common utility functions that are used by the handler
 // implementations for all of the endpoints.

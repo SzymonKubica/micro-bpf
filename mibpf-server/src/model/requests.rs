@@ -2,7 +2,7 @@ use core::ffi::c_void;
 
 use crate::vm::middleware::helpers::{HelperFunction, HelperFunctionEncoding};
 use alloc::vec::Vec;
-use internal_representation::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
+use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
 use log::debug;
 use riot_sys::msg_t;
 

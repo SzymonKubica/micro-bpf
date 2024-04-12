@@ -14,7 +14,7 @@ use riot_wrappers::{
 use riot_sys;
 use riot_sys::msg_t;
 
-use internal_representation::{TargetVM, VMExecutionRequestMsg};
+use mibpf_common::{TargetVM, VMExecutionRequestMsg};
 
 use crate::{
     infra::suit_storage,

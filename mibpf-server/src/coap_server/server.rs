@@ -12,7 +12,7 @@ use riot_wrappers::{
     stdio::println,
     thread, ztimer,
 };
-use internal_representation::VMExecutionRequestMsg;
+use mibpf_common::VMExecutionRequestMsg;
 use crate::vm::VM_EXEC_REQUEST;
 
 use super::handlers::{
@@ -25,7 +25,7 @@ use super::handlers::{
 };
 
 pub fn gcoap_server_main(
-    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
 ) -> Result<(), ()> {
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint

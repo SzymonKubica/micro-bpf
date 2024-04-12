@@ -7,8 +7,8 @@
 #![no_std]
 
 extern crate alloc;
-extern crate internal_representation;
-extern crate bytecode_patching;
+extern crate mibpf_common;
+extern crate mibpf_elf_utils;
 extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;
@@ -21,10 +21,10 @@ use riot_wrappers::{cstr::cstr, mutex::Mutex, println, riot_main, thread};
 mod coap_server;
 mod infra;
 mod model;
+mod modules;
 mod shell;
 mod util;
 mod vm;
-mod modules;
 
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.

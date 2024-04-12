@@ -5,12 +5,12 @@ use riot_wrappers::shell::CommandList;
 
 use riot_wrappers::cstr::cstr;
 
-use internal_representation::VMExecutionRequestMsg;
+use mibpf_common::VMExecutionRequestMsg;
 use crate::shell::{bpf_command, gpio_command};
 use crate::vm::VM_EXEC_REQUEST;
 
 pub fn shell_main(
-    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
 ) -> Result<(), ()> {
     let mut line_buf = [0u8; 128];
 

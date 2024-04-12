@@ -1,7 +1,7 @@
 use crate::vm::{middleware, VirtualMachine};
 use alloc::{format, string::String, vec::Vec};
 use core::{ffi::c_void, ops::DerefMut, slice::from_raw_parts_mut, str::FromStr};
-use internal_representation::BinaryFileLayout;
+use mibpf_common::BinaryFileLayout;
 use serde::Deserialize;
 
 use rbpf::without_std::Error;

@@ -5,7 +5,7 @@ use alloc::{
     vec::Vec,
     sync::Arc,
 };
-use bytecode_patching::resolve_relocations;
+use mibpf_elf_utils::resolve_relocations;
 use core::convert::TryInto;
 use goblin::{
     container::{Container, Endian},
@@ -24,7 +24,7 @@ use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::model::requests::VMExecutionRequest;
 
-use internal_representation::{BinaryFileLayout, TargetVM, VMExecutionRequestMsg};
+use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequestMsg};
 
 use crate::{
     coap_server::handlers::util::preprocess_request,
@@ -181,12 +181,12 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
 }
 
 pub struct VMLongExecutionHandler {
-    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
 }
 
 impl VMLongExecutionHandler {
     pub fn new(
-        execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>,
+        execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
     ) -> Self {
         Self { execution_send }
     }

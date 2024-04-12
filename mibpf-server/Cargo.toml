@@ -30,13 +30,14 @@ riot-coap-handler-demos = { git = "https://gitlab.com/etonomy/riot-module-exampl
 riot-shell-commands = { git = "https://gitlab.com/etonomy/riot-module-examples", features = ["ztimer"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"] }
 serde-json-core = "0.5.1"
-rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
-internal-representation = { path = "../internal-representation" }
-bytecode-patching = { path = "../bytecode-patching" }
 embedded-hal = "0.2.2"
 embedded-nal = "0.6.0"
 log = "0.4.20"
 goblin = {version = "0.8.0", default_features = false , features = ["elf32", "elf64", "endian_fd"]}
+
+rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
+mibpf-common = { path = "../tools/common" }
+mibpf-elf-utils = { path = "../tools/elf-utils" }
 
 
 # While currently this exmple does not use any RIOT modules implemented in

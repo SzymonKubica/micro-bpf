@@ -1,7 +1,7 @@
 use alloc::vec::Vec;
 use log::error;
 
-use internal_representation::HelperFunctionID;
+use mibpf_common::HelperFunctionID;
 use super::ALL_HELPERS;
 
 #[derive(Copy, Clone)]

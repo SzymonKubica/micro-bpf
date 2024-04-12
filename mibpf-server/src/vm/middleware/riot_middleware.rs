@@ -17,7 +17,7 @@ use riot_wrappers::stdio::println;
 
 use crate::modules::hd44780_lcd::{hd44780_t, HD44780LCD};
 
-use super::helper_ids::HelperTableID as ID;
+use internal_representation::HelperFunctionID as ID;
 use super::helpers::HelperFunction;
 
 // Alias the type to make the table below more concise

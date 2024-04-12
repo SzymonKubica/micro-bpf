@@ -1,14 +1,15 @@
 use alloc::vec::Vec;
 use log::error;
 
-use super::{helper_ids::HelperTableID, ALL_HELPERS};
+use internal_representation::HelperFunctionID;
+use super::ALL_HELPERS;
 
 #[derive(Copy, Clone)]
 pub struct HelperFunction {
     /// The ID of the helper function that is used by the VM to call the helper.
     /// It should be consistent with the one defined in the C header file with
     /// all the helpers that is used to compile the eBPF programs
-    pub id: HelperTableID,
+    pub id: HelperFunctionID,
     /// The ordinal number of the helper function in the list of all helpers, it
     /// is used for configuring the helpers that are accessible by a given instance
     /// of the VM.
@@ -23,7 +24,7 @@ pub struct HelperFunction {
 
 impl HelperFunction {
     pub const fn new(
-        id: HelperTableID,
+        id: HelperFunctionID,
         index: u32,
         function: fn(u64, u64, u64, u64, u64) -> u64,
     ) -> Self {

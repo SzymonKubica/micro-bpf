@@ -1,10 +1,10 @@
-use crate::vm::{
-    middleware::{helpers::HelperFunctionEncoding, ALL_HELPERS},
+use crate::{vm::{
+    middleware::{ALL_HELPERS},
     VM_EXEC_REQUEST,
-};
+}, model::requests::{IPCExecutionMessage, VMExecutionRequest}};
 use alloc::{
     sync::Arc,
-    vec::{self, Vec},
+    vec::{self, Vec}, boxed::Box,
 };
 use core::{fmt::Write, str::FromStr};
 use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
@@ -12,12 +12,12 @@ use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 pub struct VMExecutionShellCommandHandler {
-    execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
+    execution_send: Arc<Mutex<SendPort<IPCExecutionMessage, {VM_EXEC_REQUEST}>>>,
 }
 
 impl VMExecutionShellCommandHandler {
     pub fn new(
-        execution_send: Arc<Mutex<SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
+        execution_send: Arc<Mutex<SendPort<IPCExecutionMessage, {VM_EXEC_REQUEST}>>>,
     ) -> Self {
         Self { execution_send }
     }
@@ -60,14 +60,18 @@ impl VMExecutionShellCommandHandler {
 
         let vm_configuration = VMConfiguration::new(vm_target, binary_layout, slot);
 
-        let available_helpers = HelperFunctionEncoding::from(Vec::from(ALL_HELPERS)).0;
+        let available_helpers = Vec::from(ALL_HELPERS);
 
-        let request_message = VMExecutionRequestMsg {
-            configuration: vm_configuration.encode(),
+        let request = VMExecutionRequest {
+            configuration: vm_configuration,
             available_helpers,
         };
 
-        match self.execution_send.lock().try_send(request_message) {
+        let message = IPCExecutionMessage {
+            request: Box::new(request),
+        };
+
+        match self.execution_send.lock().try_send(message) {
             Ok(_) => writeln!(stdio, "VM execution request sent successfully").unwrap(),
             Err(_) => writeln!(stdio, "Failed to send VM execution request").unwrap(),
         }

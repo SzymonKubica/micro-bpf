@@ -36,6 +36,18 @@ impl HelperFunction {
     }
 }
 
+impl From<u8> for HelperFunction {
+    fn from(value: u8) -> Self {
+        return ALL_HELPERS[value as usize];
+    }
+}
+
+impl Into<u8> for HelperFunction {
+    fn into(self) -> u8 {
+        return self.index as u8;
+    }
+}
+
 /// Different versions of the rBPF VM have different implementations of the function
 /// for registering helpers, however there is no common trait which encapsulates
 /// that functionality. Because of this, when registering helpers for those VMs
@@ -84,39 +96,5 @@ pub fn register_all(vm: &mut impl AcceptingHelpers) {
 pub fn register_helpers(vm: &mut impl AcceptingHelpers, helpers: Vec<HelperFunction>) {
     for helper in helpers {
         vm.register_helper(helper);
-    }
-}
-
-pub struct HelperFunctionEncoding(pub [u8; 3]);
-
-impl From<Vec<HelperFunction>> for HelperFunctionEncoding {
-    fn from(helpers: Vec<HelperFunction>) -> Self {
-        let mut encoding = [0; 3];
-        for helper in helpers {
-            if helper.index > 31 {
-                error!("Helper index too large: {}", helper.index);
-                return HelperFunctionEncoding(encoding);
-            }
-            // The first 8 helpers are configured by the first u8, the next
-            // by the second one and so on.
-            let bucket = (helper.index / 8) as usize;
-            encoding[bucket] |= 1 << (helper.index % 8);
-        }
-        HelperFunctionEncoding(encoding)
-    }
-}
-
-impl Into<Vec<HelperFunction>> for HelperFunctionEncoding {
-    fn into(self) -> Vec<HelperFunction> {
-        let mut available_helpers = alloc::vec![];
-        // TODO: design something to allow for more than 24 helpers to be defined
-        //for i in 0..ALL_HELPERS.len() {
-        for i in 0..24 {
-            let bucket = (i / 8) as usize;
-            if self.0[bucket] & (1 << (i % 8)) > 0 {
-                available_helpers.push(ALL_HELPERS[i]);
-            }
-        }
-        return available_helpers;
     }
 }

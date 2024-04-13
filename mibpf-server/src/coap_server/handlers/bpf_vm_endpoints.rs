@@ -2,15 +2,15 @@ use alloc::{
     boxed::Box,
     format,
     string::{String, ToString},
-    vec::Vec,
     sync::Arc,
+    vec::Vec,
 };
-use mibpf_elf_utils::resolve_relocations;
 use core::convert::TryInto;
 use goblin::{
     container::{Container, Endian},
     elf::{Elf, Reloc},
 };
+use mibpf_elf_utils::resolve_relocations;
 
 use log::{debug, error, info};
 use serde::Deserialize;
@@ -22,7 +22,7 @@ use riot_wrappers::{
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
-use crate::model::requests::VMExecutionRequest;
+use crate::model::requests::{VMExecutionRequest, IPCExecutionMessage};
 
 use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequestMsg};
 
@@ -84,7 +84,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
                     request_data.configuration.binary_layout,
                 ))
             }
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {program }),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
         };
 
         // It is very important that the program executing on the CoAP packet returns
@@ -154,11 +154,11 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         // depending on the requested target VM.
         let mut vm: Box<dyn VirtualMachine> = match request_data.configuration.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
-                    program,
+                program,
                 Vec::from(middleware::ALL_HELPERS),
                 request_data.configuration.binary_layout,
             )),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm {program}),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
         };
 
         self.execution_time = vm.execute(&mut self.result);
@@ -181,12 +181,12 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
 }
 
 pub struct VMLongExecutionHandler {
-    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
+    execution_send: Arc<Mutex<msg::SendPort<IPCExecutionMessage, { VM_EXEC_REQUEST }>>>,
 }
 
 impl VMLongExecutionHandler {
     pub fn new(
-        execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestMsg, {VM_EXEC_REQUEST}>>>,
+        execution_send: Arc<Mutex<msg::SendPort<IPCExecutionMessage, { VM_EXEC_REQUEST }>>>,
     ) -> Self {
         Self { execution_send }
     }
@@ -197,12 +197,17 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let preprocessing_result = preprocess_request(request);
-        let request_data = match preprocessing_result {
+        let request_data: VMExecutionRequestMsg = match preprocessing_result {
             Ok(request_data) => request_data,
             Err(code) => return code,
         };
 
-        if let Ok(()) = self.execution_send.lock().try_send(request_data) {
+        let request_data = VMExecutionRequest::from(&request_data);
+        let message = IPCExecutionMessage {
+            request: Box::new(request_data),
+        };
+
+        if let Ok(()) = self.execution_send.lock().try_send(message) {
             info!("VM execution request sent successfully");
         } else {
             error!("Failed to send execution request message.");
@@ -269,7 +274,6 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
             program.len()
         );
         self.program_size = program.len() as u32;
-
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let start: u32 = Self::time_now(clock);

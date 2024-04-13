@@ -1,9 +1,9 @@
 use core::ffi::c_void;
 
-use crate::vm::middleware::helpers::{HelperFunction, HelperFunctionEncoding};
-use alloc::vec::Vec;
-use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
+use crate::vm::middleware::helpers::HelperFunction;
+use alloc::{vec::Vec, boxed::Box};
 use log::debug;
+use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
 use riot_sys::msg_t;
 
 use serde::{Deserialize, Serialize};
@@ -14,6 +14,10 @@ use serde::{Deserialize, Serialize};
 pub struct VMExecutionRequest {
     pub configuration: VMConfiguration,
     pub available_helpers: Vec<HelperFunction>,
+}
+
+pub struct IPCExecutionMessage {
+    pub request: Box<VMExecutionRequest>,
 }
 
 impl VMExecutionRequest {
@@ -29,50 +33,49 @@ impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
     fn from(request: &VMExecutionRequestMsg) -> Self {
         VMExecutionRequest {
             configuration: VMConfiguration::decode(request.configuration),
-            available_helpers: HelperFunctionEncoding(request.available_helpers).into(),
+            available_helpers: request
+                .available_helpers
+                .iter()
+                .map(|v| HelperFunction::from(*v))
+                .collect::<Vec<HelperFunction>>(),
         }
     }
 }
 
 impl Into<VMExecutionRequestMsg> for VMExecutionRequest {
     fn into(self) -> VMExecutionRequestMsg {
+        let helper_functions = self.available_helpers.iter().map(|v| (*v).into()).collect::<Vec<u8>>();
         VMExecutionRequestMsg {
             configuration: self.configuration.encode(),
-            available_helpers: HelperFunctionEncoding::from(self.available_helpers).0,
+            available_helpers: helper_functions,
         }
     }
 }
 
 // We turn the DTO struct into a raw u32 value because passing pointers in messages
 // doesn't quite work.
-impl Into<msg_t> for VMExecutionRequest {
-    fn into(mut self) -> msg_t {
-        let mut value: u32 = 0;
-        let helpers = HelperFunctionEncoding::from(self.available_helpers).0;
-        value |= (self.configuration.encode() as u32) << 24;
-        for i in 0..3 {
-            value |= (helpers[i] as u32) << (8 * (2 - i));
-        }
+impl Into<msg_t> for &mut VMExecutionRequest {
+    fn into(self) -> msg_t {
         let mut msg: msg_t = Default::default();
         msg.type_ = 0;
-        msg.content = riot_sys::msg_t__bindgen_ty_1 { value };
+        msg.content = riot_sys::msg_t__bindgen_ty_1 {
+            ptr: self as *mut VMExecutionRequest as *mut c_void,
+        };
         msg
     }
 }
 
 impl From<msg_t> for VMExecutionRequest {
     fn from(msg: msg_t) -> Self {
-        let value: u32 = unsafe { msg.content.value };
+        let ptr: *mut c_void = unsafe { msg.content.ptr };
 
-        let configuration = ((value >> 24) & 0xFF) as u8;
-        let mut available_helpers = [0; 3];
-        for i in 0..3 {
-            available_helpers[i] = ((value >> (8 * (2 - i))) & 0xFF) as u8;
-        }
+        let req_ptr = ptr as *mut VMExecutionRequest;
 
-        VMExecutionRequest {
-            configuration: VMConfiguration::decode(configuration),
-            available_helpers: HelperFunctionEncoding(available_helpers).into(),
+        unsafe {
+            VMExecutionRequest {
+                configuration: (*req_ptr).configuration,
+                available_helpers: (*req_ptr).available_helpers.clone(),
+            }
         }
     }
 }

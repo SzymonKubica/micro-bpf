@@ -1,6 +1,6 @@
-use core::ffi::c_void;
+use core::{cell::RefCell, ffi::c_void};
 
-use alloc::{boxed::Box, format, vec::Vec, sync::Arc};
+use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
 use log::{debug, error, info};
 
 use riot_wrappers::{
@@ -14,29 +14,29 @@ use riot_wrappers::{
 use riot_sys;
 use riot_sys::msg_t;
 
-use mibpf_common::{TargetVM, VMExecutionRequestMsg};
+use mibpf_common::{TargetVM, VMExecutionRequestMsg, ExecutionModel};
 
 use crate::{
     infra::suit_storage,
-    model::requests::{VMExecutionCompleteMsg, VMExecutionRequest},
+    model::requests::{VMExecutionCompleteMsg, VMExecutionRequest, IPCExecutionMessage},
     spawn_thread,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
 
 // Because of the lifetime rules we need to preallocate the stacks of all of the
 // VM worker threads beforehand as static constants.
-static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
-static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
-static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
-static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_0_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
+static VM_WORKER_1_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
+static VM_WORKER_2_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
+static VM_WORKER_3_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
 
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;
 pub const VM_COMPLETE_NOTIFY: u16 = 24;
 
-pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequestMsg, VM_EXEC_REQUEST>;
+pub type VMExecutionRequestPort = ReceivePort<IPCExecutionMessage, VM_EXEC_REQUEST>;
 pub type VMExecutionCompletePort = ReceivePort<VMExecutionCompleteMsg, VM_COMPLETE_NOTIFY>;
-pub type ExecutionSendPort = Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>>;
+pub type ExecutionSendPort = Arc<Mutex<SendPort<IPCExecutionMessage, VM_EXEC_REQUEST>>>;
 pub type CompletionSendPort = Arc<Mutex<SendPort<VMExecutionCompleteMsg, VM_COMPLETE_NOTIFY>>>;
 
 /// Responsible for managing execution of long-running eBPF programs. It receives
@@ -59,7 +59,7 @@ pub struct VMExecutionManager {
     /// Message semantics specifying the two available types of IPC messages
     /// that can be sent to the manager.
     message_semantics: Processing<
-        Processing<NoConfiguredMessages, VMExecutionRequestMsg, VM_EXEC_REQUEST>,
+        Processing<NoConfiguredMessages, IPCExecutionMessage, VM_EXEC_REQUEST>,
         VMExecutionCompleteMsg,
         VM_COMPLETE_NOTIFY,
     >,
@@ -84,7 +84,7 @@ impl VMExecutionManager {
 
     /// Returns an atomically-counted reference to the send end of the message
     /// channel for sending requests to execute eBPF programs.
-    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<VMExecutionRequestMsg, VM_EXEC_REQUEST>>> {
+    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<IPCExecutionMessage, VM_EXEC_REQUEST>>> {
         self.request_send_port.clone()
     }
 
@@ -163,16 +163,19 @@ impl VMExecutionManager {
         });
     }
 
-    pub fn handle_execution_request(workers: &mut Vec<i16>, request: VMExecutionRequestMsg) {
+    pub fn handle_execution_request(workers: &mut Vec<i16>, request: IPCExecutionMessage) {
         if workers.is_empty() {
             error!("No free workers to execute the request.");
             return;
         }
         let pid: riot_sys::kernel_pid_t = workers.pop().unwrap();
         info!("Sending execution request to the worker with PID: {}", pid);
-        let mut msg: msg_t = VMExecutionRequest::from(&request).into();
+        let mut execution_request = *request.request;
+        let mut msg: msg_t = Default::default();
+        msg.type_ = 0;
+        msg.content.ptr = &mut execution_request as *mut VMExecutionRequest as *mut c_void;
         unsafe {
-            riot_sys::msg_send(&mut msg, pid);
+            riot_sys::msg_send(&mut msg as *mut msg_t, pid);
         };
     }
 

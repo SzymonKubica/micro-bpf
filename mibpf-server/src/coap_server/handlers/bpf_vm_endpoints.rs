@@ -22,12 +22,12 @@ use riot_wrappers::{
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
-use crate::model::requests::{VMExecutionRequest, IPCExecutionMessage};
+use crate::model::requests::{IPCExecutionMessage, VMExecutionRequest};
 
 use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequestMsg};
 
 use crate::{
-    coap_server::handlers::util::preprocess_request,
+    coap_server::handlers::util::{preprocess_request, preprocess_request_raw},
     infra::suit_storage,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
@@ -38,8 +38,14 @@ pub struct VMExecutionOnCoapPktHandler;
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
-        let Ok(request_data) = preprocess_request(pkt) else {
+        let Ok(request_str) = preprocess_request_raw(pkt) else {
             return 0;
+        };
+
+
+        let request_data = match VMExecutionRequestMsg::decode(request_str) {
+            Ok(request_data) => request_data,
+            Err(_) => return 0,
         };
 
         let request_data = VMExecutionRequest::from(&request_data);
@@ -77,7 +83,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
                 // to the CoAP helpers plus any additional helpers specified by
                 // the user.
                 let mut helpers = Vec::from(middleware::COAP_HELPERS);
-                helpers.append(&mut request_data.available_helpers.clone());
+                helpers.append(&mut request_data.allowed_helpers.clone());
                 Box::new(RbpfVm::new(
                     program,
                     helpers,
@@ -119,10 +125,15 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result = preprocess_request(request);
+        let preprocessing_result = preprocess_request_raw(request);
         let request_data = match preprocessing_result {
             Ok(request_data) => request_data,
             Err(code) => return code,
+        };
+
+        let request_data = match VMExecutionRequestMsg::decode(request_data) {
+            Ok(request_data) => request_data,
+            Err(_) => return coap_numbers::code::BAD_REQUEST,
         };
 
         let request_data = VMExecutionRequest::from(&request_data);
@@ -196,10 +207,16 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result = preprocess_request(request);
-        let request_data: VMExecutionRequestMsg = match preprocessing_result {
+        let preprocessing_result = preprocess_request_raw(request);
+
+        let request_data: String = match preprocessing_result {
             Ok(request_data) => request_data,
             Err(code) => return code,
+        };
+
+        let request_data = match VMExecutionRequestMsg::decode(request_data) {
+            Ok(request_data) => request_data,
+            Err(_) => return coap_numbers::code::BAD_REQUEST,
         };
 
         let request_data = VMExecutionRequest::from(&request_data);
@@ -254,10 +271,15 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result = preprocess_request(request);
+        let preprocessing_result = preprocess_request_raw(request);
         let request_data = match preprocessing_result {
             Ok(request_data) => request_data,
             Err(code) => return code,
+        };
+
+        let request_data = match VMExecutionRequestMsg::decode(request_data) {
+            Ok(request_data) => request_data,
+            Err(_) => return coap_numbers::code::BAD_REQUEST,
         };
 
         let request_data = VMExecutionRequest::from(&request_data);

@@ -1,4 +1,4 @@
-use alloc::boxed::Box;
+use alloc::{boxed::Box, string::{String, ToString}};
 use coap_message::ReadableMessage;
 use core::convert::TryInto;
 use riot_wrappers::gcoap::PacketBuffer;
@@ -38,6 +38,25 @@ impl riot_wrappers::gcoap::Handler for TimedHandler<'_> {
 
         return payload_len;
     }
+}
+
+/// Allows for preprocessing requests whose payload is a raw string as opposed
+/// to a JSON. The reason we need this is that the size of request entity over
+/// CoAP protocol is limited and we need to use a custom data format that is
+/// more compact.
+pub fn preprocess_request_raw<'a>(request: &'a impl ReadableMessage) -> Result<String, u8> {
+    if request.code().into() != coap_numbers::code::POST {
+        return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
+    }
+
+    // Request payload determines from which SUIT storage slot we are
+    // reading the bytecode.
+    let Ok(s) = core::str::from_utf8(request.payload()) else {
+        return Err(coap_numbers::code::BAD_REQUEST);
+    };
+
+    debug!("Request payload received: {}", s);
+    Ok(s.to_string())
 }
 
 pub fn preprocess_request<'a, T>(request: &'a impl ReadableMessage) -> Result<T, u8>

@@ -17,8 +17,8 @@ use riot_wrappers::stdio::println;
 
 use crate::modules::hd44780_lcd::{hd44780_t, HD44780LCD};
 
-use mibpf_common::HelperFunctionID as ID;
 use super::helpers::HelperFunction;
+use mibpf_common::HelperFunctionID as ID;
 
 // Alias the type to make the table below more concise
 type HF = HelperFunction;
@@ -26,41 +26,41 @@ type HF = HelperFunction;
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
 pub const ALL_HELPERS: [HelperFunction; 28] = [
-    HF::new(ID::BPF_DEBUG_PRINT_IDX, 1, bpf_print_debug),
-    HF::new(ID::BPF_PRINTF_IDX, 2, bpf_printf),
-    HF::new(ID::BPF_STORE_LOCAL_IDX, 3, bpf_store_local),
-    HF::new(ID::BPF_STORE_GLOBAL_IDX, 4, bpf_store_global),
-    HF::new(ID::BPF_FETCH_LOCAL_IDX, 5, bpf_fetch_local),
-    HF::new(ID::BPF_FETCH_GLOBAL_IDX, 6, bpf_fetch_global),
-    HF::new(ID::BPF_MEMCPY_IDX, 7, bpf_memcpy),
-    HF::new(ID::BPF_NOW_MS_IDX, 8, bpf_now_ms),
-    HF::new(ID::BPF_ZTIMER_NOW_IDX, 9, bpf_ztimer_now),
-    HF::new(ID::BPF_PERIODIC_WAKEUP_IDX, 10, bpf_periodic_wakeup),
-    HF::new(ID::BPF_SAUL_REG_FIND_NTH_IDX, 11, bpf_saul_reg_find_nth),
-    HF::new(ID::BPF_SAUL_REG_FIND_TYPE_IDX, 12, bpf_saul_reg_find_type),
-    HF::new(ID::BPF_SAUL_REG_WRITE_IDX, 13, bpf_saul_reg_write),
-    HF::new(ID::BPF_SAUL_REG_READ_IDX, 14, bpf_saul_reg_read),
-    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
-    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
-    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
-    HF::new(ID::BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
-    HF::new(ID::BPF_STRLEN_IDX, 19, bpf_strlen),
-    HF::new(ID::BPF_FMT_S16_DFP_IDX, 20, bpf_fmt_s16_dfp),
-    HF::new(ID::BPF_FMT_U32_DEC_IDX, 21, bpf_fmt_u32_dec),
-    HF::new(ID::BPF_GPIO_READ_INPUT, 22, bpf_gpio_read_input),
-    HF::new(ID::BPF_GPIO_READ_RAW, 23, bpf_gpio_read_raw),
-    HF::new(ID::BPF_GPIO_WRITE, 24, bpf_gpio_write),
-    HF::new(ID::BPF_HD44780_INIT, 25, bpf_hd44780_init),
-    HF::new(ID::BPF_HD44780_CLEAR, 26, bpf_hd44780_clear),
-    HF::new(ID::BPF_HD44780_PRINT, 27, bpf_hd44780_print),
-    HF::new(ID::BPF_HD44780_SET_CURSOR, 28, bpf_hd44780_set_cursor),
+    HF::new(ID::BPF_DEBUG_PRINT_IDX, bpf_print_debug),
+    HF::new(ID::BPF_PRINTF_IDX, bpf_printf),
+    HF::new(ID::BPF_STORE_LOCAL_IDX, bpf_store_local),
+    HF::new(ID::BPF_STORE_GLOBAL_IDX, bpf_store_global),
+    HF::new(ID::BPF_FETCH_LOCAL_IDX, bpf_fetch_local),
+    HF::new(ID::BPF_FETCH_GLOBAL_IDX, bpf_fetch_global),
+    HF::new(ID::BPF_MEMCPY_IDX, bpf_memcpy),
+    HF::new(ID::BPF_NOW_MS_IDX, bpf_now_ms),
+    HF::new(ID::BPF_ZTIMER_NOW_IDX, bpf_ztimer_now),
+    HF::new(ID::BPF_PERIODIC_WAKEUP_IDX, bpf_periodic_wakeup),
+    HF::new(ID::BPF_SAUL_REG_FIND_NTH_IDX, bpf_saul_reg_find_nth),
+    HF::new(ID::BPF_SAUL_REG_FIND_TYPE_IDX, bpf_saul_reg_find_type),
+    HF::new(ID::BPF_SAUL_REG_WRITE_IDX, bpf_saul_reg_write),
+    HF::new(ID::BPF_SAUL_REG_READ_IDX, bpf_saul_reg_read),
+    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, bpf_gcoap_resp_init),
+    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, bpf_coap_opt_finish),
+    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, bpf_coap_add_format),
+    HF::new(ID::BPF_COAP_GET_PDU_IDX, bpf_coap_get_pdu),
+    HF::new(ID::BPF_STRLEN_IDX, bpf_strlen),
+    HF::new(ID::BPF_FMT_S16_DFP_IDX, bpf_fmt_s16_dfp),
+    HF::new(ID::BPF_FMT_U32_DEC_IDX, bpf_fmt_u32_dec),
+    HF::new(ID::BPF_GPIO_READ_INPUT, bpf_gpio_read_input),
+    HF::new(ID::BPF_GPIO_READ_RAW, bpf_gpio_read_raw),
+    HF::new(ID::BPF_GPIO_WRITE, bpf_gpio_write),
+    HF::new(ID::BPF_HD44780_INIT, bpf_hd44780_init),
+    HF::new(ID::BPF_HD44780_CLEAR, bpf_hd44780_clear),
+    HF::new(ID::BPF_HD44780_PRINT, bpf_hd44780_print),
+    HF::new(ID::BPF_HD44780_SET_CURSOR, bpf_hd44780_set_cursor),
 ];
 
 pub const COAP_HELPERS: [HelperFunction; 4] = [
-    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, 15, bpf_gcoap_resp_init),
-    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, 16, bpf_coap_opt_finish),
-    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, 17, bpf_coap_add_format),
-    HF::new(ID::BPF_COAP_GET_PDU_IDX, 18, bpf_coap_get_pdu),
+    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, bpf_gcoap_resp_init),
+    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, bpf_coap_opt_finish),
+    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, bpf_coap_add_format),
+    HF::new(ID::BPF_COAP_GET_PDU_IDX, bpf_coap_get_pdu),
 ];
 
 /* Print/debug helper functions - implementation */

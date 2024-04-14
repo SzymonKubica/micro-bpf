@@ -64,7 +64,7 @@ impl VMExecutionShellCommandHandler {
 
         let request = VMExecutionRequest {
             configuration: vm_configuration,
-            available_helpers,
+            allowed_helpers: available_helpers,
         };
 
         let message = IPCExecutionMessage {

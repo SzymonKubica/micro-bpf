@@ -1,8 +1,8 @@
-use alloc::vec::Vec;
+use alloc::{vec::Vec, collections::BTreeMap};
 use log::error;
 
-use mibpf_common::HelperFunctionID;
 use super::ALL_HELPERS;
+use mibpf_common::HelperFunctionID;
 
 #[derive(Copy, Clone)]
 pub struct HelperFunction {
@@ -10,10 +10,6 @@ pub struct HelperFunction {
     /// It should be consistent with the one defined in the C header file with
     /// all the helpers that is used to compile the eBPF programs
     pub id: HelperFunctionID,
-    /// The ordinal number of the helper function in the list of all helpers, it
-    /// is used for configuring the helpers that are accessible by a given instance
-    /// of the VM.
-    pub index: u32,
     /// The actual implementation of the helper function, it always accepts 5
     /// arguments and the eBPF calling convention works by putting all arguments
     /// to the function into registers r1 - r5. One thing is that the helper functions
@@ -23,28 +19,31 @@ pub struct HelperFunction {
 }
 
 impl HelperFunction {
-    pub const fn new(
-        id: HelperFunctionID,
-        index: u32,
-        function: fn(u64, u64, u64, u64, u64) -> u64,
-    ) -> Self {
-        HelperFunction {
-            id,
-            index,
-            function,
-        }
+    pub const fn new(id: HelperFunctionID, function: fn(u64, u64, u64, u64, u64) -> u64) -> Self {
+        HelperFunction { id, function }
     }
 }
 
-impl From<u8> for HelperFunction {
-    fn from(value: u8) -> Self {
-        return ALL_HELPERS[value as usize];
+pub struct HelperAccessList(pub Vec<HelperFunction>);
+
+impl From<Vec<u8>> for HelperAccessList {
+    fn from(value: Vec<u8>) -> Self {
+        let helper_map = ALL_HELPERS
+            .iter()
+            .map(|h| (h.id.into(), h.clone()))
+            .collect::<BTreeMap<u8, HelperFunction>>();
+
+        let helpers = value
+            .iter()
+            .map(|v| helper_map.get(v).unwrap().clone())
+            .collect::<Vec<HelperFunction>>();
+        HelperAccessList(helpers)
     }
 }
 
 impl Into<u8> for HelperFunction {
     fn into(self) -> u8 {
-        return self.index as u8;
+        return self.id as u8;
     }
 }
 

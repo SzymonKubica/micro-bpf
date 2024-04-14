@@ -1,6 +1,6 @@
 use core::ffi::c_void;
 
-use crate::vm::middleware::helpers::HelperFunction;
+use crate::vm::middleware::helpers::{HelperFunction, HelperAccessList};
 use alloc::{vec::Vec, boxed::Box};
 use log::debug;
 use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
@@ -13,41 +13,18 @@ use serde::{Deserialize, Serialize};
 /// functions that should be made available to the program running in the VM.
 pub struct VMExecutionRequest {
     pub configuration: VMConfiguration,
-    pub available_helpers: Vec<HelperFunction>,
+    pub allowed_helpers: Vec<HelperFunction>,
 }
 
 pub struct IPCExecutionMessage {
     pub request: Box<VMExecutionRequest>,
 }
 
-impl VMExecutionRequest {
-    pub fn new(suit_location: usize, vm_target: TargetVM, binary_layout: BinaryFileLayout) -> Self {
-        VMExecutionRequest {
-            configuration: VMConfiguration::new(vm_target, binary_layout, suit_location),
-            available_helpers: Vec::new(),
-        }
-    }
-}
-
 impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
     fn from(request: &VMExecutionRequestMsg) -> Self {
         VMExecutionRequest {
             configuration: VMConfiguration::decode(request.configuration),
-            available_helpers: request
-                .available_helpers
-                .iter()
-                .map(|v| HelperFunction::from(*v))
-                .collect::<Vec<HelperFunction>>(),
-        }
-    }
-}
-
-impl Into<VMExecutionRequestMsg> for VMExecutionRequest {
-    fn into(self) -> VMExecutionRequestMsg {
-        let helper_functions = self.available_helpers.iter().map(|v| (*v).into()).collect::<Vec<u8>>();
-        VMExecutionRequestMsg {
-            configuration: self.configuration.encode(),
-            available_helpers: helper_functions,
+            allowed_helpers: HelperAccessList::from(request.allowed_helpers.clone()).0,
         }
     }
 }
@@ -74,7 +51,7 @@ impl From<msg_t> for VMExecutionRequest {
         unsafe {
             VMExecutionRequest {
                 configuration: (*req_ptr).configuration,
-                available_helpers: (*req_ptr).available_helpers.clone(),
+                allowed_helpers: (*req_ptr).allowed_helpers.clone(),
             }
         }
     }

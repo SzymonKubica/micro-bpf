@@ -226,7 +226,7 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
         let mut vm: Box<dyn VirtualMachine> = match vm_config.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
                 program,
-                execution_request.available_helpers,
+                execution_request.allowed_helpers,
                 vm_config.binary_layout,
             )),
             TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),

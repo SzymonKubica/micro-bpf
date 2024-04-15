@@ -65,7 +65,7 @@ impl<'a> RbpfVm<'a> {
     }
 }
 
-fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
+pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
     match layout {
         BinaryFileLayout::FemtoContainersHeader => rbpf::InterpreterVariant::FemtoContainersHeader,
         BinaryFileLayout::ExtendedHeader => rbpf::InterpreterVariant::ExtendedHeader,

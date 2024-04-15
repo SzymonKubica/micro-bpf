@@ -1,7 +1,10 @@
 #include "log.h"
+#include "sched.h"
 #include "suit/storage.h"
 #include "suit/storage/ram.h"
 #include "suit/transport/coap.h"
+
+static kernel_pid_t UPDATE_REQUESTOR_PID;
 
 /// Responsible for reading the BPF application bytecode from the SUIT storage
 /// @param[out] buff      Target buffer where the read program is written.
@@ -47,10 +50,46 @@ uint32_t load_bytes_from_suit_storage(uint8_t *buff, uint8_t *location_id)
     return length;
 }
 
-void initiate_suit_fetch(char *address, int network_interface, char *signed_manifest_name)
+void handle_suit_storage_erase(uint8_t *location_id)
 {
+
+    char *location = (char *)location_id;
+    suit_storage_t *storage = suit_storage_find_by_id(location);
+    assert(storage);
+
+    LOG_DEBUG("[SUIT storage]: erasing storage location: %s\n", location);
+    suit_storage_erase(storage);
+}
+
+void suit_worker_done_cb(int res)
+{
+    if (res == 0) {
+        LOG_INFO("suit_worker: update successful\n");
+    } else {
+        LOG_INFO("suit_worker: update failed, hdr invalid\n ");
+    }
+    // We notify the requestor no matter what result we get so that
+    // they become unblocked.
+    msg_t msg;
+    msg.type = 0;
+    msg.content.value = res;
+    LOG_DEBUG("suit_worker: sending completion notification to thread with "
+              "PID: %d\n ",
+              UPDATE_REQUESTOR_PID);
+    msg_send(&msg, UPDATE_REQUESTOR_PID);
+}
+
+void initiate_suit_fetch(char *address, int network_interface,
+                         char *signed_manifest_name, kernel_pid_t requestor)
+{
+
+    // We store the information who initiated the SUIT update so that we
+    // can notify them in the callback.
+    UPDATE_REQUESTOR_PID = requestor;
+
     char suit_arg[70];
-    sprintf(suit_arg, "coap://[%s%%%d]/%s", address, network_interface, signed_manifest_name);
+    sprintf(suit_arg, "coap://[%s%%%d]/%s", address, network_interface,
+            signed_manifest_name);
     LOG_DEBUG("Triggering the SUIT worker to fetch from %s on %s\n", address,
               signed_manifest_name);
     suit_worker_trigger(suit_arg, strlen(suit_arg));

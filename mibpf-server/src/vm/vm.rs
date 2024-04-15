@@ -1,14 +1,16 @@
 use core::str::FromStr;
 
-use alloc::{boxed::Box, string::String, vec::Vec};
+use alloc::{boxed::Box, format, string::String, vec::Vec};
 use log::debug;
-use mibpf_common::{HelperFunctionID, BinaryFileLayout, TargetVM, VMConfiguration};
+use mibpf_common::{
+    BinaryFileLayout, HelperAccessVerification, HelperFunctionID, TargetVM, VMConfiguration,
+};
 use mibpf_elf_utils::resolve_relocations;
 use riot_wrappers::gcoap::PacketBuffer;
 
 use crate::infra::suit_storage;
 
-use super::{FemtoContainerVm, RbpfVm};
+use super::{rbpf_vm, FemtoContainerVm, RbpfVm};
 
 /// Structs implementing this interface should allow for executing eBPF programs
 /// both raw and with access to the incoming CoAP packet.
@@ -29,24 +31,36 @@ pub trait VirtualMachine {
 /// SUIT storage, (optionally) resolves relocations, and initialises the correct
 /// version of the VM struct.
 pub fn initialize_vm<'a>(
-    configuration: VMConfiguration,
+    config: VMConfiguration,
     allowed_helpers: Vec<HelperFunctionID>,
     program_buffer: &'a mut [u8],
 ) -> Result<Box<dyn VirtualMachine + 'a>, String> {
-    let mut program = suit_storage::load_program(program_buffer, configuration.suit_slot);
+    let mut program = suit_storage::load_program(program_buffer, config.suit_slot);
 
-    if configuration.binary_layout == BinaryFileLayout::RawObjectFile {
+    // We exit early if the Femto-Container VM is to be used as it isn't
+    // as configurable and most configuration options don't apply to it
+    if config.vm_target == TargetVM::FemtoContainer {
+        return Ok(Box::new(FemtoContainerVm { program }));
+    }
+
+    if config.helper_access_verification == HelperAccessVerification::PreFlight {
+        // We first need to map our state to the structures that rbpf understands
+        let helper_idxs = allowed_helpers
+            .iter()
+            .map(|id| *id as u32)
+            .collect::<Vec<u32>>();
+        let interpreter = rbpf_vm::map_interpreter(config.binary_layout);
+        rbpf::check_helpers(program, &helper_idxs, interpreter)
+            .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+    }
+
+    if config.binary_layout == BinaryFileLayout::RawObjectFile {
         resolve_relocations(&mut program)?;
     }
 
-    let mut vm: Box<dyn VirtualMachine> = match configuration.vm_target {
-        TargetVM::Rbpf => Box::new(RbpfVm::new(
-            program,
-            allowed_helpers,
-            configuration.binary_layout,
-        )),
-        TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
-    };
-
-    Ok(vm)
+    Ok(Box::new(RbpfVm::new(
+        program,
+        allowed_helpers,
+        config.binary_layout,
+    )))
 }

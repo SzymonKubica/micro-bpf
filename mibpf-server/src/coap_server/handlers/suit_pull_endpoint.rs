@@ -3,7 +3,7 @@ use core::convert::TryInto;
 use serde::{Deserialize, Serialize};
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
-use riot_wrappers::stdio::println;
+use riot_wrappers::{stdio::println, thread};
 
 use crate::infra::suit_storage;
 
@@ -41,6 +41,8 @@ impl coap_handler::Handler for SuitPullHandler {
             return preprocessing_result.err().unwrap();
         };
 
+        // We instruct the SUIT worker thread to download the program and wait for
+        // its callback message on success.
         suit_storage::suit_fetch(
             request_data.ip_addr,
             request_data.riot_network_interface,

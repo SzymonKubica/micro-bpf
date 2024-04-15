@@ -28,6 +28,9 @@ extern "C" {
 /// the fileserver and the name of the manifest file associated with the data
 /// to fetch.
 ///
+/// It uses message IPC with the SUIT worker thread to ensure that this function
+/// doesn't return until the SUIT update finishes.
+///
 /// # Arguments
 ///
 /// * `ip` - The IPv6 address of the machine hosting the fileserver
@@ -60,6 +63,7 @@ pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) -> Result<(
 /// Allows for erasing the SUIT storage containing a given program if e.g. it's
 /// helper function verification has failed and it cannot be executed
 pub fn suit_erase(slot: usize) {
+    debug!("Erasing SUIT storage slot {}.", slot);
     let location = format!(".ram.{0}\0", slot);
     unsafe {
         let location_ptr = location.as_ptr();

@@ -1,56 +1,80 @@
-use alloc::string::String;
+use alloc::{format, string::String, vec::Vec};
 use core::convert::TryInto;
+use log::error;
+use mibpf_common::{HelperAccessVerification, SuitPullRequest, VMConfiguration};
 use serde::{Deserialize, Serialize};
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 use riot_wrappers::{stdio::println, thread};
 
-use crate::infra::suit_storage;
+use crate::{
+    infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
+    vm::{middleware::ALL_HELPERS, rbpf_vm},
+};
 
-use super::util::preprocess_request;
+use super::util::preprocess_request_raw;
 
 pub struct SuitPullHandler {
     last_fetched_manifest: Option<String>,
+    success: bool,
 }
 
 impl SuitPullHandler {
     pub fn new() -> Self {
         Self {
             last_fetched_manifest: None,
+            success: true,
         }
     }
-}
-
-/// The handler expects to get a request which consists of the IPv6 address of
-/// the machine running the CoAP fileserver and the name of the manifest file
-/// specifying which binary needs to be pulled.
-#[derive(Serialize, Deserialize, Debug)]
-struct SuitPullRequest<'a> {
-    pub ip_addr: &'a str,
-    pub manifest: &'a str,
-    pub riot_network_interface: &'a str,
 }
 
 impl coap_handler::Handler for SuitPullHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result: Result<SuitPullRequest, u8> = preprocess_request(request);
+        let preprocessing_result: Result<String, u8> = preprocess_request_raw(request);
 
-        let Ok(request_data) = preprocessing_result else {
+        let Ok(request_str) = preprocessing_result else {
             return preprocessing_result.err().unwrap();
         };
 
-        // We instruct the SUIT worker thread to download the program and wait for
-        // its callback message on success.
+        let parsed_request = SuitPullRequest::decode(request_str);
+        let Ok(request) = parsed_request else {
+            return coap_numbers::code::BAD_REQUEST;
+        };
+
         suit_storage::suit_fetch(
-            request_data.ip_addr,
-            request_data.riot_network_interface,
-            request_data.manifest,
+            request.ip.as_str(),
+            request.riot_netif.as_str(),
+            request.manifest.as_str(),
         );
 
-        self.last_fetched_manifest = Some(String::from(request_data.manifest));
+        let config = VMConfiguration::decode(request.config);
 
+        if config.helper_access_verification == HelperAccessVerification::LoadTime {
+            let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
+            let mut program = suit_storage::load_program(&mut program_buffer, config.suit_slot);
+
+            // TODO: get helpers from request or binary metadata.
+            let helper_idxs = ALL_HELPERS
+                .iter()
+                .map(|f| f.id as u32)
+                .collect::<Vec<u32>>();
+
+            let interpreter = rbpf_vm::map_interpreter(config.binary_layout);
+
+            if let Err(e) = rbpf::check_helpers(program, &helper_idxs, interpreter)
+                .map_err(|e| format!("Error when checking helper function access: {:?}", e))
+            {
+                error!("{}", e);
+                self.success = false;
+                suit_storage::suit_erase(config.suit_slot);
+                return coap_numbers::code::BAD_REQUEST;
+            }
+        }
+
+        self.last_fetched_manifest = Some(String::from(request.manifest));
+        self.success = true;
         coap_numbers::code::CHANGED
     }
 
@@ -64,6 +88,14 @@ impl coap_handler::Handler for SuitPullHandler {
         request: Self::RequestData,
     ) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        response.set_payload(b"SUIT pull request processed successfully!");
+        let res = if self.success {
+            format!(
+                "SUIT pull request processed successfully for manifest: {}",
+                self.last_fetched_manifest.as_ref().unwrap()
+            )
+        } else {
+            format!("SUIT pull request failed, invalid set of helpers specified.")
+        };
+        response.set_payload(res.as_bytes());
     }
 }

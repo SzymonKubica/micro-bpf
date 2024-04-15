@@ -1,4 +1,6 @@
-use alloc::{vec::Vec, collections::BTreeMap};
+use core::num::ParseIntError;
+
+use alloc::{vec::Vec, collections::BTreeMap, string::String, format};
 use log::error;
 
 use super::ALL_HELPERS;
@@ -25,6 +27,23 @@ impl HelperFunction {
 }
 
 pub struct HelperAccessList(pub Vec<HelperFunction>);
+
+impl From<String> for HelperAccessList {
+    fn from(value: String) -> Self {
+        let allowed_helpers_ids = (0..value.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&value[i..i + 2], 16))
+            .collect::<Result<Vec<u8>, ParseIntError>>()
+            .map_err(|e| format!("Unable to parse: {}", e)).unwrap();
+
+        let allowed_helpers: Vec<HelperFunctionID> = allowed_helpers_ids
+            .into_iter()
+            .filter_map(|id| num::FromPrimitive::from_u8(id))
+            .collect();
+
+        HelperAccessList::from(allowed_helpers)
+    }
+}
 
 /// We need to implement this so that it is possible to map from a list of
 /// helper function IDs to the actual list of function pointers.

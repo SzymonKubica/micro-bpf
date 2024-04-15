@@ -9,7 +9,10 @@ use rbpf::without_std::Error;
 use riot_sys;
 use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
 
-use super::middleware::{helpers::{HelperFunction, HelperAccessList}, CoapContext};
+use super::middleware::{
+    helpers::{HelperAccessList, HelperFunction},
+    CoapContext,
+};
 
 pub struct RbpfVm<'a> {
     pub registered_helpers: Vec<HelperFunction>,
@@ -25,7 +28,11 @@ extern "C" {
     fn copy_packet(buffer: *mut c_void, mem: *mut u8);
 }
 impl<'a> RbpfVm<'a> {
-    pub fn new(program: &'a [u8], helpers: Vec<HelperFunctionID>, layout: BinaryFileLayout) -> RbpfVm<'a> {
+    pub fn new(
+        program: &'a [u8],
+        helpers: Vec<HelperFunctionID>,
+        layout: BinaryFileLayout,
+    ) -> RbpfVm<'a> {
         RbpfVm {
             registered_helpers: HelperAccessList::from(helpers).0,
             vm: rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(layout)).unwrap(),
@@ -78,7 +85,8 @@ impl VirtualMachine for RbpfVm<'_> {
     fn execute(&mut self, result: &mut i64) -> u32 {
         middleware::helpers::register_helpers(&mut self.vm, self.registered_helpers.clone());
 
-        let (ret, execution_time) = self.timed_execution(|| self.vm.execute_program(&alloc::vec![], &alloc::vec![]));
+        let (ret, execution_time) =
+            self.timed_execution(|| self.vm.execute_program(&alloc::vec![], &alloc::vec![]));
         *result = ret;
         execution_time
     }

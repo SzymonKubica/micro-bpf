@@ -1,23 +1,23 @@
 use crate::{vm::{
     middleware::{ALL_HELPERS},
     VM_EXEC_REQUEST,
-}, model::requests::{IPCExecutionMessage, VMExecutionRequest}};
+}, model::requests::VMExecutionRequestIPC};
 use alloc::{
     sync::Arc,
     vec::{self, Vec}, boxed::Box,
 };
 use core::{fmt::Write, str::FromStr};
-use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
+use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
 use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 pub struct VMExecutionShellCommandHandler {
-    execution_send: Arc<Mutex<SendPort<IPCExecutionMessage, {VM_EXEC_REQUEST}>>>,
+    execution_send: Arc<Mutex<SendPort<VMExecutionRequestIPC, {VM_EXEC_REQUEST}>>>,
 }
 
 impl VMExecutionShellCommandHandler {
     pub fn new(
-        execution_send: Arc<Mutex<SendPort<IPCExecutionMessage, {VM_EXEC_REQUEST}>>>,
+        execution_send: Arc<Mutex<SendPort<VMExecutionRequestIPC, {VM_EXEC_REQUEST}>>>,
     ) -> Self {
         Self { execution_send }
     }
@@ -60,14 +60,14 @@ impl VMExecutionShellCommandHandler {
 
         let vm_configuration = VMConfiguration::new(vm_target, binary_layout, slot);
 
-        let available_helpers = Vec::from(ALL_HELPERS);
+        let allowed_helpers = Vec::from(ALL_HELPERS).into_iter().map(|f| f.id).collect();
 
         let request = VMExecutionRequest {
             configuration: vm_configuration,
-            allowed_helpers: available_helpers,
+            allowed_helpers,
         };
 
-        let message = IPCExecutionMessage {
+        let message = VMExecutionRequestIPC {
             request: Box::new(request),
         };
 

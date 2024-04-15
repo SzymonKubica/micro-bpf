@@ -22,9 +22,14 @@ use riot_wrappers::{
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
-use crate::model::requests::{IPCExecutionMessage, VMExecutionRequest};
+use crate::{
+    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE, model::requests::VMExecutionRequestIPC,
+    vm::initialize_vm,
+};
 
-use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequestMsg};
+use mibpf_common::{
+    BinaryFileLayout, HelperFunctionID, TargetVM, VMConfiguration, VMExecutionRequest,
+};
 
 use crate::{
     coap_server::handlers::util::{preprocess_request, preprocess_request_raw},
@@ -38,59 +43,44 @@ pub struct VMExecutionOnCoapPktHandler;
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
     fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
+        /// Given that the gcoap::Handler needs to return the length of the
+        /// payload + PDU that was written into the packet buffer, in case
+        /// of error we need to return 0. It is crucial that all eBPF programs
+        /// that work directly on the packet data return the length of the payload that
+        /// they have written so that the response can be formatted correctly
+        /// and sent back to the client.
+        const NO_BYTES_WRITTEN: isize = 0;
+
         let Ok(request_str) = preprocess_request_raw(pkt) else {
-            return 0;
+            return NO_BYTES_WRITTEN;
         };
 
-
-        let request_data = match VMExecutionRequestMsg::decode(request_str) {
-            Ok(request_data) => request_data,
-            Err(_) => return 0,
+        let Ok(request) = VMExecutionRequest::decode(request_str) else {
+            return NO_BYTES_WRITTEN;
         };
 
-        let request_data = VMExecutionRequest::from(&request_data);
+        debug!("Received VM Execution Request: {:?}", request.configuration);
 
-        debug!(
-            "Received request to execute VM with config: {:?}",
-            request_data.configuration
-        );
+        // When executing on a CoAP packet, the VM needs to have access
+        // to the CoAP packet formatting helpers plus any additional helpers specified by
+        // the user.
+        let mut coap_helpers: Vec<HelperFunctionID> = Vec::from(middleware::COAP_HELPERS)
+            .into_iter()
+            .map(|f| f.id)
+            .collect();
 
-        const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
+        let mut allowed_helpers: Vec<HelperFunctionID> = request
+            .allowed_helpers
+            .into_iter()
+            .filter(|id| !coap_helpers.contains(id))
+            .collect();
+
+        allowed_helpers.append(&mut coap_helpers);
+
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-        let mut program =
-            suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
-
-        if request_data.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
-            // We need to perform relocations on the raw object file.
-            match resolve_relocations(&mut program) {
-                Ok(()) => {}
-                Err(e) => {
-                    debug!("Error resolving relocations in the program: {}", e);
-                    return 0;
-                }
-            };
-        }
-
-        debug!(
-            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            request_data.configuration.suit_slot,
-            program.len()
-        );
-
-        let mut vm: Box<dyn VirtualMachine> = match request_data.configuration.vm_target {
-            TargetVM::Rbpf => {
-                // When executing on a CoAP packet, the VM needs to have access
-                // to the CoAP helpers plus any additional helpers specified by
-                // the user.
-                let mut helpers = Vec::from(middleware::COAP_HELPERS);
-                helpers.append(&mut request_data.allowed_helpers.clone());
-                Box::new(RbpfVm::new(
-                    program,
-                    helpers,
-                    request_data.configuration.binary_layout,
-                ))
-            }
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
+        let Ok(mut vm) = initialize_vm(request.configuration, allowed_helpers, &mut program_buffer) else {
+            error!("Failed to initialize the VM.");
+            return NO_BYTES_WRITTEN;
         };
 
         // It is very important that the program executing on the CoAP packet returns
@@ -125,55 +115,26 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result = preprocess_request_raw(request);
-        let request_data = match preprocessing_result {
+        let request_data = match preprocess_request_raw(request) {
             Ok(request_data) => request_data,
             Err(code) => return code,
         };
 
-        let request_data = match VMExecutionRequestMsg::decode(request_data) {
-            Ok(request_data) => request_data,
-            Err(_) => return coap_numbers::code::BAD_REQUEST,
+        let Ok(request) = VMExecutionRequest::decode(request_data) else {
+            return coap_numbers::code::BAD_REQUEST;
         };
 
-        let request_data = VMExecutionRequest::from(&request_data);
-
-        // The SUIT ram storage for the program is 2048 bytes large so we won't
-        // be able to load larger images. Hence 2048 byte buffer is sufficient
-        let mut program_buffer: [u8; 2048] = [0; 2048];
-        let mut program =
-            suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
-
-        debug!(
-            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            request_data.configuration.suit_slot,
-            program.len()
-        );
-
-        if request_data.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
-            // We need to perform relocations on the raw object file.
-            match resolve_relocations(&mut program) {
-                Ok(()) => {}
-                Err(e) => {
-                    debug!("Error resolving relocations in the program: {}", e);
-                    return 0;
-                }
-            };
-        }
-
-        // Dynamically dispatch between the two different VM implementations
-        // depending on the requested target VM.
-        let mut vm: Box<dyn VirtualMachine> = match request_data.configuration.vm_target {
-            TargetVM::Rbpf => Box::new(RbpfVm::new(
-                program,
-                Vec::from(middleware::ALL_HELPERS),
-                request_data.configuration.binary_layout,
-            )),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
+        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
+        let Ok(mut vm) = initialize_vm(
+            request.configuration,
+            request.allowed_helpers,
+            &mut program_buffer,
+        ) else {
+            error!("Failed to initialize the VM.");
+            return coap_numbers::code::INTERNAL_SERVER_ERROR;
         };
 
         self.execution_time = vm.execute(&mut self.result);
-
         coap_numbers::code::CHANGED
     }
 
@@ -192,12 +153,12 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
 }
 
 pub struct VMLongExecutionHandler {
-    execution_send: Arc<Mutex<msg::SendPort<IPCExecutionMessage, { VM_EXEC_REQUEST }>>>,
+    execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
 }
 
 impl VMLongExecutionHandler {
     pub fn new(
-        execution_send: Arc<Mutex<msg::SendPort<IPCExecutionMessage, { VM_EXEC_REQUEST }>>>,
+        execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
     ) -> Self {
         Self { execution_send }
     }
@@ -207,21 +168,17 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result = preprocess_request_raw(request);
-
-        let request_data: String = match preprocessing_result {
+        let request_data: String = match preprocess_request_raw(request) {
             Ok(request_data) => request_data,
             Err(code) => return code,
         };
 
-        let request_data = match VMExecutionRequestMsg::decode(request_data) {
-            Ok(request_data) => request_data,
-            Err(_) => return coap_numbers::code::BAD_REQUEST,
+        let Ok(request) = VMExecutionRequest::decode(request_data) else {
+            return coap_numbers::code::BAD_REQUEST;
         };
 
-        let request_data = VMExecutionRequest::from(&request_data);
-        let message = IPCExecutionMessage {
-            request: Box::new(request_data),
+        let message = VMExecutionRequestIPC {
+            request: Box::new(request),
         };
 
         if let Ok(()) = self.execution_send.lock().try_send(message) {
@@ -244,6 +201,8 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     }
 }
 
+/// Responsible for benchmarking the VM execution by measuring program size,
+/// load time (including optional relocation resolution) and execution time.
 pub struct VMExecutionBenchmarkHandler {
     load_time: u32,
     execution_time: u32,
@@ -271,35 +230,24 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let preprocessing_result = preprocess_request_raw(request);
-        let request_data = match preprocessing_result {
+        let request_data = match preprocess_request_raw(request) {
             Ok(request_data) => request_data,
             Err(code) => return code,
         };
 
-        let request_data = match VMExecutionRequestMsg::decode(request_data) {
-            Ok(request_data) => request_data,
-            Err(_) => return coap_numbers::code::BAD_REQUEST,
+        let Ok(request) = VMExecutionRequest::decode(request_data) else {
+            return coap_numbers::code::BAD_REQUEST;
         };
 
-        let request_data = VMExecutionRequest::from(&request_data);
-
-        // The SUIT ram storage for the program is 2048 bytes large so we won't
-        // be able to load larger images. Hence 2048 byte buffer is sufficient
-        let mut program_buffer: [u8; 2048] = [0; 2048];
+        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
         let mut program =
-            suit_storage::load_program(&mut program_buffer, request_data.configuration.suit_slot);
+            suit_storage::load_program(&mut program_buffer, request.configuration.suit_slot);
 
-        debug!(
-            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            request_data.configuration.suit_slot,
-            program.len()
-        );
         self.program_size = program.len() as u32;
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let start: u32 = Self::time_now(clock);
-        if request_data.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
+        if request.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
             // We need to perform relocations on the raw object file.
             match resolve_relocations(&mut program) {
                 Ok(()) => {}
@@ -314,11 +262,14 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
 
         // Dynamically dispatch between the two different VM implementations
         // depending on the requested target VM.
-        let mut vm: Box<dyn VirtualMachine> = match request_data.configuration.vm_target {
+        let mut vm: Box<dyn VirtualMachine> = match request.configuration.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
                 program,
-                Vec::from(middleware::ALL_HELPERS),
-                request_data.configuration.binary_layout,
+                Vec::from(middleware::ALL_HELPERS)
+                    .into_iter()
+                    .map(|f| f.id)
+                    .collect(),
+                request.configuration.binary_layout,
             )),
             TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
         };

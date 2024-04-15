@@ -14,13 +14,13 @@ use riot_wrappers::{
 use riot_sys;
 use riot_sys::msg_t;
 
-use mibpf_common::{TargetVM, VMExecutionRequestMsg, ExecutionModel};
+use mibpf_common::{ExecutionModel, TargetVM, VMExecutionRequest};
 
 use crate::{
-    infra::suit_storage,
-    model::requests::{VMExecutionCompleteMsg, VMExecutionRequest, IPCExecutionMessage},
+    infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
+    model::requests::{VMExecutionCompleteMsg, VMExecutionRequestIPC},
     spawn_thread,
-    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
+    vm::{initialize_vm, middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
 };
 
 // Because of the lifetime rules we need to preallocate the stacks of all of the
@@ -34,9 +34,9 @@ static VM_WORKER_3_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
 pub const VM_EXEC_REQUEST: u16 = 23;
 pub const VM_COMPLETE_NOTIFY: u16 = 24;
 
-pub type VMExecutionRequestPort = ReceivePort<IPCExecutionMessage, VM_EXEC_REQUEST>;
+pub type VMExecutionRequestPort = ReceivePort<VMExecutionRequestIPC, VM_EXEC_REQUEST>;
 pub type VMExecutionCompletePort = ReceivePort<VMExecutionCompleteMsg, VM_COMPLETE_NOTIFY>;
-pub type ExecutionSendPort = Arc<Mutex<SendPort<IPCExecutionMessage, VM_EXEC_REQUEST>>>;
+pub type ExecutionSendPort = Arc<Mutex<SendPort<VMExecutionRequestIPC, VM_EXEC_REQUEST>>>;
 pub type CompletionSendPort = Arc<Mutex<SendPort<VMExecutionCompleteMsg, VM_COMPLETE_NOTIFY>>>;
 
 /// Responsible for managing execution of long-running eBPF programs. It receives
@@ -59,7 +59,7 @@ pub struct VMExecutionManager {
     /// Message semantics specifying the two available types of IPC messages
     /// that can be sent to the manager.
     message_semantics: Processing<
-        Processing<NoConfiguredMessages, IPCExecutionMessage, VM_EXEC_REQUEST>,
+        Processing<NoConfiguredMessages, VMExecutionRequestIPC, VM_EXEC_REQUEST>,
         VMExecutionCompleteMsg,
         VM_COMPLETE_NOTIFY,
     >,
@@ -84,7 +84,7 @@ impl VMExecutionManager {
 
     /// Returns an atomically-counted reference to the send end of the message
     /// channel for sending requests to execute eBPF programs.
-    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<IPCExecutionMessage, VM_EXEC_REQUEST>>> {
+    pub fn get_send_port(&self) -> Arc<Mutex<SendPort<VMExecutionRequestIPC, VM_EXEC_REQUEST>>> {
         self.request_send_port.clone()
     }
 
@@ -163,7 +163,7 @@ impl VMExecutionManager {
         });
     }
 
-    pub fn handle_execution_request(workers: &mut Vec<i16>, request: IPCExecutionMessage) {
+    pub fn handle_execution_request(workers: &mut Vec<i16>, request: VMExecutionRequestIPC) {
         if workers.is_empty() {
             error!("No free workers to execute the request.");
             return;
@@ -206,35 +206,26 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
             let _ = riot_sys::msg_receive(&mut msg);
         }
 
-        let execution_request: VMExecutionRequest = msg.into();
-        let vm_config = execution_request.configuration;
+        let wrapper: VMExecutionRequestIPC = msg.into();
+        let request = *wrapper.request;
 
         info!(
             "Received an execution request to spawn a VM with configuration: {:?}",
-            vm_config
+            request.configuration
         );
 
-        const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
         let mut program_buffer: [u8; SUIT_STORAGE_SLOT_SIZE] = [0; SUIT_STORAGE_SLOT_SIZE];
-        let program = suit_storage::load_program(&mut program_buffer, vm_config.suit_slot);
-        info!(
-            "Loaded program bytecode from SUIT storage slot {}, program length: {}",
-            vm_config.suit_slot,
-            program.len()
-        );
-
-        let mut vm: Box<dyn VirtualMachine> = match vm_config.vm_target {
-            TargetVM::Rbpf => Box::new(RbpfVm::new(
-                program,
-                execution_request.allowed_helpers,
-                vm_config.binary_layout,
-            )),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
+        if let Ok(mut vm) = initialize_vm(
+            request.configuration,
+            request.allowed_helpers,
+            &mut program_buffer,
+        ) {
+            let mut result: i64 = 0;
+            let execution_time = vm.execute(&mut result);
+            debug!("Execution_time: {}, result: {}", execution_time, result);
+        } else {
+            error!("Failed to initialize the VM.");
         };
-
-        let mut result: i64 = 0;
-        let execution_time = vm.execute(&mut result);
-        debug!("Execution_time: {}, result: {}", execution_time, result);
 
         // Now we notify the VM execution manager that the eBPF program has
         // terminated and so the manager add us to the pool of free workers

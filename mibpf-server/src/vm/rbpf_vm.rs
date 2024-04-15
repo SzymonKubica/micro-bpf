@@ -1,7 +1,7 @@
 use crate::vm::{middleware, VirtualMachine};
 use alloc::{format, string::String, vec::Vec};
 use core::{ffi::c_void, ops::DerefMut, slice::from_raw_parts_mut, str::FromStr};
-use mibpf_common::BinaryFileLayout;
+use mibpf_common::{BinaryFileLayout, HelperFunctionID};
 use serde::Deserialize;
 
 use rbpf::without_std::Error;
@@ -9,7 +9,7 @@ use rbpf::without_std::Error;
 use riot_sys;
 use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
 
-use super::middleware::{helpers::HelperFunction, CoapContext};
+use super::middleware::{helpers::{HelperFunction, HelperAccessList}, CoapContext};
 
 pub struct RbpfVm<'a> {
     pub registered_helpers: Vec<HelperFunction>,
@@ -25,9 +25,9 @@ extern "C" {
     fn copy_packet(buffer: *mut c_void, mem: *mut u8);
 }
 impl<'a> RbpfVm<'a> {
-    pub fn new(program: &'a [u8], helpers: Vec<HelperFunction>, layout: BinaryFileLayout) -> RbpfVm<'a> {
+    pub fn new(program: &'a [u8], helpers: Vec<HelperFunctionID>, layout: BinaryFileLayout) -> RbpfVm<'a> {
         RbpfVm {
-            registered_helpers: helpers,
+            registered_helpers: HelperAccessList::from(helpers).0,
             vm: rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(layout)).unwrap(),
             layout,
         }

@@ -1,58 +1,43 @@
 use core::ffi::c_void;
 
-use crate::vm::middleware::helpers::{HelperFunction, HelperAccessList};
-use alloc::{vec::Vec, boxed::Box};
+use crate::vm::middleware::helpers::{HelperAccessList, HelperFunction};
+use alloc::{boxed::Box, vec::Vec};
 use log::debug;
-use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequestMsg};
+use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
 use riot_sys::msg_t;
 
 use serde::{Deserialize, Serialize};
 
-/// Models a request to start an execution of a given instance of a eBPF VM,
-/// it specifies the configuration of the VM instance and the list of helper
-/// functions that should be made available to the program running in the VM.
-pub struct VMExecutionRequest {
-    pub configuration: VMConfiguration,
-    pub allowed_helpers: Vec<HelperFunction>,
-}
-
-pub struct IPCExecutionMessage {
+/// Wrapper around the [`mibpf_common::VMExecutionRequest`] to allow for sending
+/// it over the RIOT IPC.
+pub struct VMExecutionRequestIPC {
     pub request: Box<VMExecutionRequest>,
 }
 
-impl From<&VMExecutionRequestMsg> for VMExecutionRequest {
-    fn from(request: &VMExecutionRequestMsg) -> Self {
-        VMExecutionRequest {
-            configuration: VMConfiguration::decode(request.configuration),
-            allowed_helpers: HelperAccessList::from(request.allowed_helpers.clone()).0,
-        }
-    }
-}
-
-// We turn the DTO struct into a raw u32 value because passing pointers in messages
-// doesn't quite work.
-impl Into<msg_t> for &mut VMExecutionRequest {
+impl Into<msg_t> for &mut VMExecutionRequestIPC {
     fn into(self) -> msg_t {
         let mut msg: msg_t = Default::default();
         msg.type_ = 0;
         msg.content = riot_sys::msg_t__bindgen_ty_1 {
-            ptr: self as *mut VMExecutionRequest as *mut c_void,
+            ptr: self.request.as_mut() as *mut VMExecutionRequest as *mut c_void,
         };
         msg
     }
 }
 
-impl From<msg_t> for VMExecutionRequest {
+impl From<msg_t> for VMExecutionRequestIPC {
     fn from(msg: msg_t) -> Self {
         let ptr: *mut c_void = unsafe { msg.content.ptr };
 
         let req_ptr = ptr as *mut VMExecutionRequest;
 
         unsafe {
-            VMExecutionRequest {
-                configuration: (*req_ptr).configuration,
-                allowed_helpers: (*req_ptr).allowed_helpers.clone(),
-            }
+            return VMExecutionRequestIPC {
+                request: Box::new(VMExecutionRequest {
+                    configuration: (*req_ptr).configuration,
+                    allowed_helpers: (*req_ptr).allowed_helpers.clone(),
+                }),
+            };
         }
     }
 }

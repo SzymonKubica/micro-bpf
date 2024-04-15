@@ -1,11 +1,12 @@
-use alloc::{boxed::Box, string::{String, ToString}};
+use alloc::{
+    boxed::Box,
+    string::{String, ToString},
+};
 use coap_message::ReadableMessage;
 use core::convert::TryInto;
 use riot_wrappers::gcoap::PacketBuffer;
 
 use log::{debug, info};
-
-use mibpf_common::VMExecutionRequestMsg;
 
 // This module contains common utility functions that are used by the handler
 // implementations for all of the endpoints.
@@ -49,8 +50,6 @@ pub fn preprocess_request_raw<'a>(request: &'a impl ReadableMessage) -> Result<S
         return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
     }
 
-    // Request payload determines from which SUIT storage slot we are
-    // reading the bytecode.
     let Ok(s) = core::str::from_utf8(request.payload()) else {
         return Err(coap_numbers::code::BAD_REQUEST);
     };
@@ -60,21 +59,19 @@ pub fn preprocess_request_raw<'a>(request: &'a impl ReadableMessage) -> Result<S
 }
 
 pub fn preprocess_request<'a, T>(request: &'a impl ReadableMessage) -> Result<T, u8>
-where T: serde::de::Deserialize<'a> {
+where
+    T: serde::de::Deserialize<'a>,
+{
     if request.code().into() != coap_numbers::code::POST {
         return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
     }
 
-    // Request payload determines from which SUIT storage slot we are
-    // reading the bytecode.
     let Ok(s) = core::str::from_utf8(request.payload()) else {
         return Err(coap_numbers::code::BAD_REQUEST);
     };
 
     debug!("Request payload received: {}", s);
-    let Ok((request_data, _length)): Result<(T, usize), _> =
-        serde_json_core::from_str(s)
-    else {
+    let Ok((request_data, _length)): Result<(T, usize), _> = serde_json_core::from_str(s) else {
         return Err(coap_numbers::code::BAD_REQUEST);
     };
 

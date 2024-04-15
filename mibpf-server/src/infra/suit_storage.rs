@@ -1,11 +1,14 @@
 use core::ffi::c_int;
 
 use alloc::format;
+use log::debug;
+
+
+pub const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
 
 // Currently, the interactions with SUIT storage are handled by functions written
-// in native C, they could be reimplemented using unsafe rust bindings from
+// in native C, ideally they could be reimplemented using unsafe rust bindings from
 // riot_sys.
-
 extern "C" {
     fn initiate_suit_fetch(
         adderss: *const u8,
@@ -43,11 +46,14 @@ pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) {
 /// * `slot` - The index of the SUIT storage slot from which to load the bytes.
 pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a mut [u8] {
     let location = format!(".ram.{0}\0", slot);
-    let length;
+    let len;
     unsafe {
         let buffer_ptr = program_buffer.as_mut_ptr();
         let location_ptr = location.as_ptr();
-        length = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
+        len = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
     };
-    &mut program_buffer[..(length as usize)]
+
+    debug!("{}B program loaded from SUIT storage slot {}.", len, slot);
+
+    &mut program_buffer[..(len as usize)]
 }

@@ -26,12 +26,14 @@ impl HelperFunction {
 
 pub struct HelperAccessList(pub Vec<HelperFunction>);
 
-impl From<Vec<u8>> for HelperAccessList {
-    fn from(value: Vec<u8>) -> Self {
+/// We need to implement this so that it is possible to map from a list of
+/// helper function IDs to the actual list of function pointers.
+impl From<Vec<HelperFunctionID>> for HelperAccessList {
+    fn from(value: Vec<HelperFunctionID>) -> Self {
         let helper_map = ALL_HELPERS
             .iter()
-            .map(|h| (h.id.into(), h.clone()))
-            .collect::<BTreeMap<u8, HelperFunction>>();
+            .map(|h| (h.id, h.clone()))
+            .collect::<BTreeMap<HelperFunctionID, HelperFunction>>();
 
         let helpers = value
             .iter()

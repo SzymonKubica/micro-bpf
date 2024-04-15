@@ -68,7 +68,7 @@ impl<'a> RbpfVm<'a> {
 fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
     match layout {
         BinaryFileLayout::FemtoContainersHeader => rbpf::InterpreterVariant::FemtoContainersHeader,
-        BinaryFileLayout::FunctionRelocationMetadata => rbpf::InterpreterVariant::ExtendedHeader,
+        BinaryFileLayout::ExtendedHeader => rbpf::InterpreterVariant::ExtendedHeader,
         BinaryFileLayout::RawObjectFile => rbpf::InterpreterVariant::RawObjectFile,
         BinaryFileLayout::OnlyTextSection => rbpf::InterpreterVariant::Default,
     }

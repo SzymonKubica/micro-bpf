@@ -1,23 +1,27 @@
-use crate::{vm::{
-    middleware::{ALL_HELPERS},
-    VM_EXEC_REQUEST,
-}, model::requests::VMExecutionRequestIPC};
+use crate::{
+    model::requests::VMExecutionRequestIPC,
+    vm::{middleware::ALL_HELPERS, VM_EXEC_REQUEST},
+};
 use alloc::{
+    boxed::Box,
     sync::Arc,
-    vec::{self, Vec}, boxed::Box,
+    vec::{self, Vec},
 };
 use core::{fmt::Write, str::FromStr};
-use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
+use mibpf_common::{
+    BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, TargetVM, VMConfiguration,
+    VMExecutionRequest,
+};
 use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 pub struct VMExecutionShellCommandHandler {
-    execution_send: Arc<Mutex<SendPort<VMExecutionRequestIPC, {VM_EXEC_REQUEST}>>>,
+    execution_send: Arc<Mutex<SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
 }
 
 impl VMExecutionShellCommandHandler {
     pub fn new(
-        execution_send: Arc<Mutex<SendPort<VMExecutionRequestIPC, {VM_EXEC_REQUEST}>>>,
+        execution_send: Arc<Mutex<SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
     ) -> Self {
         Self { execution_send }
     }
@@ -55,10 +59,16 @@ impl VMExecutionShellCommandHandler {
 
         let binary_layout = BinaryFileLayout::from_str(&args[3]).unwrap_or_else(|err| {
             writeln!(stdio, "Invalid binary layout: {}", err).unwrap();
-            BinaryFileLayout::FunctionRelocationMetadata
+            BinaryFileLayout::ExtendedHeader
         });
 
-        let vm_configuration = VMConfiguration::new(vm_target, binary_layout, slot);
+        let vm_configuration = VMConfiguration::new(
+            vm_target,
+            slot,
+            binary_layout,
+            HelperAccessVerification::PreFlight,
+            HelperAccessListSource::ExecuteRequest,
+        );
 
         let allowed_helpers = Vec::from(ALL_HELPERS).into_iter().map(|f| f.id).collect();
 

@@ -3,7 +3,6 @@ use core::ffi::c_int;
 use alloc::format;
 use log::debug;
 
-
 pub const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
 
 // Currently, the interactions with SUIT storage are handled by functions written
@@ -53,7 +52,7 @@ pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a mut [u
         len = load_bytes_from_suit_storage(buffer_ptr, location_ptr);
     };
 
-    debug!("{}B program loaded from SUIT storage slot {}.", len, slot);
+    debug!("{}[B] program loaded from SUIT storage slot {}.", len, slot);
 
     &mut program_buffer[..(len as usize)]
 }

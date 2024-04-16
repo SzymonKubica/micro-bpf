@@ -1,16 +1,16 @@
 use core::str::FromStr;
 
 use alloc::{boxed::Box, format, string::String, vec::Vec};
-use log::debug;
+use log::{debug, error};
 use mibpf_common::{
     BinaryFileLayout, HelperAccessVerification, HelperFunctionID, TargetVM, VMConfiguration,
 };
-use mibpf_elf_utils::resolve_relocations;
+use mibpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
 use riot_wrappers::gcoap::PacketBuffer;
 
 use crate::infra::suit_storage;
 
-use super::{rbpf_vm, FemtoContainerVm, RbpfVm};
+use super::{middleware::helpers::HelperAccessList, rbpf_vm, FemtoContainerVm, RbpfVm};
 
 /// Structs implementing this interface should allow for executing eBPF programs
 /// both raw and with access to the incoming CoAP packet.
@@ -43,14 +43,29 @@ pub fn initialize_vm<'a>(
         return Ok(Box::new(FemtoContainerVm { program }));
     }
 
+    let allowed_helpers = match config.helper_access_list_source {
+        mibpf_common::HelperAccessListSource::ExecuteRequest => allowed_helpers,
+
+        mibpf_common::HelperAccessListSource::BinaryMetadata => {
+            if config.binary_layout == BinaryFileLayout::ExtendedHeader {
+                HelperAccessList::from(extract_allowed_helpers(&program))
+                    .0
+                    .into_iter()
+                    .map(|f| f.id)
+                    .collect()
+            } else {
+                Err("Tried to extract allowed helper function indices from an incompatible binary file")?
+            }
+        }
+    };
+
     if config.helper_access_verification == HelperAccessVerification::PreFlight {
-        // We first need to map our state to the structures that rbpf understands
-        let helper_idxs = allowed_helpers
+        let interpreter = rbpf_vm::map_interpreter(config.binary_layout);
+        let helpers_idxs = allowed_helpers
             .iter()
             .map(|id| *id as u32)
             .collect::<Vec<u32>>();
-        let interpreter = rbpf_vm::map_interpreter(config.binary_layout);
-        rbpf::check_helpers(program, &helper_idxs, interpreter)
+        rbpf::check_helpers(program, &helpers_idxs, interpreter)
             .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
     }
 

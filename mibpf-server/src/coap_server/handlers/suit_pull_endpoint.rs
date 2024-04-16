@@ -1,7 +1,10 @@
 use alloc::{format, string::String, vec::Vec};
 use core::convert::TryInto;
 use log::error;
-use mibpf_common::{HelperAccessVerification, SuitPullRequest, VMConfiguration, HelperAccessListSource};
+use mibpf_common::{
+    HelperAccessListSource, HelperAccessVerification, SuitPullRequest, VMConfiguration, BinaryFileLayout,
+};
+use mibpf_elf_utils::extract_allowed_helpers;
 use serde::{Deserialize, Serialize};
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
@@ -9,7 +12,10 @@ use riot_wrappers::{stdio::println, thread};
 
 use crate::{
     infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
-    vm::{middleware::{ALL_HELPERS, helpers::HelperAccessList}, rbpf_vm},
+    vm::{
+        middleware::{helpers::HelperAccessList, ALL_HELPERS},
+        rbpf_vm,
+    },
 };
 
 use super::util::preprocess_request_raw;
@@ -55,11 +61,23 @@ impl coap_handler::Handler for SuitPullHandler {
             let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
             let mut program = suit_storage::load_program(&mut program_buffer, config.suit_slot);
 
-            let helper_idxs: Vec<u32> = if config.helper_access_list_source == HelperAccessListSource::ExecuteRequest {
-                HelperAccessList::from(request.helpers).0.into_iter().map(|f| f.id as u32).collect()
-            } else {
-                // In this case we need to parse the helpers out of the binary.
-                alloc::vec![]
+            let helper_idxs: Vec<u32> = match config.helper_access_list_source {
+                HelperAccessListSource::ExecuteRequest => HelperAccessList::from(request.helpers)
+                    .0
+                    .into_iter()
+                    .map(|f| f.id as u32)
+                    .collect(),
+                HelperAccessListSource::BinaryMetadata => {
+                    if config.binary_layout == BinaryFileLayout::ExtendedHeader {
+                        extract_allowed_helpers(&program)
+                            .into_iter()
+                            .map(|id| id as u32)
+                            .collect()
+                    } else {
+                        error!("Tried to extract allowed helper function indices from an incompatible binary file");
+                        return coap_numbers::code::BAD_REQUEST;
+                    }
+                }
             };
 
             let interpreter = rbpf_vm::map_interpreter(config.binary_layout);

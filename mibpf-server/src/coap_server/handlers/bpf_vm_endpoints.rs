@@ -10,7 +10,7 @@ use goblin::{
     container::{Container, Endian},
     elf::{Elf, Reloc},
 };
-use mibpf_elf_utils::resolve_relocations;
+use mibpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
 
 use log::{debug, error, info};
 use serde::Deserialize;
@@ -61,25 +61,19 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         debug!("Received VM Execution Request: {:?}", request.configuration);
 
-        // When executing on a CoAP packet, the VM needs to have access
-        // to the CoAP packet formatting helpers plus any additional helpers specified by
-        // the user.
-        let mut coap_helpers: Vec<HelperFunctionID> = Vec::from(middleware::COAP_HELPERS)
-            .into_iter()
-            .map(|f| f.id)
-            .collect();
-
-        let mut allowed_helpers: Vec<HelperFunctionID> = request
-            .allowed_helpers
-            .into_iter()
-            .filter(|id| !coap_helpers.contains(id))
-            .collect();
-
-        allowed_helpers.append(&mut coap_helpers);
-
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-        let Ok(mut vm) = initialize_vm(request.configuration, allowed_helpers, &mut program_buffer) else {
-            error!("Failed to initialize the VM.");
+
+        let init_result = initialize_vm(
+            request.configuration,
+            request.allowed_helpers,
+            &mut program_buffer,
+        );
+
+        let Ok(mut vm) = init_result else {
+            error!(
+                "Failed to initialize the VM: {}",
+                init_result.err().unwrap()
+            );
             return NO_BYTES_WRITTEN;
         };
 
@@ -125,12 +119,18 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         };
 
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-        let Ok(mut vm) = initialize_vm(
+
+        let init_result = initialize_vm(
             request.configuration,
             request.allowed_helpers,
             &mut program_buffer,
-        ) else {
-            error!("Failed to initialize the VM.");
+        );
+
+        let Ok(mut vm) = init_result else {
+            error!(
+                "Failed to initialize the VM: {}",
+                init_result.err().unwrap()
+            );
             return coap_numbers::code::INTERNAL_SERVER_ERROR;
         };
 

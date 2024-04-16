@@ -1,6 +1,6 @@
 use crate::vm::{middleware, VirtualMachine};
 use alloc::vec::Vec;
-use core::{ffi::c_void, ops::DerefMut, slice::from_raw_parts_mut};
+use core::{ops::DerefMut, slice::from_raw_parts_mut};
 use mibpf_common::{BinaryFileLayout, HelperFunctionID};
 
 use rbpf::without_std::Error;

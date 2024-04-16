@@ -49,21 +49,24 @@ impl coap_handler::Handler for SuitPullHandler {
             return coap_numbers::code::BAD_REQUEST;
         };
 
+        let config = VMConfiguration::decode(request.config);
+
         let fetch_result = suit_storage::suit_fetch(
             request.ip.as_str(),
             request.riot_netif.as_str(),
             request.manifest.as_str(),
+            config.suit_slot,
         );
 
         if let Ok(()) = fetch_result {
             debug!("SUIT fetch successful.");
         } else {
-            debug!("SUIT fetch failed.");
-            self.last_request_status = Err("SUIT worker failed to pull new firmware".to_string());
+            let err = format!("SUIT fetch failed: {:?}", fetch_result.err().unwrap());
+            debug!("{}", err);
+            self.last_request_status = Err(err);
             return coap_numbers::code::BAD_REQUEST;
         }
 
-        let config = VMConfiguration::decode(request.config);
 
         if config.helper_access_verification == HelperAccessVerification::LoadTime {
             let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
@@ -85,7 +88,7 @@ impl coap_handler::Handler for SuitPullHandler {
                         let error_msg = "Tried to extract allowed helper functions from an incompatible binary file.";
                         error!("{}", error_msg);
                         self.last_request_status = Err(error_msg.to_string());
-                        suit_storage::suit_erase(config.suit_slot);
+                        let _ =  suit_storage::suit_erase(config.suit_slot);
                         return coap_numbers::code::BAD_REQUEST;
                     }
                 }
@@ -94,11 +97,11 @@ impl coap_handler::Handler for SuitPullHandler {
             let interpreter = rbpf_vm::map_interpreter(config.binary_layout);
 
             if let Err(e) = rbpf::check_helpers(program, &helper_idxs, interpreter)
-                .map_err(|e| format!("Error when checking helper function access: {:?}", e))
+                .map_err(|e| format!("Helper verification failed: {}", e.error))
             {
                 error!("{}", e);
                 self.last_request_status = Err(e);
-                suit_storage::suit_erase(config.suit_slot);
+                let _ = suit_storage::suit_erase(config.suit_slot);
                 return coap_numbers::code::BAD_REQUEST;
             }
         }

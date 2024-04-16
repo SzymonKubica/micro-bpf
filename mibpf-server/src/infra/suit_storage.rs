@@ -1,10 +1,32 @@
 use core::ffi::c_int;
 
-use alloc::format;
+use alloc::{format, string::{String, ToString}};
 use log::debug;
-use riot_wrappers::thread;
+use riot_wrappers::{mutex::Mutex, thread};
 
+/// Size of each slot in the SUIT storage where the programs get loaded.
+/// It is important that this value is consistent with what is specified in
+/// the Makefile for this project using this line:
+/// CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=2 -DCONFIG_SUIT_STORAGE_RAM_SIZE=2048
 pub const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
+pub const SUIT_STORAGE_SLOTS: usize = 2;
+
+/// Stores status of all SUIT storage slots available for loading programs
+static SUIT_STORAGE_STATE: Mutex<[SuitStorageSlotStatus; SUIT_STORAGE_SLOTS]> =
+    Mutex::new([SuitStorageSlotStatus::Free; SUIT_STORAGE_SLOTS]);
+
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SuitStorageSlotStatus {
+    Free,
+    Occupied,
+    // Cleaned means that the storage slot is being erased right now and other
+    // threads shouldn't try to access programs from it. The slot could be erased
+    // because a new program needs to be loaded and all slots are occupied or
+    // becaues the program was verified for helper function accesses and the
+    // verificadtion failed which means that the program cannot be executed, hence
+    // we get rid of it.
+    Cleaned,
+}
 
 // Currently, the interactions with SUIT storage are handled by functions written
 // in native C, ideally they could be reimplemented using unsafe rust bindings from
@@ -34,11 +56,32 @@ extern "C" {
 /// # Arguments
 ///
 /// * `ip` - The IPv6 address of the machine hosting the fileserver
+/// * `network_interface` - the network interface name used by the target microcontroller
+///   most of the time it is either 5 or 6 and is needed to correctly format the
+///   url that we'll send the request to to start pulling the data.
 /// * `manifest` - The name of the manifest file associated with the data to fetch
-pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) -> Result<(), ()> {
+/// * `slot` - The index of the SUIT storage slot into which the program is to
+///   be loaded. It is important that this slot be consistent with the slot id
+///   specified in the manifest file. Because of the SUIT update workflow, there
+///   is no way of enforcing that the two slots match (one could sign a manifest)
+///   specifying that slot is e.g. 0 and then say 1 in the request. In such case
+///   the program would be loaded into slot 0 but we would mark slot 1 as occupied.
+///   It is a responsiblility of the person using the system to ensure that those
+///   two slots match.
+pub fn suit_fetch(
+    ip: &str,
+    network_interface: &str,
+    manifest: &str,
+    slot: usize,
+) -> Result<(), String> {
     let ip_addr = format!("{}\0", ip);
     let suit_manifest = format!("{}\0", manifest);
     let netif = network_interface.parse::<c_int>().unwrap();
+
+    let mut slots = SUIT_STORAGE_STATE.lock();
+    if slots[slot] != SuitStorageSlotStatus::Free {
+        Err("Tried to load a program into an occupied slot".to_string())?;
+    }
 
     let pid = thread::get_pid().into();
     debug!("Thread {} initiating SUIT fetch...", pid);
@@ -49,22 +92,35 @@ pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) -> Result<(
         let mut msg: riot_sys::msg_t = Default::default();
         let _ = riot_sys::msg_receive(&mut msg);
 
-        match msg.content.value {
-            0 => Ok(()),
-            _ => Err(()),
+        const SUIT_FETCH_SUCCESS: u32 = 0;
+        if msg.content.value == SUIT_FETCH_SUCCESS {
+            slots[slot] = SuitStorageSlotStatus::Occupied;
+            debug!("SUIT fetch successful, marked slot {} as occupied.", slot);
+            Ok(())
+        } else {
+            slots[slot] = SuitStorageSlotStatus::Free;
+            Err("SUIT fetch failed".to_string())
         }
     }
 }
 
 /// Allows for erasing the SUIT storage containing a given program if e.g. it's
 /// helper function verification has failed and it cannot be executed
-pub fn suit_erase(slot: usize) {
-    debug!("Erasing SUIT storage slot {}.", slot);
+pub fn suit_erase(slot: usize) -> Result<(), String> {
     let location = format!(".ram.{0}\0", slot);
+    let mut slots = SUIT_STORAGE_STATE.lock();
+    if slots[slot] != SuitStorageSlotStatus::Occupied {
+        Err("Requested to erase an empty SUIT slot".to_string())?;
+    }
+
+    slots[slot] = SuitStorageSlotStatus::Cleaned;
+    debug!("Erasing SUIT storage slot {}.", slot);
     unsafe {
         let location_ptr = location.as_ptr();
         handle_suit_storage_erase(location_ptr);
     };
+    slots[slot] = SuitStorageSlotStatus::Free;
+    Ok(())
 }
 
 /// Reads from the given suit storage into the provided program buffer

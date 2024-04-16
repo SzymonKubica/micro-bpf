@@ -106,11 +106,14 @@ extern "C" {
 pub fn bpf_store_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     // Local store/fetch requires changing the VM interpreter to maintain the
     // state of the key-value store btree and will require a bit more work.
-    local_storage::local_storage_store(key as usize, value)
-
+    local_storage::local_storage_store(key as usize, value as i32) as u64
 }
 pub fn bpf_fetch_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
-    local_storage::local_storage_fetch(key as usize).unwrap_or(0)
+    let value = value as *mut i32;
+    unsafe {
+        *value = local_storage::local_storage_fetch(key as usize).unwrap_or(0);
+    }
+    return 0;
 }
 
 pub fn bpf_store_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {

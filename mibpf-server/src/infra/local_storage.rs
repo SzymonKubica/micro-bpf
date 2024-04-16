@@ -22,14 +22,14 @@
 //!
 
 use alloc::{collections::BTreeMap, vec::Vec};
-use log::debug;
+use log::{debug, error};
 use riot_wrappers::{mutex::Mutex, thread};
 
 use super::suit_storage::{self, SUIT_STORAGE_SLOTS};
 
-const EMPTY_MAP: BTreeMap<usize, u64> = BTreeMap::new();
+const EMPTY_MAP: BTreeMap<usize, i32> = BTreeMap::new();
 /// Each SUIT storage slot has its associated BTreeMap storage.
-static LOCAL_STORAGE: Mutex<[BTreeMap<usize, u64>; SUIT_STORAGE_SLOTS]> =
+static LOCAL_STORAGE: Mutex<[BTreeMap<usize, i32>; SUIT_STORAGE_SLOTS]> =
     Mutex::new([EMPTY_MAP; SUIT_STORAGE_SLOTS]);
 
 /// In order to determine which thread is currently executing a program from which
@@ -38,24 +38,27 @@ static LOCAL_STORAGE: Mutex<[BTreeMap<usize, u64>; SUIT_STORAGE_SLOTS]> =
 static THREAD_TO_STORAGE_SLOT: Mutex<BTreeMap<riot_sys::kernel_pid_t, usize>> =
     Mutex::new(BTreeMap::new());
 
-pub fn local_storage_store(key: usize, value: u64) -> u64 {
+pub fn local_storage_store(key: usize, value: i32) -> i32 {
     // We need the pid of the thread to be able to determine which slot belongs
     // to the current thread.
     let slot_number = lookup_slot_number();
+
 
     if let Some(slot_number) = slot_number {
         let mut storage = LOCAL_STORAGE.lock();
         storage[slot_number].insert(key, value);
         return value;
     } else {
+        error!("No slot number found corresponding to the current thread");
         return 0;
     }
 }
 
-pub fn local_storage_fetch(key: usize) -> Option<u64> {
+pub fn local_storage_fetch(key: usize) -> Option<i32> {
     let slot_number = lookup_slot_number();
 
     if let None = slot_number {
+        error!("No slot number found corresponding the current thread");
         return None;
     }
 
@@ -71,15 +74,22 @@ fn lookup_slot_number() -> Option<usize> {
 
 pub fn register_suit_slot(slot: usize) {
     let pid = thread::get_pid().into();
+    debug!("Registering SUIT slot {} for thread {}", slot, pid);
     let mut map = THREAD_TO_STORAGE_SLOT.lock();
     map.insert(pid, slot);
 }
 
 pub fn deregister_suit_slot(slot: usize) {
     let mut map = THREAD_TO_STORAGE_SLOT.lock();
-    let pids_to_remove: Vec<riot_sys::kernel_pid_t> =
-        map.iter().filter(|(_, s)| **s == slot).map(|(p, _)| *p).collect();
-    debug!("Deregistering SUIT slot {} from threads: {:?}", slot, pids_to_remove);
+    let pids_to_remove: Vec<riot_sys::kernel_pid_t> = map
+        .iter()
+        .filter(|(_, s)| **s == slot)
+        .map(|(p, _)| *p)
+        .collect();
+    debug!(
+        "Deregistering SUIT slot {} from threads: {:?}",
+        slot, pids_to_remove
+    );
     for pid in pids_to_remove {
         map.remove(&pid);
     }

@@ -12,7 +12,10 @@ use log::debug;
 use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
 
-use crate::modules::hd44780_lcd::{hd44780_t, HD44780LCD};
+use crate::{
+    infra::local_storage::{self, local_storage_store},
+    modules::hd44780_lcd::{hd44780_t, HD44780LCD},
+};
 
 use super::helpers::HelperFunction;
 use mibpf_common::HelperFunctionID as ID;
@@ -89,17 +92,31 @@ extern "C" {
     fn bpf_store_update_global(key: u32, value: u32) -> i64;
     fn bpf_store_fetch_global(key: u32, value: *mut u32) -> i64;
 }
-pub fn bpf_store_local(_key: u64, _value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+
+/// Local storage for the eBPF programs is managed on a per SUIT slot basis.
+/// It means that once bytecode of a particular program is loaded into a given
+/// SUIT storage slot, a BTreeMap storing the key-value pairs for that program
+/// is initialised. Note that it is flushed when the SUIT storage slot is overwritten
+/// with some other program. In case of long running VM instances it is possible
+/// that the program gets removed from the SUIT storage while the VM is still
+/// executing the program. This would cause the long running VM to access local
+/// storage of some other program which we don't want. Because of this, the
+/// SUIT storage module ensures that a program containing bytecode of a long
+/// running VM cannot be overwritten.
+pub fn bpf_store_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     // Local store/fetch requires changing the VM interpreter to maintain the
     // state of the key-value store btree and will require a bit more work.
-    unimplemented!()
+    local_storage::local_storage_store(key as usize, value)
+
 }
+pub fn bpf_fetch_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    local_storage::local_storage_fetch(key as usize).unwrap_or(0)
+}
+
 pub fn bpf_store_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     unsafe { bpf_store_update_global(key as u32, value as u32) as u64 }
 }
-pub fn bpf_fetch_local(_key: u64, _value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
-    unimplemented!()
-}
+
 pub fn bpf_fetch_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     unsafe { bpf_store_fetch_global(key as u32, value as *mut u32) as u64 }
 }

@@ -1,8 +1,13 @@
 use core::ffi::c_int;
 
-use alloc::{format, string::{String, ToString}};
+use alloc::{
+    format,
+    string::{String, ToString},
+};
 use log::debug;
 use riot_wrappers::{mutex::Mutex, thread};
+
+use crate::infra::local_storage;
 
 /// Size of each slot in the SUIT storage where the programs get loaded.
 /// It is important that this value is consistent with what is specified in
@@ -12,20 +17,17 @@ pub const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
 pub const SUIT_STORAGE_SLOTS: usize = 2;
 
 /// Stores status of all SUIT storage slots available for loading programs
-static SUIT_STORAGE_STATE: Mutex<[SuitStorageSlotStatus; SUIT_STORAGE_SLOTS]> =
+pub static SUIT_STORAGE_STATE: Mutex<[SuitStorageSlotStatus; SUIT_STORAGE_SLOTS]> =
     Mutex::new([SuitStorageSlotStatus::Free; SUIT_STORAGE_SLOTS]);
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum SuitStorageSlotStatus {
     Free,
+    /// A slot contains some bytecode but noone is currently executing it.
     Occupied,
-    // Cleaned means that the storage slot is being erased right now and other
-    // threads shouldn't try to access programs from it. The slot could be erased
-    // because a new program needs to be loaded and all slots are occupied or
-    // becaues the program was verified for helper function accesses and the
-    // verificadtion failed which means that the program cannot be executed, hence
-    // we get rid of it.
-    Cleaned,
+    /// This is used when there is currently a long running that uses the local
+    /// storage associated with the program loaded into that SUIT slot.
+    Running,
 }
 
 // Currently, the interactions with SUIT storage are handled by functions written
@@ -84,8 +86,15 @@ pub fn suit_fetch(
         Err("Tried to load a program into an occupied slot".to_string())?;
     }
 
+    if slots[slot] == SuitStorageSlotStatus::Running {
+        Err("Tried to overwrite a slot that belongs to a currently running program".to_string())?;
+    }
+
     let pid = thread::get_pid().into();
     debug!("Thread {} initiating SUIT fetch...", pid);
+
+    debug!("Deregistering the local storage associated with the exising slot");
+    local_storage::deregister_suit_slot(slot);
 
     unsafe {
         initiate_suit_fetch(ip_addr.as_ptr(), netif, suit_manifest.as_ptr(), pid);
@@ -105,6 +114,16 @@ pub fn suit_fetch(
     }
 }
 
+pub fn suit_mark_slot_running(slot: usize) {
+    let mut slots = SUIT_STORAGE_STATE.lock();
+    slots[slot] = SuitStorageSlotStatus::Running;
+}
+
+pub fn suit_mark_slot_occupied(slot: usize) {
+    let mut slots = SUIT_STORAGE_STATE.lock();
+    slots[slot] = SuitStorageSlotStatus::Occupied;
+}
+
 /// Allows for erasing the SUIT storage containing a given program if e.g. it's
 /// helper function verification has failed and it cannot be executed
 pub fn suit_erase(slot: usize) -> Result<(), String> {
@@ -114,7 +133,6 @@ pub fn suit_erase(slot: usize) -> Result<(), String> {
         Err("Requested to erase an empty SUIT slot".to_string())?;
     }
 
-    slots[slot] = SuitStorageSlotStatus::Cleaned;
     debug!("Erasing SUIT storage slot {}.", slot);
     unsafe {
         let location_ptr = location.as_ptr();

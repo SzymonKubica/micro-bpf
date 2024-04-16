@@ -5,7 +5,7 @@ use mibpf_common::{
 use mibpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
 use riot_wrappers::gcoap::PacketBuffer;
 
-use crate::infra::suit_storage;
+use crate::infra::{suit_storage, local_storage};
 
 use super::{middleware::helpers::HelperAccessList, rbpf_vm, FemtoContainerVm, RbpfVm};
 
@@ -69,6 +69,8 @@ pub fn initialize_vm<'a>(
     if config.binary_layout == BinaryFileLayout::RawObjectFile {
         resolve_relocations(&mut program)?;
     }
+
+    local_storage::register_suit_slot(config.suit_slot);
 
     Ok(Box::new(RbpfVm::new(
         program,

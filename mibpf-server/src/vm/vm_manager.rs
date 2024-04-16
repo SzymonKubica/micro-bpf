@@ -16,7 +16,7 @@ use riot_sys::msg_t;
 use mibpf_common::VMExecutionRequest;
 
 use crate::{
-    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
+    infra::suit_storage::{SUIT_STORAGE_SLOT_SIZE, self},
     model::requests::{VMExecutionCompleteMsg, VMExecutionRequestIPC},
     spawn_thread,
     vm::initialize_vm,
@@ -216,7 +216,13 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
             &mut program_buffer,
         ) {
             let mut result: i64 = 0;
+
+            // We notify everyone that the slot we are using holds a long running VM.
+            suit_storage::suit_mark_slot_running(request.configuration.suit_slot as usize);
             let execution_time = vm.execute(&mut result);
+            // Now we mark that the slot still contains the program but noone is currently
+            // executing it
+            suit_storage::suit_mark_slot_occupied(request.configuration.suit_slot as usize);
             debug!("Execution_time: {}, result: {}", execution_time, result);
         } else {
             error!("Failed to initialize the VM.");

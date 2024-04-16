@@ -1,35 +1,35 @@
-use alloc::{format, string::String, vec::Vec};
+use alloc::{
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::convert::TryInto;
-use log::error;
+use log::{debug, error};
 use mibpf_common::{
-    HelperAccessListSource, HelperAccessVerification, SuitPullRequest, VMConfiguration, BinaryFileLayout,
+    BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, SuitPullRequest,
+    VMConfiguration,
 };
 use mibpf_elf_utils::extract_allowed_helpers;
-use serde::{Deserialize, Serialize};
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
-use riot_wrappers::{stdio::println, thread};
 
 use crate::{
     infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
-    vm::{
-        middleware::{helpers::HelperAccessList, ALL_HELPERS},
-        rbpf_vm,
-    },
+    vm::{middleware::helpers::HelperAccessList, rbpf_vm},
 };
 
 use super::util::preprocess_request_raw;
 
 pub struct SuitPullHandler {
-    last_fetched_manifest: Option<String>,
-    success: bool,
+    /// Status of the last processed request, if successful it will contain
+    /// the name of the SUIT manifest file from where the image was pulled.
+    last_request_status: Result<String, String>,
 }
 
 impl SuitPullHandler {
     pub fn new() -> Self {
         Self {
-            last_fetched_manifest: None,
-            success: true,
+            last_request_status: Err("No requests processed yet".to_string()),
         }
     }
 }
@@ -49,17 +49,25 @@ impl coap_handler::Handler for SuitPullHandler {
             return coap_numbers::code::BAD_REQUEST;
         };
 
-        suit_storage::suit_fetch(
+        let fetch_result = suit_storage::suit_fetch(
             request.ip.as_str(),
             request.riot_netif.as_str(),
             request.manifest.as_str(),
         );
 
+        if let Ok(()) = fetch_result {
+            debug!("SUIT fetch successful.");
+        } else {
+            debug!("SUIT fetch failed.");
+            self.last_request_status = Err("SUIT worker failed to pull new firmware".to_string());
+            return coap_numbers::code::BAD_REQUEST;
+        }
+
         let config = VMConfiguration::decode(request.config);
 
         if config.helper_access_verification == HelperAccessVerification::LoadTime {
             let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-            let mut program = suit_storage::load_program(&mut program_buffer, config.suit_slot);
+            let program = suit_storage::load_program(&mut program_buffer, config.suit_slot);
 
             let helper_idxs: Vec<u32> = match config.helper_access_list_source {
                 HelperAccessListSource::ExecuteRequest => HelperAccessList::from(request.helpers)
@@ -74,7 +82,10 @@ impl coap_handler::Handler for SuitPullHandler {
                             .map(|id| id as u32)
                             .collect()
                     } else {
-                        error!("Tried to extract allowed helper function indices from an incompatible binary file");
+                        let error_msg = "Tried to extract allowed helper functions from an incompatible binary file.";
+                        error!("{}", error_msg);
+                        self.last_request_status = Err(error_msg.to_string());
+                        suit_storage::suit_erase(config.suit_slot);
                         return coap_numbers::code::BAD_REQUEST;
                     }
                 }
@@ -86,14 +97,13 @@ impl coap_handler::Handler for SuitPullHandler {
                 .map_err(|e| format!("Error when checking helper function access: {:?}", e))
             {
                 error!("{}", e);
-                self.success = false;
+                self.last_request_status = Err(e);
                 suit_storage::suit_erase(config.suit_slot);
                 return coap_numbers::code::BAD_REQUEST;
             }
         }
 
-        self.last_fetched_manifest = Some(String::from(request.manifest));
-        self.success = true;
+        self.last_request_status = Ok(String::from(request.manifest));
         coap_numbers::code::CHANGED
     }
 
@@ -107,13 +117,17 @@ impl coap_handler::Handler for SuitPullHandler {
         request: Self::RequestData,
     ) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        let res = if self.success {
-            format!(
-                "SUIT pull request processed successfully for manifest: {}",
-                self.last_fetched_manifest.as_ref().unwrap()
-            )
-        } else {
-            format!("SUIT pull request failed, invalid set of helpers specified.")
+
+        let res = match &self.last_request_status {
+            Ok(suit_manifest) => {
+                format!(
+                    "SUIT pull request processed successfully for manifest: {}",
+                    suit_manifest
+                )
+            }
+            Err(e) => {
+                format!("SUIT pull request failed: {}", e)
+            }
         };
         response.set_payload(res.as_bytes());
     }

@@ -2,17 +2,12 @@ use crate::{
     model::requests::VMExecutionRequestIPC,
     vm::{middleware::ALL_HELPERS, VM_EXEC_REQUEST},
 };
-use alloc::{
-    boxed::Box,
-    sync::Arc,
-    vec::{self, Vec},
-};
+use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::{fmt::Write, str::FromStr};
 use mibpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, TargetVM, VMConfiguration,
     VMExecutionRequest,
 };
-use rbpf::helpers;
 use riot_wrappers::{msg::v2::SendPort, mutex::Mutex};
 
 pub struct VMExecutionShellCommandHandler {

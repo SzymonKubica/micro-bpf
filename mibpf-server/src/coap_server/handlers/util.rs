@@ -1,9 +1,5 @@
-use alloc::{
-    boxed::Box,
-    string::{String, ToString},
-};
+use alloc::string::{String, ToString};
 use coap_message::ReadableMessage;
-use core::convert::TryInto;
 use riot_wrappers::gcoap::PacketBuffer;
 
 use log::{debug, info};

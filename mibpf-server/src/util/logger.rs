@@ -28,7 +28,6 @@ pub fn initialise_logger() {
         "LOG_DEBUG" => log::LevelFilter::Debug,
         "LOG_WARNING" => log::LevelFilter::Warn,
         "LOG_ERROR" => log::LevelFilter::Error,
-        "LOG_TRACE" => log::LevelFilter::Trace,
         _ => log::LevelFilter::Info,
     };
     if let Ok(()) = RiotLogger::init(log_level) {

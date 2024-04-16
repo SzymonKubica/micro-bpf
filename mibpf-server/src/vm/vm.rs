@@ -1,7 +1,4 @@
-use core::str::FromStr;
-
 use alloc::{boxed::Box, format, string::String, vec::Vec};
-use log::{debug, error};
 use mibpf_common::{
     BinaryFileLayout, HelperAccessVerification, HelperFunctionID, TargetVM, VMConfiguration,
 };

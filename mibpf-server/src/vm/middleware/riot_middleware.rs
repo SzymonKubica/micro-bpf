@@ -6,12 +6,9 @@
 // `u64` as a return value. Hence some helpers have unused arguments, or return a 0 value in all
 // cases, in order to respect this convention.
 
-use core::cmp::max;
 use core::ffi::{c_char, CStr};
 
-use alloc::vec::Vec;
-use log::{debug, error};
-use rbpf::helpers;
+use log::debug;
 use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
 
@@ -56,13 +53,6 @@ pub const ALL_HELPERS: [HelperFunction; 28] = [
     HF::new(ID::BPF_HD44780_SET_CURSOR, bpf_hd44780_set_cursor),
 ];
 
-pub const COAP_HELPERS: [HelperFunction; 4] = [
-    HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, bpf_gcoap_resp_init),
-    HF::new(ID::BPF_COAP_OPT_FINISH_IDX, bpf_coap_opt_finish),
-    HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, bpf_coap_add_format),
-    HF::new(ID::BPF_COAP_GET_PDU_IDX, bpf_coap_get_pdu),
-];
-
 /* Print/debug helper functions - implementation */
 
 /// Allows for printing arbitrary text to the RIOT shell console output.
@@ -99,7 +89,7 @@ extern "C" {
     fn bpf_store_update_global(key: u32, value: u32) -> i64;
     fn bpf_store_fetch_global(key: u32, value: *mut u32) -> i64;
 }
-pub fn bpf_store_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+pub fn bpf_store_local(_key: u64, _value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     // Local store/fetch requires changing the VM interpreter to maintain the
     // state of the key-value store btree and will require a bit more work.
     unimplemented!()
@@ -107,7 +97,7 @@ pub fn bpf_store_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u6
 pub fn bpf_store_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     unsafe { bpf_store_update_global(key as u32, value as u32) as u64 }
 }
-pub fn bpf_fetch_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+pub fn bpf_fetch_local(_key: u64, _value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     unimplemented!()
 }
 pub fn bpf_fetch_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {

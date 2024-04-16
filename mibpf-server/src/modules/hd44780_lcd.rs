@@ -1,7 +1,4 @@
-use core::ffi::c_void;
-
 use alloc::ffi::CString;
-use riot_wrappers::cstr::cstr;
 
 pub struct HD44780LCD {
     dev: *mut hd44780_t,
@@ -17,8 +14,6 @@ impl HD44780LCD {
 
     pub fn init_from(dev: &mut hd44780_t, params: &hd44780_params_t) -> Self {
         unsafe {
-            let dev_ptr = dev as *mut hd44780_t;
-            let params_ptr = params as *const hd44780_params_t;
             let dev = hd44780_init(dev, params) as *mut hd44780_t;
             HD44780LCD { dev }
         }
@@ -58,7 +53,13 @@ impl HD44780LCD {
         unsafe { hd44780_autoscroll(self.dev as *mut hd44780_t, state) }
     }
     pub fn create_char(&self, location: u8, charmap: &[u8]) {
-        unsafe { hd44780_create_char(self.dev as *mut hd44780_t, location, charmap as *const [u8]) }
+        unsafe {
+            hd44780_create_char(
+                self.dev as *mut hd44780_t,
+                location,
+                charmap as *const _ as *const u8,
+            )
+        }
     }
     pub fn write(&self, value: u8) {
         unsafe { hd44780_write(self.dev as *const hd44780_t, value) }
@@ -98,11 +99,12 @@ extern "C" {
     fn hd44780_left2right(dev: *const hd44780_t);
     fn hd44780_right2left(dev: *const hd44780_t);
     fn hd44780_autoscroll(dev: *const hd44780_t, state: hd44780_state_t);
-    fn hd44780_create_char(dev: *const hd44780_t, location: u8, charmap: *const [u8]);
+    fn hd44780_create_char(dev: *const hd44780_t, location: u8, charmap: *const u8);
     fn hd44780_write(dev: *const hd44780_t, value: u8);
     fn hd44780_print(dev: *const hd44780_t, data: *const u8);
 }
 
+#[allow(non_camel_case_types)]
 type gpio_t = u32;
 const HD44780_MAX_PINS: usize = 8;
 const HD44780_MAX_ROWS: usize = 4;
@@ -111,7 +113,7 @@ const HD44780_MAX_ROWS: usize = 4;
 /// within rust code
 #[allow(non_camel_case_types)]
 #[repr(C)]
-struct hd44780_params_t {
+pub struct hd44780_params_t {
     cols: u8,                                /* number of LCD cols */
     rows: u8,                                /* number of LCD rows */
     rs: gpio_t,                              /* rs gpio pin */
@@ -134,7 +136,7 @@ pub struct hd44780_t {
 /// State of the HD44780 display.
 #[allow(non_camel_case_types)]
 #[repr(C)]
-enum hd44780_state_t {
+pub enum hd44780_state_t {
     HD44780_OFF, /* disable feature */
     HD44780_ON,  /* enable feature */
 }

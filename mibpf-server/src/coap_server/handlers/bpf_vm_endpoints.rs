@@ -1,23 +1,11 @@
-use alloc::{
-    boxed::Box,
-    format,
-    string::{String, ToString},
-    sync::Arc,
-    vec::Vec,
-};
+use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::convert::TryInto;
-use goblin::{
-    container::{Container, Endian},
-    elf::{Elf, Reloc},
-};
-use mibpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
+use mibpf_elf_utils::resolve_relocations;
 
 use log::{debug, error, info};
-use serde::Deserialize;
 
 use riot_wrappers::{
-    coap_message::ResponseMessage, gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys,
-    stdio::println,
+    gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys,
 };
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
@@ -27,12 +15,10 @@ use crate::{
     vm::initialize_vm,
 };
 
-use mibpf_common::{
-    BinaryFileLayout, HelperFunctionID, TargetVM, VMConfiguration, VMExecutionRequest,
-};
+use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
 
 use crate::{
-    coap_server::handlers::util::{preprocess_request, preprocess_request_raw},
+    coap_server::handlers::util::preprocess_request_raw,
     infra::suit_storage,
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
@@ -81,7 +67,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // the length of the payload + PDU so that the handler can send the
         // response accordingly.
         let mut payload_length = 0;
-        let execution_time = vm.execute_on_coap_pkt(pkt, &mut payload_length);
+        let _execution_time = vm.execute_on_coap_pkt(pkt, &mut payload_length);
 
         // The eBPF program needs to return the length of the Payload + PDU
         payload_length as isize

@@ -11,7 +11,7 @@ macro_rules! spawn_thread {
         let Ok(thread) = $threadscope.spawn(
             $stacklock.as_mut(),
             &mut $mainclosure,
-            cstr!($name),
+            riot_wrappers::cstr::cstr!($name),
             ($priority) as _,
             (riot_sys::THREAD_CREATE_STACKTEST) as _,
         ) else {

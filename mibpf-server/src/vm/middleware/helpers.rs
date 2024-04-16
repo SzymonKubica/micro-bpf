@@ -1,7 +1,6 @@
 use core::num::ParseIntError;
 
 use alloc::{collections::BTreeMap, format, string::String, vec::Vec};
-use log::error;
 
 use super::ALL_HELPERS;
 use mibpf_common::HelperFunctionID;

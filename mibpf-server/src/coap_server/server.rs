@@ -1,6 +1,4 @@
-use core::ffi::c_int;
-
-use alloc::{boxed::Box, sync::Arc, };
+use alloc::sync::Arc;
 use riot_wrappers::{
     coap_handler::GcoapHandler,
     cstr::cstr,
@@ -13,11 +11,12 @@ use riot_wrappers::{
     thread, ztimer,
 };
 
-use crate::{vm::VM_EXEC_REQUEST, model::requests::VMExecutionRequestIPC};
+use crate::{model::requests::VMExecutionRequestIPC, vm::VM_EXEC_REQUEST};
 
 use super::handlers::{
     bpf_vm_endpoints::{
-        VMExecutionNoDataHandler, VMExecutionOnCoapPktHandler, VMLongExecutionHandler, VMExecutionBenchmarkHandler,
+        VMExecutionBenchmarkHandler, VMExecutionNoDataHandler, VMExecutionOnCoapPktHandler,
+        VMLongExecutionHandler,
     },
     miscellaneous::{ConsoleWriteHandler, RiotBoardHandler},
     suit_pull_endpoint::SuitPullHandler,
@@ -25,7 +24,7 @@ use super::handlers::{
 };
 
 pub fn gcoap_server_main(
-    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestIPC, {VM_EXEC_REQUEST}>>>,
+    execution_send: &Arc<Mutex<SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
 ) -> Result<(), ()> {
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint

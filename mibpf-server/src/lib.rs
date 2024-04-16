@@ -13,10 +13,8 @@ extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;
 
-use core::ffi::c_int;
-
-use log::{error, info};
-use riot_wrappers::{cstr::cstr, mutex::Mutex, println, riot_main, thread};
+use log::error;
+use riot_wrappers::{mutex::Mutex, riot_main, thread};
 
 mod coap_server;
 mod infra;
@@ -61,8 +59,8 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         let pri = riot_sys::THREAD_PRIORITY_MAIN;
 
         thread::scope(|scope| {
-            let gcoapthread = spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 1);
-            let shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
+            let _gcoapthread = spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 1);
+            let _shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
             vm_manager.start();
         });
         unreachable!();

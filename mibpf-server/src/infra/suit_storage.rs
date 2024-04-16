@@ -41,21 +41,17 @@ pub fn suit_fetch(ip: &str, network_interface: &str, manifest: &str) -> Result<(
     let netif = network_interface.parse::<c_int>().unwrap();
 
     let pid = thread::get_pid().into();
+    debug!("Thread {} initiating SUIT fetch...", pid);
+
     unsafe {
-        debug!("Thread {} initiating SUIT fetch...", pid);
         initiate_suit_fetch(ip_addr.as_ptr(), netif, suit_manifest.as_ptr(), pid);
 
         let mut msg: riot_sys::msg_t = Default::default();
-        unsafe {
-            let _ = riot_sys::msg_receive(&mut msg);
-        }
+        let _ = riot_sys::msg_receive(&mut msg);
 
-        if msg.content.value == 0 {
-            debug!("SUIT fetch successful.");
-            Ok(())
-        } else {
-            debug!("SUIT fetch failed.");
-            Err(())
+        match msg.content.value {
+            0 => Ok(()),
+            _ => Err(()),
         }
     }
 }

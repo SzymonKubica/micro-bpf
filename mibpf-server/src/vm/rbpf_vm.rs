@@ -1,8 +1,7 @@
 use crate::vm::{middleware, VirtualMachine};
-use alloc::{format, string::String, vec::Vec};
-use core::{ffi::c_void, ops::DerefMut, slice::from_raw_parts_mut, str::FromStr};
+use alloc::vec::Vec;
+use core::{ffi::c_void, ops::DerefMut, slice::from_raw_parts_mut};
 use mibpf_common::{BinaryFileLayout, HelperFunctionID};
-use serde::Deserialize;
 
 use rbpf::without_std::Error;
 
@@ -20,13 +19,6 @@ pub struct RbpfVm<'a> {
     pub layout: BinaryFileLayout,
 }
 
-extern "C" {
-    /// Copies all contents of the packet under *ctx into the provided memory region.
-    /// It also recalculates pointers inside of that packet struct so that they point
-    /// to correct offsets in the target memory buffer. This function is needed for
-    /// executing the rBPF VM on raw packet data.
-    fn copy_packet(buffer: *mut c_void, mem: *mut u8);
-}
 impl<'a> RbpfVm<'a> {
     pub fn new(
         program: &'a [u8],

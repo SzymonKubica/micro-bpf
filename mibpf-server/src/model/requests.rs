@@ -1,12 +1,8 @@
 use core::ffi::c_void;
 
-use crate::vm::middleware::helpers::{HelperAccessList, HelperFunction};
-use alloc::{boxed::Box, vec::Vec};
-use log::debug;
-use mibpf_common::{BinaryFileLayout, TargetVM, VMConfiguration, VMExecutionRequest};
+use alloc::boxed::Box;
+use mibpf_common::VMExecutionRequest;
 use riot_sys::msg_t;
-
-use serde::{Deserialize, Serialize};
 
 /// Wrapper around the [`mibpf_common::VMExecutionRequest`] to allow for sending
 /// it over the RIOT IPC.

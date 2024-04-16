@@ -1,26 +1,25 @@
-use core::{cell::RefCell, ffi::c_void};
+use core::ffi::c_void;
 
-use alloc::{boxed::Box, format, sync::Arc, vec::Vec};
+use alloc::{sync::Arc, vec::Vec};
 use log::{debug, error, info};
 
 use riot_wrappers::{
-    cstr::cstr,
     msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort},
-    mutex::{Mutex, MutexGuard},
+    mutex::Mutex,
     stdio::println,
-    thread::{self, CountedThread, CountingThreadScope},
+    thread::{self},
 };
 
 use riot_sys;
 use riot_sys::msg_t;
 
-use mibpf_common::{ExecutionModel, TargetVM, VMExecutionRequest};
+use mibpf_common::VMExecutionRequest;
 
 use crate::{
-    infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
+    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
     model::requests::{VMExecutionCompleteMsg, VMExecutionRequestIPC},
     spawn_thread,
-    vm::{initialize_vm, middleware, FemtoContainerVm, RbpfVm, VirtualMachine},
+    vm::initialize_vm,
 };
 
 // Because of the lifetime rules we need to preallocate the stacks of all of the
@@ -137,20 +136,16 @@ impl VMExecutionManager {
                 let message = self.message_semantics.receive();
 
                 // First process any completion notifications
-                let result =
-                    message.decode(&self.notification_receive_port, |_s, mut notification| {
-                        Self::handle_job_complete_notification(&mut free_workers, &notification)
-                    });
+                let result = message.decode(&self.notification_receive_port, |_s, notification| {
+                    Self::handle_job_complete_notification(&mut free_workers, &notification)
+                });
 
                 // Now handle any execution requests
                 let code = if let Err(message) = result {
                     message
-                        .decode(
-                            &self.request_receive_port,
-                            |_s, mut execution_request| unsafe {
-                                Self::handle_execution_request(&mut free_workers, execution_request)
-                            },
-                        )
+                        .decode(&self.request_receive_port, |_s, execution_request| {
+                            Self::handle_execution_request(&mut free_workers, execution_request)
+                        })
                         .unwrap_or_else(|_m| {
                             error!("Failed to decode message.");
                         });

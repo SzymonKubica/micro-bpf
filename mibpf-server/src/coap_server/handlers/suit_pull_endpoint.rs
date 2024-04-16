@@ -51,11 +51,14 @@ impl coap_handler::Handler for SuitPullHandler {
 
         let config = VMConfiguration::decode(request.config);
 
+        debug!("Processing SUIT pull request for ip: {}", request.ip);
+
         let fetch_result = suit_storage::suit_fetch(
             request.ip.as_str(),
             request.riot_netif.as_str(),
             request.manifest.as_str(),
             config.suit_slot,
+            request.erase
         );
 
         if let Ok(()) = fetch_result {
@@ -66,7 +69,6 @@ impl coap_handler::Handler for SuitPullHandler {
             self.last_request_status = Err(err);
             return coap_numbers::code::BAD_REQUEST;
         }
-
 
         if config.helper_access_verification == HelperAccessVerification::LoadTime {
             let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
@@ -88,7 +90,7 @@ impl coap_handler::Handler for SuitPullHandler {
                         let error_msg = "Tried to extract allowed helper functions from an incompatible binary file.";
                         error!("{}", error_msg);
                         self.last_request_status = Err(error_msg.to_string());
-                        let _ =  suit_storage::suit_erase(config.suit_slot);
+                        let _ = suit_storage::suit_erase(config.suit_slot);
                         return coap_numbers::code::BAD_REQUEST;
                     }
                 }

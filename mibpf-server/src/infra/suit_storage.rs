@@ -73,13 +73,14 @@ pub fn suit_fetch(
     network_interface: &str,
     manifest: &str,
     slot: usize,
+    erase: bool,
 ) -> Result<(), String> {
     let ip_addr = format!("{}\0", ip);
     let suit_manifest = format!("{}\0", manifest);
     let netif = network_interface.parse::<c_int>().unwrap();
 
     let mut slots = SUIT_STORAGE_STATE.lock();
-    if slots[slot] != SuitStorageSlotStatus::Free {
+    if slots[slot] != SuitStorageSlotStatus::Free && !erase {
         Err("Tried to load a program into an occupied slot".to_string())?;
     }
 

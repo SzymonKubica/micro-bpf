@@ -62,9 +62,9 @@ void handle_suit_storage_erase(uint8_t *location_id)
 }
 
 /// Overridden callback that is invoked by the SUIT worker thread once the
-/// download of the file has been completed. In this case we override because the
-/// thread that initialised the SUIT pull process is waiting for a confirmation
-/// message.
+/// download of the file has been completed. In this case we override because
+/// the thread that initialised the SUIT pull process is waiting for a
+/// confirmation message.
 void suit_worker_done_cb(int res)
 {
     if (res == 0) {

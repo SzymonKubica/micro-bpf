@@ -20,7 +20,7 @@ use super::handlers::{
     },
     miscellaneous::{ConsoleWriteHandler, RiotBoardHandler},
     suit_pull_endpoint::SuitPullHandler,
-    TimedHandler,
+    TimedHandler, jit_endpoint::JitTestHandler,
 };
 
 pub fn gcoap_server_main(
@@ -39,6 +39,7 @@ pub fn gcoap_server_main(
     let mut coap_pkt_timed_execution_handler = TimedHandler::new(&mut coap_pkt_execution_handler);
     let mut no_data_execution_handler = GcoapHandler(VMExecutionNoDataHandler::new());
     let mut benchmark_handler = GcoapHandler(VMExecutionBenchmarkHandler::new());
+    let mut jit_handler = GcoapHandler(JitTestHandler {});
     let mut long_execution_handler =
         GcoapHandler(VMLongExecutionHandler::new(execution_send.clone()));
 
@@ -48,11 +49,18 @@ pub fn gcoap_server_main(
         &mut console_write_handler,
     );
 
+    let mut jit_listener = SingleHandlerListener::new(
+        cstr!("/jit/exec"),
+        riot_sys::COAP_POST,
+        &mut jit_handler,
+    );
+
     let mut riot_board_listener = SingleHandlerListener::new(
         cstr!("/riot/board"),
         riot_sys::COAP_GET,
         &mut riot_board_handler,
     );
+
 
     let mut coap_pkt_vm_listener = SingleHandlerListener::new(
         cstr!("/vm/exec/coap-pkt"),
@@ -65,6 +73,7 @@ pub fn gcoap_server_main(
         riot_sys::COAP_POST,
         &mut no_data_execution_handler,
     );
+
 
     let mut benchmark_listener = SingleHandlerListener::new(
         cstr!("/vm/bench"),
@@ -89,6 +98,7 @@ pub fn gcoap_server_main(
         greg.register(&mut console_write_listener);
         greg.register(&mut riot_board_listener);
         greg.register(&mut coap_pkt_vm_listener);
+        greg.register(&mut jit_listener);
         greg.register(&mut vm_listener);
         greg.register(&mut benchmark_listener);
         greg.register(&mut vm_spawn_listener);

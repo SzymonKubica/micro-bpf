@@ -50,6 +50,9 @@ USEMODULE += btree
 USEMODULE += memarray
 USEPKG += femto-container
 
+DISABLE_MODULE += mpu_stack_guard
+FEATURES_BLACKLIST += cortexm_mpu
+
 # Include the custom module with FFI functions that are used in the rust
 # project
 USEMODULE += ffi

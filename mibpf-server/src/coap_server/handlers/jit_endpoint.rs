@@ -49,8 +49,6 @@ impl coap_handler::Handler for JitTestHandler {
         )
         .unwrap();
 
-        let mut compiler = rbpf::JitCompiler::new();
-        compiler.jit_compile(&mut jit_memory, program, false, false, &helpers);
         debug!("JIT compilation successful");
 
         let mut prog: AlignedBuffer = AlignedBuffer([0x4f, 0xf0, 0x2a, 0x00, 0x70, 0x47]);

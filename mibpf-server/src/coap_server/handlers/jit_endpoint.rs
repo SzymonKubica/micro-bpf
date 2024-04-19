@@ -14,6 +14,9 @@ pub struct JitTestHandler {}
 
 use crate::coap_server::handlers::util::preprocess_request_raw;
 
+#[repr(C, align(4))]
+struct AlignedBuffer([u8; 6]);
+
 static JIT_MEMORY: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
 impl coap_handler::Handler for JitTestHandler {
@@ -50,36 +53,16 @@ impl coap_handler::Handler for JitTestHandler {
         compiler.jit_compile(&mut jit_memory, program, false, false, &helpers);
         debug!("JIT compilation successful");
 
-        let mut bytecode_str = String::new();
-        jit_memory.contents[0..jit_memory.offset]
-            .iter()
-            .enumerate()
-            .for_each(|(i, b)| {
-                bytecode_str = format!(
-                    "{}{:02x}{}",
-                    bytecode_str,
-                    b,
-                    if i % 4 == 3 { "\n" } else { "" }
-                )
-            });
-        debug!("Compiled bytecode: \n{}", bytecode_str);
-
-        debug!(
-            "Address of the bytecode: {:#x}",
-            jit_memory.contents.as_ptr() as u32
-        );
-
+        let mut prog: AlignedBuffer = AlignedBuffer([0x4f, 0xf0, 0x2a, 0x00, 0x70, 0x47]);
+        let mut prog_ptr: u32 = prog.0.as_mut_ptr() as u32;
 
         let jitted_fn = jit_memory.get_prog();
         let mut ret = 0;
         let mut ret2 = 0;
 
         unsafe {
-            extern "C" {
-                fn test();
-            }
-            test();
-
+            let ret = jitted_fn(&mut ret, 0, &mut ret2, 0, 0, 0);
+            debug!("JIT execution successful: {}", ret);
         }
 
         coap_numbers::code::CHANGED

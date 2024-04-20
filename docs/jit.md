@@ -1,4 +1,7 @@
-# JIT Motivation, Planning and Implementation Notes
+# Implementing ARMv7e-M JIT compiler for eBPF
+
+## Motivation
+- timing requierements performance critical applications (e.g. interfacing with a DHT22 sensor)
 
 **Ingredients needed:**
 - memory and address translation
@@ -53,3 +56,8 @@ The reason we push LR and then pop PC is the following:
   stack was handled correctly and the previously pushed LR value is at the top
   of the stack, we can pop it into PC and end up with a consistent state where
   the execution resumes from the previous value of the PC when we have made our call.
+
+It seems like the 32-bit versions of the instructions (Thumb2) aren't supported.
+TODO: investigate
+
+

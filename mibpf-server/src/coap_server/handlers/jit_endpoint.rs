@@ -51,15 +51,12 @@ impl coap_handler::Handler for JitTestHandler {
 
         debug!("JIT compilation successful");
 
-        let mut prog: AlignedBuffer = AlignedBuffer([0x4f, 0xf0, 0x2a, 0x00, 0x70, 0x47]);
-        let mut prog_ptr: u32 = prog.0.as_mut_ptr() as u32;
-
         let jitted_fn = jit_memory.get_prog();
         let mut ret = 0;
         let mut ret2 = 0;
 
         unsafe {
-            let ret = jitted_fn(&mut ret, 0, &mut ret2, 0, 0, 0);
+            let ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
             debug!("JIT execution successful: {}", ret);
         }
 

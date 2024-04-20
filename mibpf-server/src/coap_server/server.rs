@@ -39,7 +39,7 @@ pub fn gcoap_server_main(
     let mut coap_pkt_timed_execution_handler = TimedHandler::new(&mut coap_pkt_execution_handler);
     let mut no_data_execution_handler = GcoapHandler(VMExecutionNoDataHandler::new());
     let mut benchmark_handler = GcoapHandler(VMExecutionBenchmarkHandler::new());
-    let mut jit_handler = GcoapHandler(JitTestHandler {});
+    let mut jit_handler = GcoapHandler(JitTestHandler::new());
     let mut long_execution_handler =
         GcoapHandler(VMLongExecutionHandler::new(execution_send.clone()));
 

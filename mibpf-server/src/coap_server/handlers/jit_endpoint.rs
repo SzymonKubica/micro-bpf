@@ -10,7 +10,24 @@ use mibpf_common::VMExecutionRequest;
 use riot_wrappers::mutex::Mutex;
 
 use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
-pub struct JitTestHandler {}
+pub struct JitTestHandler {
+    execution_time: u32,
+    result: i64,
+}
+
+impl JitTestHandler {
+    pub fn new() -> Self {
+        Self {
+            execution_time: 0,
+            result: 0,
+        }
+    }
+
+    #[inline(always)]
+    fn time_now(clock: *mut riot_sys::inline::ztimer_clock_t) -> u32 {
+        unsafe { riot_sys::inline::ztimer_now(clock) }
+    }
+}
 
 use crate::coap_server::handlers::util::preprocess_request_raw;
 
@@ -53,12 +70,13 @@ impl coap_handler::Handler for JitTestHandler {
 
         let jitted_fn = jit_memory.get_prog();
         let mut ret = 0;
-        let mut ret2 = 0;
 
         unsafe {
-            let ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
+            ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
             debug!("JIT execution successful: {}", ret);
         }
+        self.execution_time = 0;
+        self.result = ret as i64;
 
         coap_numbers::code::CHANGED
     }
@@ -69,7 +87,10 @@ impl coap_handler::Handler for JitTestHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        let resp = format!("Jit execution successful");
+        let resp = format!(
+            "{{\"execution_time\": {}, \"result\": {}}}",
+            self.execution_time, self.result
+        );
         response.set_payload(resp.as_bytes());
     }
 }

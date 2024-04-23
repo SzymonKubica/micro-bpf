@@ -3,6 +3,7 @@
 use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
+use alloc::vec::Vec;
 use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use log::debug;
@@ -30,6 +31,8 @@ impl JitTestHandler {
 }
 
 use crate::coap_server::handlers::util::preprocess_request_raw;
+use crate::vm::middleware;
+use crate::vm::middleware::helpers::HelperFunction;
 
 #[repr(C, align(4))]
 struct AlignedBuffer([u8; 6]);
@@ -56,11 +59,16 @@ impl coap_handler::Handler for JitTestHandler {
 
         let compiler = rbpf::JitCompiler::new();
         let mut jit_memory_buffer = JIT_MEMORY.lock();
-        let helpers = BTreeMap::new();
+        let helpers: Vec<HelperFunction> = Vec::from(middleware::ALL_HELPERS);
+
+        let mut helpers_map = BTreeMap::new();
+        for h in helpers {
+            helpers_map.insert(h.id as u32, h.function);
+        }
         let mut jit_memory = rbpf::JitMemory::new(
             program,
             jit_memory_buffer.as_mut_slice(),
-            &helpers,
+            &helpers_map,
             false,
             false,
         )

@@ -88,3 +88,6 @@ That's very interesting
 
 Talk about problems with mod not being directly supported.
 
+Need to figure out the calling convention that rust uses.
+
+Talk about how we need to preserve the contents of LR when calling functions

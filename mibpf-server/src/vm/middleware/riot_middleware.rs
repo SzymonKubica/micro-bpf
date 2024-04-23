@@ -117,11 +117,16 @@ pub fn bpf_fetch_local(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u6
 }
 
 pub fn bpf_store_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
-    debug!("Storing key: {:?}, value: {:?}", key, value);
+    debug!("Storing key: {:#x}, value: {:#x}", key, value);
+    //debug!("Arguments to the helper: {:#x}, {:#x}, {:#x}, {:#x}, {:#x}", key, value, _a3, _a4, _a5);
+    // We need to truncate the values as for some reason the higher bits of the
+    // registers that are passed in are still set.
     unsafe { bpf_store_update_global(key as u32, value as u32) as u64 }
 }
 
 pub fn bpf_fetch_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    debug!("Fetching key: {:#x}, value: {:#x}", key, value);
+    //debug!("Arguments to the helper: {:#x}, {:#x}, {:#x}, {:#x}, {:#x}", key, value, _a3, _a4, _a5);
     unsafe { bpf_store_fetch_global(key as u32, value as *mut u32) as u64 }
 }
 

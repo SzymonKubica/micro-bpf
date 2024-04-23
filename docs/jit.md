@@ -61,3 +61,30 @@ It seems like the 32-bit versions of the instructions (Thumb2) aren't supported.
 TODO: investigate
 
 
+Endianness discussion
+: need to write double-word instructions correctly
+
+Interesting observations:
+the compiler actually emits add with negative immediates to subtract
+
+Conditional branch only allows for jumping over an even number of instructions
+so we need to ensure that conditional bodies are of even length
+
+Solution: emit a no-op instruction to make the offset even
+
+Why does the compiler emit logical shifts left followed immediately by asr?
+something like this:
+```
+ 0:   b7 01 00 00 64 00 00 00         mov %r1,100
+ 8:   6b 1a fe ff 00 00 00 00         stxh [%r10-2],%r1
+10:   69 a1 fe ff 00 00 00 00         ldxh %r1,[%r10-2]
+18:   67 01 00 00 30 00 00 00         lsh %r1,48
+20:   c7 01 00 00 30 00 00 00         arsh %r1,48
+28:   b7 00 00 00 7b 00 00 00         mov %r0,123
+30:   65 01 01 00 9c ff ff ff         jsgt %r1,-100,1
+38:   b7 00 00 00 14 00 00 00         mov %r0,20
+```
+That's very interesting
+
+Talk about problems with mod not being directly supported.
+

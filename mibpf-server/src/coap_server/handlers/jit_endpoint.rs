@@ -79,11 +79,13 @@ impl coap_handler::Handler for JitTestHandler {
         let jitted_fn = jit_memory.get_prog();
         let mut ret = 0;
 
+        let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
+        let start: u32 = Self::time_now(clock);
         unsafe {
             ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
             debug!("JIT execution successful: {}", ret);
         }
-        self.execution_time = 0;
+        self.execution_time = Self::time_now(clock) - start;
         self.result = ret as i64;
 
         coap_numbers::code::CHANGED

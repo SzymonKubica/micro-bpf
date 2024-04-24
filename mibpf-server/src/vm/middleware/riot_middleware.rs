@@ -127,7 +127,11 @@ pub fn bpf_store_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u
 pub fn bpf_fetch_global(key: u64, value: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     debug!("Fetching key: {:#x}, value: {:#x}", key, value);
     unsafe {
-        debug!("Actual value in memory: {} ({:#x})", *(value as *mut u32), *(value as *mut u32));
+        debug!(
+            "Actual value in memory: {} ({:#x})",
+            *(value as *mut u32),
+            *(value as *mut u32)
+        );
     }
     //debug!("Arguments to the helper: {:#x}, {:#x}, {:#x}, {:#x}, {:#x}", key, value, _a3, _a4, _a5);
     unsafe { bpf_store_fetch_global(key as u32, value as *mut u32) as u64 }

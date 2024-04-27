@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use log::debug;
-use mibpf_common::VMExecutionRequest;
+use mibpf_common::{VMExecutionRequest, BinaryFileLayout};
 use riot_wrappers::mutex::Mutex;
 
 use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
@@ -57,7 +57,10 @@ impl coap_handler::Handler for JitTestHandler {
         let mut program =
             suit_storage::load_program(&mut program_buffer, request.configuration.suit_slot);
 
-        let compiler = rbpf::JitCompiler::new();
+        if request.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
+            let _ = mibpf_elf_utils::resolve_relocations(&mut program);
+        }
+
         let mut jit_memory_buffer = JIT_MEMORY.lock();
         let helpers: Vec<HelperFunction> = Vec::from(middleware::ALL_HELPERS);
 
@@ -71,6 +74,7 @@ impl coap_handler::Handler for JitTestHandler {
             &helpers_map,
             false,
             false,
+            rbpf::InterpreterVariant::RawObjectFile,
         )
         .unwrap();
 

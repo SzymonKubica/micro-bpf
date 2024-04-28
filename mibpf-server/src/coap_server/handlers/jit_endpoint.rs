@@ -87,9 +87,9 @@ impl coap_handler::Handler for JitTestHandler {
         let start: u32 = Self::time_now(clock);
         unsafe {
             ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
-            debug!("JIT execution successful: {}", ret);
         }
         self.execution_time = Self::time_now(clock) - start;
+        debug!("JIT execution successful: {}", ret);
         self.result = ret as i64;
 
         coap_numbers::code::CHANGED

@@ -20,7 +20,7 @@ use super::handlers::{
     },
     miscellaneous::{ConsoleWriteHandler, RiotBoardHandler},
     suit_pull_endpoint::SuitPullHandler,
-    TimedHandler, jit_endpoint::JitTestHandler,
+    TimedHandler, jit_endpoint::JitTestHandler, native_fletcher16_endpoint::Fletcher16NativeHandler,
 };
 
 pub fn gcoap_server_main(
@@ -40,6 +40,7 @@ pub fn gcoap_server_main(
     let mut no_data_execution_handler = GcoapHandler(VMExecutionNoDataHandler::new());
     let mut benchmark_handler = GcoapHandler(VMExecutionBenchmarkHandler::new());
     let mut jit_handler = GcoapHandler(JitTestHandler::new());
+    let mut fletcher16_handler = GcoapHandler(Fletcher16NativeHandler::new());
     let mut long_execution_handler =
         GcoapHandler(VMLongExecutionHandler::new(execution_send.clone()));
 
@@ -53,6 +54,14 @@ pub fn gcoap_server_main(
         cstr!("/jit/exec"),
         riot_sys::COAP_POST,
         &mut jit_handler,
+    );
+
+    // Mock endpoint for benchmarking native execution of Fletcher16 algorithm.
+    // TODO: move this to a separate project to not clutter the main one
+    let mut fletcher16_listener = SingleHandlerListener::new(
+        cstr!("/native/exec"),
+        riot_sys::COAP_POST,
+        &mut fletcher16_handler,
     );
 
     let mut riot_board_listener = SingleHandlerListener::new(
@@ -99,6 +108,7 @@ pub fn gcoap_server_main(
         greg.register(&mut riot_board_listener);
         greg.register(&mut coap_pkt_vm_listener);
         greg.register(&mut jit_listener);
+        greg.register(&mut fletcher16_listener);
         greg.register(&mut vm_listener);
         greg.register(&mut benchmark_listener);
         greg.register(&mut vm_spawn_listener);

@@ -13,7 +13,7 @@ use crate::infra::local_storage;
 /// It is important that this value is consistent with what is specified in
 /// the Makefile for this project using this line:
 /// CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=2 -DCONFIG_SUIT_STORAGE_RAM_SIZE=2048
-pub const SUIT_STORAGE_SLOT_SIZE: usize = 2048;
+pub const SUIT_STORAGE_SLOT_SIZE: usize = 4096;
 pub const SUIT_STORAGE_SLOTS: usize = 2;
 
 /// Stores status of all SUIT storage slots available for loading programs

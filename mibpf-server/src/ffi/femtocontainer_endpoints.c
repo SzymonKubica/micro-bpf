@@ -138,6 +138,7 @@ uint32_t execute_fc_vm(uint8_t *program, uint32_t program_len,
     LOG_DEBUG("[BPF handler]: initialising the eBPF application struct\n");
     _bpf.application = program;
     _bpf.application_len = program_len;
+    // The verification should have already been done
     _bpf.flags |= FC_FLAG_PREFLIGHT_DONE;
     LOG_DEBUG("Program address: %p\n", program);
 

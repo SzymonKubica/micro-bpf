@@ -26,7 +26,7 @@ pub struct FemtoContainerVm<'a> {
 impl<'a> FemtoContainerVm<'a> {
     pub fn verify_program(&self) -> Result<(), String> {
         let return_code = unsafe {
-            return verify_fc_program(self.program.as_ptr(), self.program.len());
+            verify_fc_program(self.program.as_ptr(), self.program.len())
         };
 
         if return_code != 0 {

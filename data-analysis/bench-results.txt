@@ -1,0 +1,40 @@
+---- benchmark_extended_interpreter stdout ----
+Response: {"execution_time": 729, "result": 44620}
+Response: {"execution_time": 1435, "result": 1171}
+Response: {"execution_time": 2848, "result": 32742}
+Response: {"execution_time": 5674, "result": 40362}
+Response: {"execution_time": 11328, "result": 58709}
+Response: {"execution_time": 22634, "result": 30378}
+
+---- benchmark_fc_interpreter stdout ----
+Response: {"execution_time": 324, "result": 44620}
+Response: {"execution_time": 641, "result": 1171}
+Response: {"execution_time": 1276, "result": 32742}
+Response: {"execution_time": 2545, "result": 40362}
+Response: {"execution_time": 5082, "result": 58709}
+Response: {"execution_time": 10159, "result": 30378}
+
+---- benchmark_jit stdout ----
+Response: {"execution_time": 18, "result": 44620}
+Response: {"execution_time": 35, "result": 1171}
+Response: {"execution_time": 70, "result": 32742}
+Response: {"execution_time": 139, "result": 40362}
+Response: {"execution_time": 278, "result": 58709}
+Response: {"execution_time": 554, "result": 30378}
+
+---- benchmark_native stdout ----
+Response: {"execution_time": 15, "result": 44620}
+Response: {"execution_time": 29, "result": 1171}
+Response: {"execution_time": 57, "result": 32742}
+Response: {"execution_time": 113, "result": 40362}
+Response: {"execution_time": 226, "result": 58709}
+Response: {"execution_time": 451, "result": 30378}
+
+---- benchmark_raw_object_file_interpreter stdout ----
+Response: {"execution_time": 1052, "result": 44620}
+Response: {"execution_time": 1988, "result": 1171}
+Response: {"execution_time": 3860, "result": 32742}
+Response: {"execution_time": 7604, "result": 40362}
+Response: {"execution_time": 15092, "result": 58709}
+Response: {"execution_time": 30067, "result": 30378}
+

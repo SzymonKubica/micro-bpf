@@ -1,5 +1,6 @@
 use core::ffi::c_void;
 
+use alloc::{string::String, format};
 use riot_wrappers::{gcoap::PacketBuffer, println};
 
 use crate::vm::VirtualMachine;
@@ -15,10 +16,28 @@ extern "C" {
     ) -> u32;
 
     fn execute_fc_vm(program: *const u8, program_len: usize, return_value: *mut i64) -> u32;
+    fn verify_fc_program(program: *const u8, program_len: usize) -> u32;
 }
 
 pub struct FemtoContainerVm<'a> {
-    pub program: &'a [u8]
+    pub program: &'a [u8],
+}
+
+impl<'a> FemtoContainerVm<'a> {
+    pub fn verify_program(&self) -> Result<(), String> {
+        let return_code = unsafe {
+            return verify_fc_program(self.program.as_ptr(), self.program.len());
+        };
+
+        if return_code != 0 {
+            return Err(format!(
+                "FemtoContainer VM program verification failed with code {}",
+                return_code
+            ));
+        } else {
+            return Ok(());
+        }
+    }
 }
 
 impl VirtualMachine for FemtoContainerVm<'_> {

@@ -37,6 +37,8 @@ pub fn initialize_vm<'a>(
     // We exit early if the Femto-Container VM is to be used as it isn't
     // as configurable and most configuration options don't apply to it
     if config.vm_target == TargetVM::FemtoContainer {
+        let vm = FemtoContainerVm { program };
+        vm.verify_program()?;
         return Ok(Box::new(FemtoContainerVm { program }));
     }
 

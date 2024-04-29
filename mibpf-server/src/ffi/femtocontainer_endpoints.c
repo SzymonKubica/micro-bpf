@@ -118,12 +118,27 @@ typedef struct {
     size_t len;
 } pkt_buf;
 
-uint32_t execute_fc_vm(uint8_t *program, uint32_t program_len, uint64_t *return_value)
+uint32_t verify_fc_program(uint8_t *program, uint32_t program_len) {
+
+    LOG_DEBUG("[BPF handler]: verifying the eBPF program\n");
+    _bpf.application = program;
+    _bpf.application_len = program_len;
+    LOG_DEBUG("Program address: %p\n", program);
+
+    LOG_DEBUG("[BPF]: executing gcoap handler\n");
+
+    f12r_setup(&_bpf);
+    return f12r_verify_preflight(&_bpf);
+}
+
+uint32_t execute_fc_vm(uint8_t *program, uint32_t program_len,
+                       uint64_t *return_value)
 {
 
     LOG_DEBUG("[BPF handler]: initialising the eBPF application struct\n");
     _bpf.application = program;
     _bpf.application_len = program_len;
+    _bpf.flags |= FC_FLAG_PREFLIGHT_DONE;
     LOG_DEBUG("Program address: %p\n", program);
 
     LOG_DEBUG("[BPF]: executing gcoap handler\n");
@@ -146,8 +161,8 @@ uint32_t execute_fc_vm(uint8_t *program, uint32_t program_len, uint64_t *return_
     return execution_time;
 }
 
-uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_buf *ctx,
-                                   uint64_t *return_value)
+uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len,
+                                   pkt_buf *ctx, uint64_t *return_value)
 {
 
     coap_pkt_t *pdu = ctx->pdu;
@@ -188,7 +203,7 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len, pkt_b
     uint32_t execution_time = end - start;
     *return_value = result;
 
-    LOG_INFO("Program returned: %d (%x)\n", (int) result, result);
+    LOG_INFO("Program returned: %d (%x)\n", (int)result, result);
     LOG_INFO("Exit code: %d\n", res);
     LOG_INFO("Execution time: %d [us]\n", execution_time);
 

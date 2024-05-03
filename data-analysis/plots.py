@@ -33,7 +33,7 @@ def old_bench():
     plt.show()
 
 
-def main():
+def plots_benchmark2():
 
     extended_interpreter_results = [
         (80, 728),
@@ -73,14 +73,26 @@ def main():
         (2560, 30066),
     ]
 
-    message_sizes, _ = zip(*extended_interpreter_results);
+    message_sizes, _ = zip(*extended_interpreter_results)
 
     plt.plot(message_sizes, list(zip(*extended_interpreter_results))[1])
-    plt.scatter(message_sizes, list(zip(*extended_interpreter_results))[1], label="Extended Interpreter")
+    plt.scatter(
+        message_sizes,
+        list(zip(*extended_interpreter_results))[1],
+        label="Extended Interpreter",
+    )
     plt.plot(message_sizes, list(zip(*fc_interpreter_results))[1])
-    plt.scatter(message_sizes, list(zip(*fc_interpreter_results))[1], label="Femto-Containers Interpreter")
+    plt.scatter(
+        message_sizes,
+        list(zip(*fc_interpreter_results))[1],
+        label="Femto-Containers Interpreter",
+    )
     plt.plot(message_sizes, list(zip(*raw_object_file_results))[1])
-    plt.scatter(message_sizes, list(zip(*raw_object_file_results))[1], label="Raw Object File Interpreter")
+    plt.scatter(
+        message_sizes,
+        list(zip(*raw_object_file_results))[1],
+        label="Raw Object File Interpreter",
+    )
     plt.plot(message_sizes, list(zip(*native_results))[1])
     plt.scatter(message_sizes, list(zip(*native_results))[1], label="Native")
     plt.plot(message_sizes, list(zip(*jit_results))[1])
@@ -93,5 +105,63 @@ def main():
     plt.show()
 
 
+def plots_benchmark_overhead_investigation():
+
+    extended_interpreter_results = [
+        (80, 46),
+        (160, 35),
+        (320, 50),
+        (640, 73),
+        (1280, 169),
+        (2560, 227),
+    ]
+
+    fc_interpreter_results = [
+        (80, 7),
+        (160, 12),
+        (320, 17),
+        (640, 28),
+        (1280, 80),
+        (2560, 135),
+    ]
+
+    raw_object_file_results = [
+        (80, 23),
+        (160, 36),
+        (320, 45),
+        (640, 158),
+        (1280, 140),
+        (2560, 266),
+    ]
+
+    message_sizes, _ = zip(*extended_interpreter_results)
+    print(message_sizes)
+
+    plt.plot(message_sizes, list(zip(*extended_interpreter_results))[1])
+    plt.scatter(
+        message_sizes,
+        list(zip(*extended_interpreter_results))[1],
+        label="Extended Interpreter",
+    )
+    plt.plot(message_sizes, list(zip(*fc_interpreter_results))[1])
+    plt.scatter(
+        message_sizes,
+        list(zip(*fc_interpreter_results))[1],
+        label="Femto-Containers Interpreter",
+    )
+    plt.plot(message_sizes, list(zip(*raw_object_file_results))[1])
+    plt.scatter(
+        message_sizes,
+        list(zip(*raw_object_file_results))[1],
+        label="Raw Object File Interpreter",
+    )
+    plt.xlabel("Message Size [B]")
+    plt.ylabel("Execution Time [us]")
+    plt.xticks(message_sizes, message_sizes)
+    plt.xscale("log")
+    plt.legend()
+    plt.show()
+
+
 if __name__ == "__main__":
-    main()
+    plots_benchmark_overhead_investigation()

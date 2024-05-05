@@ -68,6 +68,8 @@ impl coap_handler::Handler for JitTestHandler {
         for h in helpers {
             helpers_map.insert(h.id as u32, h.function);
         }
+
+        let jitting_start: u32 = Self::time_now(clock);
         let mut jit_memory = rbpf::JitMemory::new(
             program,
             jit_memory_buffer.as_mut_slice(),
@@ -77,8 +79,10 @@ impl coap_handler::Handler for JitTestHandler {
             rbpf::InterpreterVariant::RawObjectFile,
         )
         .unwrap();
+        let jitting_time = Self::time_now(clock) - jitting_start;
 
         debug!("JIT compilation successful");
+        debug!("Compilation step took: {} [us]", jitting_time);
 
         let jitted_fn = jit_memory.get_prog();
         let mut ret = 0;

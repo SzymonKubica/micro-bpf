@@ -4,9 +4,7 @@ use mibpf_elf_utils::resolve_relocations;
 
 use log::{debug, error, info};
 
-use riot_wrappers::{
-    gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys,
-};
+use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys};
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 

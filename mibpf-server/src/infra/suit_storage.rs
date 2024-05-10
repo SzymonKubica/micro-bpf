@@ -158,7 +158,7 @@ pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a mut [u
     };
 
     debug!("{}[B] program loaded from SUIT storage slot {}.", len, slot);
-    local_storage::register_suit_slot(config.suit_slot);
+    local_storage::register_suit_slot(slot);
 
     &mut program_buffer[..(len as usize)]
 }

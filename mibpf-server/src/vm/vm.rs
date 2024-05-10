@@ -13,15 +13,17 @@ use super::{middleware::helpers::HelperAccessList, rbpf_vm, FemtoContainerVm, Rb
 /// both raw and with access to the incoming CoAP packet.
 pub trait VirtualMachine {
     /// Loads, verifies, optionally resolves relocations and executes the program.
-    fn full_run(&mut self) -> Result<i64, String> {
+    fn full_run(&mut self, program: &[u8]) -> Result<u64, String> {
         self.resolve_relocations()?;
         self.verify_program()?;
+        self.initialise_vm(program)?;
         self.execute()
     }
-    fn verify_program(&self) -> Result<(), String>;
     /// Patches the program bytecode using the relocation metadata to fix accesses
     /// to .data and .rodata sections.
     fn resolve_relocations(&mut self) -> Result<(), String>;
+    fn verify_program(&self) -> Result<(), String>;
+    fn initialise_vm(&mut self, program: &[u8]) -> Result<(), String>;
     /// Executes a given program and returns its return value.
     fn execute(&mut self) -> Result<u64, String>;
     /// Executes a given eBPF program giving it access to the provided PacketBuffer
@@ -44,12 +46,10 @@ pub fn initialize_vm<'a>(
 
     match config.vm_target {
         TargetVM::Rbpf => {
-            let vm = RbpfVm::new(&mut program, config, allowed_helpers)?;
-            return Ok(Box::new(vm));
+            return Ok(Box::new(RbpfVm::new(program, config, allowed_helpers)?));
         }
         TargetVM::FemtoContainer => {
-            let vm = FemtoContainerVm::new(&program);
-            return Ok(Box::new(vm));
+            return Ok(Box::new(FemtoContainerVm::new(program)));
         }
     }
 }

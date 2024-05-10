@@ -16,27 +16,9 @@ impl<'a> FemtoContainerVm<'a> {
 }
 
 impl VirtualMachine for FemtoContainerVm<'_> {
-    fn execute(&mut self, result: &mut i64) -> u32 {
-        println!("Starting FemtoContainer VM execution.");
-        unsafe {
-            return execute_fc_vm(
-                self.program.as_ptr() as *const u8,
-                self.program.len(),
-                result as *mut i64,
-            );
-        }
-    }
-
-    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
-        println!("Starting FemtoContainer VM execution.");
-        unsafe {
-            return execute_fc_vm_on_coap_pkt(
-                self.program.as_ptr() as *const u8,
-                self.program.len(),
-                pkt as *mut PacketBuffer as *mut c_void,
-                result as *mut i64,
-            );
-        }
+    fn resolve_relocations(&mut self) -> Result<(), String> {
+        /// FemtoContainer VM doesn't support relocations so this is a no-op.
+        Ok(())
     }
 
     fn verify_program(&self) -> Result<(), String> {
@@ -52,10 +34,38 @@ impl VirtualMachine for FemtoContainerVm<'_> {
         }
     }
 
-    fn resolve_relocations(&mut self) -> Result<(), String> {
-        /// FemtoContainer VM doesn't support relocations so this is a no-op.
+    fn initialise_vm(&mut self) -> Result<(), String> {
+        /// FemtoContainer VM doesn't require preflight initialisation
         Ok(())
     }
+
+    fn execute(&mut self) -> Result<u64, String> {
+        println!("Starting FemtoContainer VM execution.");
+        unsafe {
+            let mut result;
+            execute_fc_vm(
+                self.program.as_ptr() as *const u8,
+                self.program.len(),
+                &mut result as *mut i64,
+            );
+            return Ok(result as u64);
+        }
+    }
+
+    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
+        println!("Starting FemtoContainer VM execution.");
+        unsafe {
+            let mut result;
+            execute_fc_vm_on_coap_pkt(
+                self.program.as_ptr() as *const u8,
+                self.program.len(),
+                pkt as *mut PacketBuffer as *mut c_void,
+                &mut result as *mut i64,
+            );
+            return Ok(result as u64);
+        }
+    }
+
 }
 
 extern "C" {

@@ -63,29 +63,21 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         // It is very important that the program executing on the CoAP packet returns
         // the length of the payload + PDU so that the handler can send the
-        // response accordingly.
-        let mut payload_length = 0;
-        let _execution_time = vm.execute_on_coap_pkt(pkt, &mut payload_length);
-
-        // The eBPF program needs to return the length of the Payload + PDU
-        payload_length as isize
+        // response accordingly. In case of error the response length should be set to 0.
+        vm.execute_on_coap_pkt(pkt).unwrap_or(0) as isize
     }
 }
 
 // Allows for executing an instance of the eBPF VM directly in the CoAP server
-// request handler callback. It stores the execution time and return value
-// of the program so that it can format the CoAP response with those values accordingly.
+// request handler callback. It stores the return value
+// of the program so that it can format the CoAP response accordingly.
 pub struct VMExecutionNoDataHandler {
-    execution_time: u32,
     result: i64,
 }
 
 impl VMExecutionNoDataHandler {
     pub fn new() -> Self {
-        Self {
-            execution_time: 0,
-            result: 0,
-        }
+        Self { result: 0 }
     }
 }
 
@@ -118,7 +110,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
             return coap_numbers::code::INTERNAL_SERVER_ERROR;
         };
 
-        self.execution_time = vm.execute(&mut self.result);
+        self.result = vm.execute().unwrap() as i64;
         coap_numbers::code::CHANGED
     }
 
@@ -129,8 +121,8 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!(
-            "{{\"execution_time\": {}, \"result\": {}}}",
-            self.execution_time, self.result
+            "{{\"return\": {}}}",
+            self.result
         );
         response.set_payload(resp.as_bytes());
     }
@@ -249,16 +241,16 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
         let mut vm: Box<dyn VirtualMachine> = match request.configuration.vm_target {
             TargetVM::Rbpf => Box::new(RbpfVm::new(
                 program,
+                request.configuration,
                 Vec::from(middleware::ALL_HELPERS)
                     .into_iter()
                     .map(|f| f.id)
                     .collect(),
-                request.configuration.binary_layout,
-            )),
+            ).unwrap()),
             TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
         };
 
-        self.execution_time = vm.execute(&mut self.result);
+        self.result = vm.execute().unwrap() as i64;
 
         coap_numbers::code::CHANGED
     }

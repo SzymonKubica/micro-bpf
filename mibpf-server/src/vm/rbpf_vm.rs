@@ -83,7 +83,7 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
     }
 }
 
-impl VirtualMachine for RbpfVm<'_> {
+impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
     fn resolve_relocations(&mut self) -> Result<(), String> {
         if self.layout == BinaryFileLayout::RawObjectFile {
             mibpf_elf_utils::resolve_relocations(&mut self.program)?;
@@ -111,7 +111,7 @@ impl VirtualMachine for RbpfVm<'_> {
         Ok(())
     }
 
-    fn initialise_vm(&mut self, program: &[u8]) -> Result<(), String> {
+    fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String> {
         // We need to make a decision whether we use the helper list that was
         // sent in the request or read the allowed helpers from the metadata appended
         // to the program binary.
@@ -158,7 +158,6 @@ impl VirtualMachine for RbpfVm<'_> {
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };
 
-        let buffer_mutex = Mutex::new(coap_context);
 
         // Actual packet struct
         let mem = unsafe {
@@ -166,8 +165,6 @@ impl VirtualMachine for RbpfVm<'_> {
             println!("Coap context: {:?}", *ctx);
             from_raw_parts_mut((*ctx).pkt as *mut u8, (*ctx).len)
         };
-
-        let mem_mutex = Mutex::new(mem);
 
         let pkt_buffer_region: (u64, u64) = unsafe {
             let ctx = pkt as *mut _ as *mut CoapContext;
@@ -178,8 +175,8 @@ impl VirtualMachine for RbpfVm<'_> {
             .as_mut()
             .unwrap()
             .execute_program(
-                mem_mutex.lock().deref_mut(),
-                buffer_mutex.lock().deref_mut(),
+                mem,
+                coap_context,
                 alloc::vec![pkt_buffer_region],
             )
             .map_err(|e| format!("Error: {:?}", e))

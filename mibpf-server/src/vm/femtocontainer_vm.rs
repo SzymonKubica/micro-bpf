@@ -15,7 +15,7 @@ impl<'a> FemtoContainerVm<'a> {
     }
 }
 
-impl VirtualMachine for FemtoContainerVm<'_> {
+impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
     fn resolve_relocations(&mut self) -> Result<(), String> {
         /// FemtoContainer VM doesn't support relocations so this is a no-op.
         Ok(())
@@ -34,7 +34,7 @@ impl VirtualMachine for FemtoContainerVm<'_> {
         }
     }
 
-    fn initialise_vm(&mut self) -> Result<(), String> {
+    fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String> {
         /// FemtoContainer VM doesn't require preflight initialisation
         Ok(())
     }
@@ -42,7 +42,7 @@ impl VirtualMachine for FemtoContainerVm<'_> {
     fn execute(&mut self) -> Result<u64, String> {
         println!("Starting FemtoContainer VM execution.");
         unsafe {
-            let mut result;
+            let mut result: i64 = 0;
             execute_fc_vm(
                 self.program.as_ptr() as *const u8,
                 self.program.len(),
@@ -55,7 +55,7 @@ impl VirtualMachine for FemtoContainerVm<'_> {
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
         println!("Starting FemtoContainer VM execution.");
         unsafe {
-            let mut result;
+            let mut result: i64 = 0;
             execute_fc_vm_on_coap_pkt(
                 self.program.as_ptr() as *const u8,
                 self.program.len(),
@@ -65,7 +65,6 @@ impl VirtualMachine for FemtoContainerVm<'_> {
             return Ok(result as u64);
         }
     }
-
 }
 
 extern "C" {

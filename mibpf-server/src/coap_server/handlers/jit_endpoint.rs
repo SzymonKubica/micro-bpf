@@ -69,6 +69,7 @@ impl coap_handler::Handler for JitTestHandler {
             helpers_map.insert(h.id as u32, h.function);
         }
 
+        let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let jitting_start: u32 = Self::time_now(clock);
         let mut jit_memory = rbpf::JitMemory::new(
             program,

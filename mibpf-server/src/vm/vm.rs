@@ -5,23 +5,31 @@ use mibpf_common::{
 use mibpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
 use riot_wrappers::gcoap::PacketBuffer;
 
-use crate::infra::{suit_storage, local_storage};
+use crate::infra::{local_storage, suit_storage};
 
 use super::{middleware::helpers::HelperAccessList, rbpf_vm, FemtoContainerVm, RbpfVm};
 
 /// Structs implementing this interface should allow for executing eBPF programs
 /// both raw and with access to the incoming CoAP packet.
 pub trait VirtualMachine {
-    /// Executes a given eBPF program and stores the return value of the
-    /// program in `result`. It returns the VM execution time
-    fn execute(&mut self, result: &mut i64) -> u32;
-
+    /// Loads, verifies, optionally resolves relocations and executes the program.
+    fn full_run(&mut self) -> Result<i64, String> {
+        self.resolve_relocations()?;
+        self.verify_program()?;
+        self.execute()
+    }
+    fn verify_program(&self) -> Result<(), String>;
+    /// Patches the program bytecode using the relocation metadata to fix accesses
+    /// to .data and .rodata sections.
+    fn resolve_relocations(&mut self) -> Result<(), String>;
+    /// Executes a given program and returns its return value.
+    fn execute(&mut self) -> Result<u64, String>;
     /// Executes a given eBPF program giving it access to the provided PacketBuffer
-    /// and stores the return value of the program in `result`. The value returned
-    /// by the program and written to `result` needs to represent the length of
+    /// and returns the return value of the program. The value returned
+    /// by the program needs to represent the length of
     /// the packet PDU + payload. The reason for this is that the handler then
-    /// needs to know this length when sending the response back
-    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer, result: &mut i64) -> u32;
+    /// needs to know this length when sending the response back.
+    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String>;
 }
 
 /// Responsible for initialising the VM. It loads the program bytecode from the
@@ -34,49 +42,14 @@ pub fn initialize_vm<'a>(
 ) -> Result<Box<dyn VirtualMachine + 'a>, String> {
     let mut program = suit_storage::load_program(program_buffer, config.suit_slot);
 
-    // We exit early if the Femto-Container VM is to be used as it isn't
-    // as configurable and most configuration options don't apply to it
-    if config.vm_target == TargetVM::FemtoContainer {
-        let vm = FemtoContainerVm { program };
-        vm.verify_program()?;
-        return Ok(Box::new(FemtoContainerVm { program }));
-    }
-
-    let allowed_helpers = match config.helper_access_list_source {
-        mibpf_common::HelperAccessListSource::ExecuteRequest => allowed_helpers,
-
-        mibpf_common::HelperAccessListSource::BinaryMetadata => {
-            if config.binary_layout == BinaryFileLayout::ExtendedHeader {
-                HelperAccessList::from(extract_allowed_helpers(&program))
-                    .0
-                    .into_iter()
-                    .map(|f| f.id)
-                    .collect()
-            } else {
-                Err("Tried to extract allowed helper function indices from an incompatible binary file")?
-            }
+    match config.vm_target {
+        TargetVM::Rbpf => {
+            let vm = RbpfVm::new(&mut program, config, allowed_helpers)?;
+            return Ok(Box::new(vm));
         }
-    };
-
-    if config.helper_access_verification == HelperAccessVerification::PreFlight {
-        let interpreter = rbpf_vm::map_interpreter(config.binary_layout);
-        let helpers_idxs = allowed_helpers
-            .iter()
-            .map(|id| *id as u32)
-            .collect::<Vec<u32>>();
-        rbpf::check_helpers(program, &helpers_idxs, interpreter)
-            .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+        TargetVM::FemtoContainer => {
+            let vm = FemtoContainerVm::new(&program);
+            return Ok(Box::new(vm));
+        }
     }
-
-    if config.binary_layout == BinaryFileLayout::RawObjectFile {
-        resolve_relocations(&mut program)?;
-    }
-
-    local_storage::register_suit_slot(config.suit_slot);
-
-    Ok(Box::new(RbpfVm::new(
-        program,
-        allowed_helpers,
-        config.binary_layout,
-    )))
 }

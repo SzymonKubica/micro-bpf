@@ -1,7 +1,8 @@
 use crate::vm::{middleware, VirtualMachine};
-use alloc::vec::Vec;
+use alloc::{format, vec::Vec};
 use core::{ops::DerefMut, slice::from_raw_parts_mut};
-use mibpf_common::{BinaryFileLayout, HelperFunctionID};
+use mibpf_common::{BinaryFileLayout, HelperAccessVerification, HelperFunctionID, VMConfiguration};
+use mibpf_elf_utils::extract_allowed_helpers;
 
 use rbpf::without_std::Error;
 
@@ -14,29 +15,48 @@ use super::middleware::{
 };
 
 pub struct RbpfVm<'a> {
-    pub registered_helpers: Vec<HelperFunction>,
+    /// The program buffer needs to be mutable in case we need to perform relocation
+    /// resolution.
+    pub program: &'a mut [u8],
     pub vm: rbpf::EbpfVmMbuff<'a>,
     pub layout: BinaryFileLayout,
 }
 
 impl<'a> RbpfVm<'a> {
     pub fn new(
-        program: &'a [u8],
-        helpers: Vec<HelperFunctionID>,
-        layout: BinaryFileLayout,
+        program: &'a mut [u8],
+        config: VMConfiguration,
+        allowed_helpers: Vec<HelperFunctionID>,
     ) -> RbpfVm<'a> {
+        // We instantiate the VM and preserve a reference to the program buffer
+        // in case we need to perform relocation resolution in the next step.
+        let mut vm =
+            rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(config.binary_layout)).unwrap();
+
+        // We need to make a decision whether we use the helper list that was
+        // sent in the request or read the allowed helpers from the metadata appended
+        // to the program binary.
+        let allowed_helpers = match config.helper_access_list_source {
+            mibpf_common::HelperAccessListSource::ExecuteRequest => {
+                HelperAccessList::from(allowed_helpers)
+            }
+            mibpf_common::HelperAccessListSource::BinaryMetadata => {
+                if config.binary_layout == BinaryFileLayout::ExtendedHeader {
+                    HelperAccessList::from(extract_allowed_helpers(&program))
+                } else {
+                    Err("Tried to extract allowed helper function indices from an incompatible binary file")?
+                }
+            }
+        };
+        middleware::helpers::register_helpers(&mut vm, allowed_helpers.0.clone());
         RbpfVm {
-            registered_helpers: HelperAccessList::from(helpers).0,
-            vm: rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(layout)).unwrap(),
+            program,
+            vm,
             layout,
         }
     }
 
-    #[allow(dead_code)]
-    pub fn add_helper(&mut self, helper: HelperFunction) {
-        self.registered_helpers.push(helper);
-    }
-
+    // TODO: deprecate and move all of timing to the special wrapper.
     fn timed_execution(&self, execution_fn: impl Fn() -> Result<u64, Error>) -> (i64, u32) {
         println!("Starting rBPf VM execution.");
         // This unsafe hacking is needed as the ztimer_now call expects to get an
@@ -74,17 +94,30 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 }
 
 impl VirtualMachine for RbpfVm<'_> {
-    fn execute(&mut self, result: &mut i64) -> u32 {
-        middleware::helpers::register_helpers(&mut self.vm, self.registered_helpers.clone());
+    fn verify_program(&self) -> Result<(), alloc::string::String> {
+        // The VM runs the verification when the new program is loaded into it.
+        self.vm.set_program(self.program)?;
+        if self.config.helper_access_verification == HelperAccessVerification::PreFlight {
+            let interpreter = map_interpreter(self.config.binary_layout);
+            let helpers_idxs = allowed_helpers
+                .iter()
+                .map(|id| *id as u32)
+                .collect::<Vec<u32>>();
+            rbpf::check_helpers(program, &helpers_idxs, interpreter)
+                .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+        }
+        Ok(())
+    }
 
-        let (ret, execution_time) =
-            self.timed_execution(|| self.vm.execute_program(&alloc::vec![], &alloc::vec![], alloc::vec![]));
-        *result = ret;
-        execution_time
+    fn resolve_relocations(&mut self) -> Result<(), alloc::string::String> {
+        mibpf_elf_utils::resolve_relocations(&mut self.program)?;
+        self.vm.set_program(self.program)
+    }
+    fn execute(&mut self) -> u64 {
+        self.vm
+            .execute_program(&alloc::vec![], &alloc::vec![], alloc::vec![])
     }
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer, result: &mut i64) -> u32 {
-        middleware::helpers::register_helpers(&mut self.vm, self.registered_helpers.clone());
-
         /// Coap context struct containing information about the buffer,
         /// packet and its length. It is passed into the VM as the main buffer
         /// on which the program operates.
@@ -111,16 +144,12 @@ impl VirtualMachine for RbpfVm<'_> {
             ((*ctx).buf as *const u8 as u64, (*ctx).len as u64)
         };
 
-        // Here we need to do some hacking with locks as closures don't like
-        // capturing &mut references from environment. It does make sense.
-        let (ret, execution_time) = self.timed_execution(|| {
-            self.vm.execute_program(
+        self.vm
+            .execute_program(
                 mem_mutex.lock().deref_mut(),
                 buffer_mutex.lock().deref_mut(),
-                alloc::vec![pkt_buffer_region]
+                alloc::vec![pkt_buffer_region],
             )
-        });
-        *result = ret;
-        execution_time
+            .map_err(|e| format!("Error: {}", e.to_string()))
     }
 }

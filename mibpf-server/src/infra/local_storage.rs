@@ -72,6 +72,9 @@ fn lookup_slot_number() -> Option<usize> {
     return map.get(&pid).copied();
 }
 
+/// Registers a SUIT slot for the current thread. This is necessary because
+/// when a given thread is executing a program loaded into slot `n`, then we
+/// don't wanto to allow other threads for loading programs in there.
 pub fn register_suit_slot(slot: usize) {
     let pid = thread::get_pid().into();
     debug!("Registering SUIT slot {} for thread {}", slot, pid);

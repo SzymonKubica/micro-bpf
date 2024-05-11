@@ -1,8 +1,9 @@
 use alloc::string::{String, ToString};
 use coap_message::ReadableMessage;
+use mibpf_common::VMExecutionRequest;
 use riot_wrappers::gcoap::PacketBuffer;
 
-use log::{debug, info};
+use log::{debug, error, info};
 
 // This module contains common utility functions that are used by the handler
 // implementations for all of the endpoints.
@@ -52,6 +53,22 @@ pub fn preprocess_request_raw<'a>(request: &'a impl ReadableMessage) -> Result<S
 
     debug!("Request payload received: {}", s);
     Ok(s.to_string())
+}
+
+pub fn parse_request(request: &impl ReadableMessage) -> Result<VMExecutionRequest, u8> {
+    let request_data = preprocess_request_raw(request)?;
+    let request = VMExecutionRequest::decode(request_data).map_err(bad_request)?;
+    Ok(request)
+}
+
+pub fn internal_server_error(e: String) -> u8 {
+    error!("Failed to initialize the VM: {}", e);
+    Err(coap_numbers::code::INTERNAL_SERVER_ERROR)
+}
+
+pub fn bad_request(e: String) -> u8 {
+    error!("Bad request: {}", e);
+    Err(coap_numbers::code::BAD_REQUEST)
 }
 
 pub fn preprocess_request<'a, T>(request: &'a impl ReadableMessage) -> Result<T, u8>

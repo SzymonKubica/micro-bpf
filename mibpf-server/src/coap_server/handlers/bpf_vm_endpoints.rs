@@ -21,6 +21,8 @@ use crate::{
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 
+use super::util;
+
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
 /// to the executed program. The eBPF script can access the CoAP packet data.
 pub struct VMExecutionOnCoapPktHandler;
@@ -75,8 +77,25 @@ pub struct VMExecutionNoDataHandler {
 }
 
 impl VMExecutionNoDataHandler {
+    type ResponseCode = u8;
     pub fn new() -> Self {
         Self { result: 0 }
+    }
+
+    fn handle_vm_execution(
+        request: VMExecutionRequest,
+    ) -> Result<Self::ResponseCode, Self::ResponseCode> {
+        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
+
+        let (program, mut vm) = initialize_vm(
+            request.configuration,
+            request.allowed_helpers,
+            &mut program_buffer,
+        )
+        .map_err(util::internal_server_error)?;
+
+        self.result = vm.full_run(program).unwrap() as i64;
+        Ok(coap_numbers::code::CHANGED)
     }
 }
 
@@ -84,33 +103,14 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let request_data = match preprocess_request_raw(request) {
-            Ok(request_data) => request_data,
-            Err(code) => return code,
+        let parsing_result = util::parse_request(request);
+        let Ok(request) = parsing_result else {
+            parsing_result.unwrap_err()
         };
-
-        let Ok(request) = VMExecutionRequest::decode(request_data) else {
-            return coap_numbers::code::BAD_REQUEST;
-        };
-
-        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-
-        let init_result = initialize_vm(
-            request.configuration,
-            request.allowed_helpers,
-            &mut program_buffer,
-        );
-
-        let Ok((program, mut vm)) = init_result else {
-            error!(
-                "Failed to initialize the VM: {}",
-                init_result.err().unwrap()
-            );
-            return coap_numbers::code::INTERNAL_SERVER_ERROR;
-        };
-
-        self.result = vm.full_run(program).unwrap() as i64;
-        coap_numbers::code::CHANGED
+        match Self::handle_vm_execution(request) {
+            Ok(code) => code,
+            Err(code) => code,
+        }
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
@@ -126,13 +126,17 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
 
 pub struct VMLongExecutionHandler {
     execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
+    last_request_successful: bool,
 }
 
 impl VMLongExecutionHandler {
     pub fn new(
         execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
     ) -> Self {
-        Self { execution_send }
+        Self {
+            execution_send,
+            last_request_successful: false,
+        }
     }
 }
 
@@ -140,13 +144,9 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let request_data: String = match preprocess_request_raw(request) {
-            Ok(request_data) => request_data,
-            Err(code) => return code,
-        };
-
-        let Ok(request) = VMExecutionRequest::decode(request_data) else {
-            return coap_numbers::code::BAD_REQUEST;
+        let parsing_result = util::parse_request(request);
+        let Ok(request) = parsing_result else {
+            parsing_result.unwrap_err()
         };
 
         let message = VMExecutionRequestIPC {
@@ -155,8 +155,10 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 
         if let Ok(()) = self.execution_send.lock().try_send(message) {
             info!("VM execution request sent successfully");
+            self.last_request_successful = true;
         } else {
             error!("Failed to send execution request message.");
+            self.last_request_successful = false;
             return coap_numbers::code::INTERNAL_SERVER_ERROR;
         }
 
@@ -169,14 +171,20 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        response.set_payload(b"VM Execution request sent successfully!")
+        if self.last_request_successful {
+            response.set_payload(b"VM Execution request sent successfully!");
+        } else {
+            response.set_payload(b"Failed to send VM Execution request");
+        }
     }
 }
 
 /// Responsible for benchmarking the VM execution by measuring program size,
-/// load time (including optional relocation resolution) and execution time.
+/// verification time, (optionally relocation resolution time) and execution time.
 pub struct VMExecutionBenchmarkHandler {
     load_time: u32,
+    verification_time: u32,
+    relocation_resolution_time: u32,
     execution_time: u32,
     program_size: u32,
     result: i64,
@@ -185,16 +193,13 @@ pub struct VMExecutionBenchmarkHandler {
 impl VMExecutionBenchmarkHandler {
     pub fn new() -> Self {
         Self {
-            execution_time: 0,
-            result: 0,
             load_time: 0,
+            verification_time: 0,
             program_size: 0,
+            execution_time: 0,
+            relocation_resolution_time: 0,
+            result: 0,
         }
-    }
-
-    #[inline(always)]
-    fn time_now(clock: *mut riot_sys::inline::ztimer_clock_t) -> u32 {
-        unsafe { riot_sys::inline::ztimer_now(clock) }
     }
 }
 
@@ -202,13 +207,9 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
-        let request_data = match preprocess_request_raw(request) {
-            Ok(request_data) => request_data,
-            Err(code) => return code,
-        };
-
-        let Ok(request) = VMExecutionRequest::decode(request_data) else {
-            return coap_numbers::code::BAD_REQUEST;
+        let parsing_result = util::parse_request(request);
+        let Ok(request) = parsing_result else {
+            parsing_result.unwrap_err()
         };
 
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];

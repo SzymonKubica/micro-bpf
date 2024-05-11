@@ -9,6 +9,7 @@
 extern crate alloc;
 extern crate mibpf_common;
 extern crate mibpf_elf_utils;
+extern crate macros;
 extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;

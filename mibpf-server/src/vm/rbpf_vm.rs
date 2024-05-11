@@ -129,12 +129,10 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
                 }
             }
         };
-        unsafe {
-            self.vm = Some(
-                rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(self.layout))
-                    .map_err(|e| format!("Error: {:?}", e))?,
-            );
-        }
+        self.vm = Some(
+            rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(self.layout))
+                .map_err(|e| format!("Error: {:?}", e))?,
+        );
         middleware::helpers::register_helpers(
             self.vm.as_mut().unwrap(),
             helper_access_list.0.clone(),

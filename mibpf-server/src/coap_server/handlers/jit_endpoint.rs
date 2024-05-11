@@ -10,6 +10,7 @@ use log::debug;
 use mibpf_common::{BinaryFileLayout, VMExecutionRequest};
 use riot_wrappers::mutex::Mutex;
 
+use crate::infra::jit_prog_storage::{self, JIT_SLOT_SIZE};
 use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
 pub struct JitTestHandler {
     execution_time: u32,
@@ -61,7 +62,10 @@ impl coap_handler::Handler for JitTestHandler {
             let _ = mibpf_elf_utils::resolve_relocations(&mut program);
         }
 
-        let mut jit_memory_buffer = JIT_MEMORY.lock();
+        let mut jit_storage = jit_prog_storage::acquire_storage(request.configuration.suit_slot);
+        let mut jit_memory_buffer: [u8; JIT_SLOT_SIZE] =
+            jit_storage.unwrap()[request.configuration.suit_slot];
+
         let helpers: Vec<HelperFunction> = Vec::from(middleware::ALL_HELPERS);
 
         let mut helpers_map = BTreeMap::new();
@@ -73,7 +77,7 @@ impl coap_handler::Handler for JitTestHandler {
         let jitting_start: u32 = Self::time_now(clock);
         let mut jit_memory = rbpf::JitMemory::new(
             program,
-            jit_memory_buffer.as_mut_slice(),
+            &mut jit_memory_buffer,
             &helpers_map,
             false,
             false,

@@ -42,6 +42,7 @@ goblin = {version = "0.8.0", default_features = false , features = ["elf32", "el
 rbpf = { path = "../rbpf-for-microcontrollers", default-features = false }
 mibpf-common = { path = "../tools/common" }
 mibpf-elf-utils = { path = "../tools/elf-utils" }
+macros = { path = "../tools/macros" }
 
 
 # While currently this exmple does not use any RIOT modules implemented in

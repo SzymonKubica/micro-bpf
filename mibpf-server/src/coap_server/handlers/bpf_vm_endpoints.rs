@@ -103,7 +103,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.unwrap_err()
+            return parsing_result.unwrap_err();
         };
         match self.handle_vm_execution(request) {
             Ok(code) => code,
@@ -144,7 +144,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.unwrap_err()
+            return parsing_result.unwrap_err();
         };
 
         let message = VMExecutionRequestIPC {
@@ -220,7 +220,7 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.unwrap_err()
+            return parsing_result.unwrap_err();
         };
 
         match self.handle_benchmark_execution(request) {

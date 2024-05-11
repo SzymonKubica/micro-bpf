@@ -18,8 +18,8 @@ use crate::infra::local_storage;
 /// time:
 /// - SUIT_STORAGE_SLOT_SIZE
 /// - SUIT_STORAGE_SLOTS
-set_env_or_default!("SUIT_STORAGE_SLOTS", 2);
-set_env_or_default!("SUIT_STORAGE_SLOT_SIZE", 4096);
+pub const SUIT_STORAGE_SLOTS: usize = set_env_or_default!("SUIT_STORAGE_SLOTS", 2);
+pub const SUIT_STORAGE_SLOT_SIZE: usize = set_env_or_default!("SUIT_STORAGE_SLOT_SIZE", 4096);
 
 /// Stores status of all SUIT storage slots available for loading programs
 pub static SUIT_STORAGE_STATE: Mutex<[SuitStorageSlotStatus; SUIT_STORAGE_SLOTS]> =

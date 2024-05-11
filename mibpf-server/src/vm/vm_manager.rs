@@ -210,14 +210,14 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
         );
 
         let mut program_buffer: [u8; SUIT_STORAGE_SLOT_SIZE] = [0; SUIT_STORAGE_SLOT_SIZE];
-        if let Ok(mut vm) = initialize_vm(
+        if let Ok((program, mut vm)) = initialize_vm(
             request.configuration,
             request.allowed_helpers,
             &mut program_buffer,
         ) {
             // We notify everyone that the slot we are using holds a long running VM.
             suit_storage::suit_mark_slot_running(request.configuration.suit_slot as usize);
-            let result = vm.execute().unwrap_or(0);
+            let result = vm.full_run(program).unwrap_or(0);
             // Now we mark that the slot still contains the program but noone is currently
             // executing it
             suit_storage::suit_mark_slot_occupied(request.configuration.suit_slot as usize);

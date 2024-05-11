@@ -6,23 +6,26 @@ use riot_wrappers::{gcoap::PacketBuffer, println};
 use crate::vm::VirtualMachine;
 
 pub struct FemtoContainerVm<'a> {
-    pub program: &'a [u8],
+    program: Option<&'a [u8]>,
 }
 
 impl<'a> FemtoContainerVm<'a> {
-    pub fn new(program: &'a [u8]) -> Self {
-        Self { program }
+    pub fn new() -> Self {
+        Self { program: None }
     }
 }
 
 impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
-    fn resolve_relocations(&mut self) -> Result<(), String> {
-        /// FemtoContainer VM doesn't support relocations so this is a no-op.
-        Ok(())
+    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a [u8], String> {
+        /// FemtoContainer VM doesn't support relocations so this is an identity mapping.
+        Ok(program)
     }
 
-    fn verify_program(&self) -> Result<(), String> {
-        let return_code = unsafe { verify_fc_program(self.program.as_ptr(), self.program.len()) };
+    fn verify(&self) -> Result<(), String> {
+        let Some(program) = self.program else {
+            Err("VM not initialised")?
+        };
+        let return_code = unsafe { verify_fc_program(program.as_ptr(), program.len()) };
 
         if return_code != 0 {
             return Err(format!(
@@ -35,17 +38,20 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
     }
 
     fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String> {
-        /// FemtoContainer VM doesn't require preflight initialisation
+        self.program = Some(program);
         Ok(())
     }
 
     fn execute(&mut self) -> Result<u64, String> {
         println!("Starting FemtoContainer VM execution.");
+        let Some(program) = self.program else {
+            Err("VM not initialised")?
+        };
         unsafe {
             let mut result: i64 = 0;
             execute_fc_vm(
-                self.program.as_ptr() as *const u8,
-                self.program.len(),
+                program.as_ptr() as *const u8,
+                program.len(),
                 &mut result as *mut i64,
             );
             return Ok(result as u64);
@@ -54,11 +60,14 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
 
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
         println!("Starting FemtoContainer VM execution.");
+        let Some(program) = self.program else {
+            Err("VM not initialised")?
+        };
         unsafe {
             let mut result: i64 = 0;
             execute_fc_vm_on_coap_pkt(
-                self.program.as_ptr() as *const u8,
-                self.program.len(),
+                program.as_ptr() as *const u8,
+                program.len(),
                 pkt as *mut PacketBuffer as *mut c_void,
                 &mut result as *mut i64,
             );

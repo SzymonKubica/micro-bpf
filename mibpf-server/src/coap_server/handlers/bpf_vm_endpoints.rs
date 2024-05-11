@@ -46,14 +46,13 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         debug!("Received VM Execution Request: {:?}", request.configuration);
 
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-
         let init_result = initialize_vm(
             request.configuration,
             request.allowed_helpers,
             &mut program_buffer,
         );
 
-        let Ok(mut vm) = init_result else {
+        let Ok((program, mut vm)) = init_result else {
             error!(
                 "Failed to initialize the VM: {}",
                 init_result.err().unwrap()
@@ -64,7 +63,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // It is very important that the program executing on the CoAP packet returns
         // the length of the payload + PDU so that the handler can send the
         // response accordingly. In case of error the response length should be set to 0.
-        vm.execute_on_coap_pkt(pkt).unwrap_or(0) as isize
+        vm.full_run_on_coap_pkt(program, pkt).unwrap_or(0) as isize
     }
 }
 
@@ -102,7 +101,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
             &mut program_buffer,
         );
 
-        let Ok(mut vm) = init_result else {
+        let Ok((program, mut vm)) = init_result else {
             error!(
                 "Failed to initialize the VM: {}",
                 init_result.err().unwrap()
@@ -110,7 +109,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
             return coap_numbers::code::INTERNAL_SERVER_ERROR;
         };
 
-        self.result = vm.execute().unwrap() as i64;
+        self.result = vm.full_run(program).unwrap() as i64;
         coap_numbers::code::CHANGED
     }
 
@@ -120,10 +119,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        let resp = format!(
-            "{{\"return\": {}}}",
-            self.result
-        );
+        let resp = format!("{{\"return\": {}}}", self.result);
         response.set_payload(resp.as_bytes());
     }
 }
@@ -239,15 +235,17 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
         // Dynamically dispatch between the two different VM implementations
         // depending on the requested target VM.
         let mut vm: Box<dyn VirtualMachine> = match request.configuration.vm_target {
-            TargetVM::Rbpf => Box::new(RbpfVm::new(
-                program,
-                request.configuration,
-                Vec::from(middleware::ALL_HELPERS)
-                    .into_iter()
-                    .map(|f| f.id)
-                    .collect(),
-            ).unwrap()),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm { program }),
+            TargetVM::Rbpf => Box::new(
+                RbpfVm::new(
+                    request.configuration,
+                    Vec::from(middleware::ALL_HELPERS)
+                        .into_iter()
+                        .map(|f| f.id)
+                        .collect(),
+                )
+                .unwrap(),
+            ),
+            TargetVM::FemtoContainer => Box::new(FemtoContainerVm::new()),
         };
 
         self.result = vm.execute().unwrap() as i64;

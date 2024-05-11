@@ -1,5 +1,10 @@
 use crate::vm::{middleware, VirtualMachine};
-use alloc::{format, rc::Rc, string::String, vec::Vec};
+use alloc::{
+    format,
+    rc::Rc,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::{ops::DerefMut, slice::from_raw_parts_mut};
 use mibpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
@@ -20,9 +25,6 @@ use super::middleware::{
 /// An adapter struct which wraps around the rbpf VM so that it is compatible
 /// with the interface defined in the `VirtualMachine` trait.
 pub struct RbpfVm<'a> {
-    /// The program buffer needs to be mutable in case we need to perform relocation
-    /// resolution.
-    pub program: &'a mut [u8],
     pub vm: Option<rbpf::EbpfVmMbuff<'a>>,
     pub layout: BinaryFileLayout,
     pub allowed_helpers: Vec<HelperFunctionID>,
@@ -32,12 +34,10 @@ pub struct RbpfVm<'a> {
 
 impl<'a> RbpfVm<'a> {
     pub fn new(
-        program: &'a mut [u8],
         config: VMConfiguration,
         allowed_helpers: Vec<HelperFunctionID>,
     ) -> Result<RbpfVm<'a>, String> {
         Ok(RbpfVm {
-            program,
             vm: None,
             layout: config.binary_layout,
             allowed_helpers,
@@ -84,30 +84,32 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 }
 
 impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
-    fn resolve_relocations(&mut self) -> Result<(), String> {
+    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a [u8], String> {
         if self.layout == BinaryFileLayout::RawObjectFile {
-            mibpf_elf_utils::resolve_relocations(&mut self.program)?;
+            mibpf_elf_utils::resolve_relocations(program)?;
         };
-        Ok(())
+        Ok(program)
     }
-    fn verify_program(&self) -> Result<(), String> {
+    fn verify(&self) -> Result<(), String> {
         // The VM runs the verification when the new program is loaded into it.
-        self.vm
-            .as_ref()
-            .unwrap()
-            .verify_loaded_program()
-            .map_err(|e| format!("Error: {:?}", e))?;
+        if let Some(vm) = self.vm.as_ref() {
+            vm.verify_loaded_program()
+                .map_err(|e| format!("Error: {:?}", e))?;
 
-        if self.helper_access_verification == HelperAccessVerification::PreFlight {
-            let interpreter = map_interpreter(self.layout);
-            let helpers_idxs = self
-                .allowed_helpers
-                .iter()
-                .map(|id| *id as u32)
-                .collect::<Vec<u32>>();
-            rbpf::check_helpers(self.program, &helpers_idxs, interpreter)
-                .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+            if self.helper_access_verification == HelperAccessVerification::PreFlight {
+                let interpreter = map_interpreter(self.layout);
+                let helpers_idxs = self
+                    .allowed_helpers
+                    .iter()
+                    .map(|id| *id as u32)
+                    .collect::<Vec<u32>>();
+                vm.verify_helper_calls(&helpers_idxs, interpreter)
+                    .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+            }
+        } else {
+            Err("VM not initialised".to_string())?;
         }
+
         Ok(())
     }
 
@@ -121,7 +123,7 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
             }
             mibpf_common::HelperAccessListSource::BinaryMetadata => {
                 if self.layout == BinaryFileLayout::ExtendedHeader {
-                    HelperAccessList::from(extract_allowed_helpers(&self.program))
+                    HelperAccessList::from(extract_allowed_helpers(program))
                 } else {
                     Err("Tried to extract allowed helper function indices from an incompatible binary file")?
                 }
@@ -141,11 +143,12 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
     }
 
     fn execute(&mut self) -> Result<u64, String> {
-        self.vm
-            .as_mut()
-            .unwrap()
-            .execute_program(&alloc::vec![], &alloc::vec![], alloc::vec![])
-            .map_err(|e| format!("Error: {:?}", e))
+        if let Some(vm) = self.vm.as_mut() {
+            vm.execute_program(&alloc::vec![], &alloc::vec![], alloc::vec![])
+                .map_err(|e| format!("Error: {:?}", e))
+        } else {
+            Err("VM not initialised".to_string())
+        }
     }
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
         /// Coap context struct containing information about the buffer,
@@ -157,7 +160,6 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
             println!("Context: {:?}", *ctx);
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };
-
 
         // Actual packet struct
         let mem = unsafe {
@@ -171,14 +173,11 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
             ((*ctx).buf as *const u8 as u64, (*ctx).len as u64)
         };
 
-        self.vm
-            .as_mut()
-            .unwrap()
-            .execute_program(
-                mem,
-                coap_context,
-                alloc::vec![pkt_buffer_region],
-            )
-            .map_err(|e| format!("Error: {:?}", e))
+        if let Some(vm) = self.vm.as_mut() {
+            vm.execute_program(mem, coap_context, alloc::vec![pkt_buffer_region])
+                .map_err(|e| format!("Error: {:?}", e))
+        } else {
+            Err("VM not initialised".to_string())
+        }
     }
 }

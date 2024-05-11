@@ -156,13 +156,12 @@ impl coap_handler::Handler for VMLongExecutionHandler {
         if let Ok(()) = self.execution_send.lock().try_send(message) {
             info!("VM execution request sent successfully");
             self.last_request_successful = true;
+            coap_numbers::code::CHANGED
         } else {
             error!("Failed to send execution request message.");
             self.last_request_successful = false;
-            return coap_numbers::code::INTERNAL_SERVER_ERROR;
+            coap_numbers::code::INTERNAL_SERVER_ERROR
         }
-
-        coap_numbers::code::CHANGED
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
@@ -201,6 +200,24 @@ impl VMExecutionBenchmarkHandler {
             result: 0,
         }
     }
+
+    fn handle_benchmark_execution(
+        request: VMExecutionRequest,
+    ) -> Result<Self::ResponseCode, Self::ResponseCode> {
+        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
+
+        let (program, mut vm) = initialize_vm(
+            request.configuration,
+            request.allowed_helpers,
+            &mut program_buffer,
+        )
+        .map_err(util::internal_server_error)?;
+
+        self.program_size = program.len() as u32;
+
+        self.result = vm.full_run(program).unwrap() as i64;
+        Ok(coap_numbers::code::CHANGED)
+    }
 }
 
 impl coap_handler::Handler for VMExecutionBenchmarkHandler {
@@ -211,45 +228,6 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
         let Ok(request) = parsing_result else {
             parsing_result.unwrap_err()
         };
-
-        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-        let mut program =
-            suit_storage::load_program(&mut program_buffer, request.configuration.suit_slot);
-
-        self.program_size = program.len() as u32;
-
-        let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-        let start: u32 = Self::time_now(clock);
-        if request.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
-            // We need to perform relocations on the raw object file.
-            match resolve_relocations(&mut program) {
-                Ok(()) => {}
-                Err(e) => {
-                    debug!("Error resolving relocations in the program: {}", e);
-                    return 0;
-                }
-            };
-        }
-        let end: u32 = Self::time_now(clock);
-        self.load_time = end - start;
-
-        // Dynamically dispatch between the two different VM implementations
-        // depending on the requested target VM.
-        let mut vm: Box<dyn VirtualMachine> = match request.configuration.vm_target {
-            TargetVM::Rbpf => Box::new(
-                RbpfVm::new(
-                    request.configuration,
-                    Vec::from(middleware::ALL_HELPERS)
-                        .into_iter()
-                        .map(|f| f.id)
-                        .collect(),
-                )
-                .unwrap(),
-            ),
-            TargetVM::FemtoContainer => Box::new(FemtoContainerVm::new()),
-        };
-
-        self.result = vm.execute().unwrap() as i64;
 
         coap_numbers::code::CHANGED
     }

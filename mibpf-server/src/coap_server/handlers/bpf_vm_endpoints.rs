@@ -9,8 +9,9 @@ use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys}
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::{
-    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE, model::requests::VMExecutionRequestIPC,
-    vm::initialize_vm,
+    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
+    model::requests::VMExecutionRequestIPC,
+    vm::{initialize_vm, timed_vm::BenchmarkResult, TimedVm},
 };
 
 use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
@@ -77,14 +78,11 @@ pub struct VMExecutionNoDataHandler {
 }
 
 impl VMExecutionNoDataHandler {
-    type ResponseCode = u8;
     pub fn new() -> Self {
         Self { result: 0 }
     }
 
-    fn handle_vm_execution(
-        request: VMExecutionRequest,
-    ) -> Result<Self::ResponseCode, Self::ResponseCode> {
+    fn handle_vm_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
 
         let (program, mut vm) = initialize_vm(
@@ -105,9 +103,9 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            parsing_result.unwrap_err()
+            return parsing_result.unwrap_err()
         };
-        match Self::handle_vm_execution(request) {
+        match self.handle_vm_execution(request) {
             Ok(code) => code,
             Err(code) => code,
         }
@@ -146,7 +144,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            parsing_result.unwrap_err()
+            return parsing_result.unwrap_err()
         };
 
         let message = VMExecutionRequestIPC {
@@ -181,10 +179,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
 /// Responsible for benchmarking the VM execution by measuring program size,
 /// verification time, (optionally relocation resolution time) and execution time.
 pub struct VMExecutionBenchmarkHandler {
-    load_time: u32,
-    verification_time: u32,
-    relocation_resolution_time: u32,
-    execution_time: u32,
+    time_results: BenchmarkResult,
     program_size: u32,
     result: i64,
 }
@@ -192,18 +187,13 @@ pub struct VMExecutionBenchmarkHandler {
 impl VMExecutionBenchmarkHandler {
     pub fn new() -> Self {
         Self {
-            load_time: 0,
-            verification_time: 0,
+            time_results: Default::default(),
             program_size: 0,
-            execution_time: 0,
-            relocation_resolution_time: 0,
             result: 0,
         }
     }
 
-    fn handle_benchmark_execution(
-        request: VMExecutionRequest,
-    ) -> Result<Self::ResponseCode, Self::ResponseCode> {
+    fn handle_benchmark_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
 
         let (program, mut vm) = initialize_vm(
@@ -213,9 +203,13 @@ impl VMExecutionBenchmarkHandler {
         )
         .map_err(util::internal_server_error)?;
 
+        let mut vm = TimedVm::new(vm);
+
         self.program_size = program.len() as u32;
 
         self.result = vm.full_run(program).unwrap() as i64;
+        self.time_results = vm.get_results();
+
         Ok(coap_numbers::code::CHANGED)
     }
 }
@@ -226,10 +220,13 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            parsing_result.unwrap_err()
+            return parsing_result.unwrap_err()
         };
 
-        coap_numbers::code::CHANGED
+        match self.handle_benchmark_execution(request) {
+            Ok(code) => code,
+            Err(code) => code,
+        }
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
@@ -238,9 +235,10 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
+        let results = self.time_results;
         let resp = format!(
-            "{{\"load_time\": {}, \"execution_time\": {},\"program_size\": {}, \"result\": {}}}",
-            self.load_time, self.execution_time, self.program_size, self.result
+            "{{\"reloc\": {}, \"load\": {}, \"verif\": {}, \"exec\": {},\"prog\": {}, \"res\": {}}}",
+            results.relocation_resolution_time, results.load_time, results.verification_time, results.execution_time, self.program_size, self.result
         );
         response.set_payload(resp.as_bytes());
     }

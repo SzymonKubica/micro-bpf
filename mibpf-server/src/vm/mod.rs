@@ -6,7 +6,7 @@ mod femtocontainer_vm;
 pub mod middleware;
 pub use vm::{VirtualMachine, initialize_vm};
 pub use rbpf_vm::RbpfVm;
-pub use timed_vm::RbpfVm;
+pub use timed_vm::TimedVm;
 pub use femtocontainer_vm::FemtoContainerVm;
 pub use vm_manager::VMExecutionManager;
 pub use vm_manager::VM_EXEC_REQUEST;

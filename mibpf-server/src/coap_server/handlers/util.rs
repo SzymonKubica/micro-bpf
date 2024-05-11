@@ -63,12 +63,12 @@ pub fn parse_request(request: &impl ReadableMessage) -> Result<VMExecutionReques
 
 pub fn internal_server_error(e: String) -> u8 {
     error!("Failed to initialize the VM: {}", e);
-    Err(coap_numbers::code::INTERNAL_SERVER_ERROR)
+    coap_numbers::code::INTERNAL_SERVER_ERROR
 }
 
 pub fn bad_request(e: String) -> u8 {
     error!("Bad request: {}", e);
-    Err(coap_numbers::code::BAD_REQUEST)
+    coap_numbers::code::BAD_REQUEST
 }
 
 pub fn preprocess_request<'a, T>(request: &'a impl ReadableMessage) -> Result<T, u8>

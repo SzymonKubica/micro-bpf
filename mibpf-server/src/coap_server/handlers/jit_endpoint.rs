@@ -73,9 +73,6 @@ impl coap_handler::Handler for JitTestHandler {
         }
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-        // Additional scope so that the mutexguard gets unlocked and we can then
-        // call jit storage again to read the program
-        {
             let mut jit_memory_buffer =
                 jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
             let jitting_start: u32 = Self::time_now(clock);
@@ -93,10 +90,9 @@ impl coap_handler::Handler for JitTestHandler {
             debug!("JIT compilation successful");
             debug!("JIT Compilation step took: {} [us]", self.jit_compilation_time);
             debug!("jitted program size: {} [B]", jit_memory.offset);
-        }
 
-        let jitted_fn =
-            jit_prog_storage::get_program_from_slot(request.configuration.suit_slot).unwrap();
+        let jitted_fn = jit_memory.get_prog();
+        //jit_prog_storage::get_program_from_slot(request.configuration.suit_slot).unwrap();
         let mut ret = 0;
 
         let start: u32 = Self::time_now(clock);

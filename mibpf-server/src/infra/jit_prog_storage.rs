@@ -25,11 +25,9 @@ static JIT_SLOT_STATE: Mutex<[bool; JIT_STORAGE_SLOTS_NUM]> =
 pub fn acquire_storage_slot(
     slot_index: usize,
 ) -> Result<MutexGuard<'static, [u8; JIT_SLOT_SIZE]>, String> {
-    let mut slot_states = JIT_SLOT_STATE.lock();
-    if slot_index > JIT_STORAGE_SLOTS_NUM {
-        Err(format!("Slot index {} out of bounds", slot_index))?;
-    }
+    validate_slot_index(slot_index);
 
+    let mut slot_states = JIT_SLOT_STATE.lock();
     let slot_occupied = slot_states[slot_index];
 
     if slot_occupied {
@@ -38,4 +36,29 @@ pub fn acquire_storage_slot(
 
     slot_states[slot_index] = true;
     Ok(JIT_PROGRAM_SLOTS[slot_index].lock())
+}
+
+pub fn get_program_from_slot(
+    slot_index: usize,
+) -> Result<unsafe fn(*mut u8, usize, *mut u8, usize) -> u32, String> {
+    validate_slot_index(slot_index);
+
+    let mut slot_states = JIT_SLOT_STATE.lock();
+    let slot_occupied = slot_states[slot_index];
+
+    if !slot_occupied {
+        Err(format!("Slot index {} doesn't contain a jitted program", slot_index))?;
+    }
+
+    Ok(rbpf::JitMemory::get_prog_from_slice(
+        JIT_PROGRAM_SLOTS[slot_index].lock().as_mut(),
+    ))
+}
+
+fn validate_slot_index(slot_index: usize) -> Result<(), String> {
+    if slot_index > JIT_STORAGE_SLOTS_NUM {
+        Err(format!("Slot index {} out of bounds", slot_index))?;
+    }
+
+    Ok(())
 }

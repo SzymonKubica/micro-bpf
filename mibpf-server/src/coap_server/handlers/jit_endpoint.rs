@@ -62,8 +62,6 @@ impl coap_handler::Handler for JitTestHandler {
             let _ = mibpf_elf_utils::resolve_relocations(&mut program);
         }
 
-        let mut jit_memory_buffer = jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
-
         let helpers: Vec<HelperFunction> = Vec::from(middleware::ALL_HELPERS);
 
         let mut helpers_map = BTreeMap::new();
@@ -73,22 +71,29 @@ impl coap_handler::Handler for JitTestHandler {
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let jitting_start: u32 = Self::time_now(clock);
-        let mut jit_memory = rbpf::JitMemory::new(
-            program,
-            jit_memory_buffer.as_mut(),
-            &helpers_map,
-            false,
-            false,
-            rbpf::InterpreterVariant::RawObjectFile,
-        )
-        .unwrap();
-        let jitting_time = Self::time_now(clock) - jitting_start;
+        // Additional scope so that the mutexguard gets unlocked and we can then
+        // call jit storage again to read the program
+        {
+            let mut jit_memory_buffer =
+                jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
+            let mut jit_memory = rbpf::JitMemory::new(
+                program,
+                jit_memory_buffer.as_mut(),
+                &helpers_map,
+                false,
+                false,
+                rbpf::InterpreterVariant::RawObjectFile,
+            )
+            .unwrap();
+            let jitting_time = Self::time_now(clock) - jitting_start;
 
-        debug!("JIT compilation successful");
-        debug!("Compilation step took: {} [us]", jitting_time);
-        debug!("jitted program size: {}[B]", jit_memory.offset);
+            debug!("JIT compilation successful");
+            debug!("Compilation step took: {} [us]", jitting_time);
+            debug!("jitted program size: {} [B]", jit_memory.offset);
+        }
 
-        let jitted_fn = jit_memory.get_prog();
+        let jitted_fn =
+            jit_prog_storage::get_program_from_slot(request.configuration.suit_slot).unwrap();
         let mut ret = 0;
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };

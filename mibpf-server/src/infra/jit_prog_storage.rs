@@ -5,6 +5,7 @@
 //! will obtain a mutable reference to the contents of one of the slots,
 //! write the program there and then execute it by casting into a function pointer.
 
+use alloc::{format, string::String};
 use riot_wrappers::mutex::{Mutex, MutexGuard};
 
 use super::suit_storage::{SUIT_STORAGE_SLOTS, SUIT_STORAGE_SLOT_SIZE};
@@ -12,28 +13,29 @@ use super::suit_storage::{SUIT_STORAGE_SLOTS, SUIT_STORAGE_SLOT_SIZE};
 pub const JIT_STORAGE_SLOTS_NUM: usize = SUIT_STORAGE_SLOTS;
 pub const JIT_SLOT_SIZE: usize = SUIT_STORAGE_SLOT_SIZE;
 
-static JIT_PROGRAM_SLOTS: Mutex<[[u8; JIT_SLOT_SIZE]; JIT_STORAGE_SLOTS_NUM]> =
-    Mutex::new([[0; JIT_SLOT_SIZE]; JIT_STORAGE_SLOTS_NUM]);
+static JIT_PROGRAM_SLOTS: [Mutex<[u8; JIT_SLOT_SIZE]>; JIT_STORAGE_SLOTS_NUM] =
+    [EMPTY_SLOT; JIT_STORAGE_SLOTS_NUM];
+
+const EMPTY_SLOT: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 
 // We globally maintain whether a slot is in use or not
-static JIT_SLOT_STATE: Mutex<[bool; JIT_STORAGE_SLOTS_NUM]> = Mutex::new([false; JIT_STORAGE_SLOTS_NUM]);
+static JIT_SLOT_STATE: Mutex<[bool; JIT_STORAGE_SLOTS_NUM]> =
+    Mutex::new([false; JIT_STORAGE_SLOTS_NUM]);
 
-pub fn acquire_storage(
+pub fn acquire_storage_slot(
     slot_index: usize,
-) -> Option<MutexGuard<'static, [[u8; JIT_SLOT_SIZE]; JIT_STORAGE_SLOTS_NUM]>> {
-
+) -> Result<MutexGuard<'static, [u8; JIT_SLOT_SIZE]>, String> {
     let mut slot_states = JIT_SLOT_STATE.lock();
     if slot_index > JIT_STORAGE_SLOTS_NUM {
-        return None;
+        Err(format!("Slot index {} out of bounds", slot_index))?;
     }
 
     let slot_occupied = slot_states[slot_index];
 
     if slot_occupied {
-        return None;
+        Err(format!("Slot index {} already occupied", slot_index))?;
     }
 
     slot_states[slot_index] = true;
-    let guard = JIT_PROGRAM_SLOTS.lock();
-    return Some(guard);
+    Ok(JIT_PROGRAM_SLOTS[slot_index].lock())
 }

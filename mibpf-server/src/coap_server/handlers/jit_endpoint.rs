@@ -38,7 +38,7 @@ use crate::vm::middleware::helpers::HelperFunction;
 #[repr(C, align(4))]
 struct AlignedBuffer([u8; 6]);
 
-static JIT_MEMORY: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static JIT_MEMORY: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 
 impl coap_handler::Handler for JitTestHandler {
     type RequestData = u8;
@@ -62,9 +62,7 @@ impl coap_handler::Handler for JitTestHandler {
             let _ = mibpf_elf_utils::resolve_relocations(&mut program);
         }
 
-        let mut jit_storage = jit_prog_storage::acquire_storage(request.configuration.suit_slot);
-        let mut jit_memory_buffer: [u8; JIT_SLOT_SIZE] =
-            jit_storage.unwrap()[request.configuration.suit_slot];
+        let mut jit_memory_buffer = jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
 
         let helpers: Vec<HelperFunction> = Vec::from(middleware::ALL_HELPERS);
 
@@ -77,7 +75,7 @@ impl coap_handler::Handler for JitTestHandler {
         let jitting_start: u32 = Self::time_now(clock);
         let mut jit_memory = rbpf::JitMemory::new(
             program,
-            &mut jit_memory_buffer,
+            jit_memory_buffer.as_mut(),
             &helpers_map,
             false,
             false,
@@ -88,6 +86,7 @@ impl coap_handler::Handler for JitTestHandler {
 
         debug!("JIT compilation successful");
         debug!("Compilation step took: {} [us]", jitting_time);
+        debug!("jitted program size: {}[B]", jit_memory.offset);
 
         let jitted_fn = jit_memory.get_prog();
         let mut ret = 0;

@@ -73,23 +73,26 @@ impl coap_handler::Handler for JitTestHandler {
         }
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-            let mut jit_memory_buffer =
-                jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
-            let jitting_start: u32 = Self::time_now(clock);
-            let mut jit_memory = rbpf::JitMemory::new(
-                program,
-                jit_memory_buffer.as_mut(),
-                &helpers_map,
-                false,
-                false,
-                rbpf::InterpreterVariant::RawObjectFile,
-            )
-            .unwrap();
-            self.jit_compilation_time = Self::time_now(clock) - jitting_start;
+        let mut jit_memory_buffer =
+            jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
+        let jitting_start: u32 = Self::time_now(clock);
+        let mut jit_memory = rbpf::JitMemory::new(
+            program,
+            jit_memory_buffer.as_mut(),
+            &helpers_map,
+            false,
+            false,
+            rbpf::InterpreterVariant::RawObjectFile,
+        )
+        .unwrap();
+        self.jit_compilation_time = Self::time_now(clock) - jitting_start;
 
-            debug!("JIT compilation successful");
-            debug!("JIT Compilation step took: {} [us]", self.jit_compilation_time);
-            debug!("jitted program size: {} [B]", jit_memory.offset);
+        debug!("JIT compilation successful");
+        debug!(
+            "JIT Compilation step took: {} [us]",
+            self.jit_compilation_time
+        );
+        debug!("jitted program size: {} [B]", jit_memory.offset);
 
         let jitted_fn = jit_memory.get_prog();
         //jit_prog_storage::get_program_from_slot(request.configuration.suit_slot).unwrap();
@@ -119,5 +122,3 @@ impl coap_handler::Handler for JitTestHandler {
         response.set_payload(resp.as_bytes());
     }
 }
-
-

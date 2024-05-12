@@ -32,7 +32,7 @@ impl<'a> TimedVm<'a> {
 }
 
 impl<'a> VirtualMachine<'a> for TimedVm<'a> {
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a [u8], String> {
+    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String> {
         let start = self.time_now();
         let result = self.vm.resolve_relocations(program);
         let end = self.time_now();
@@ -50,7 +50,7 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         return result;
     }
 
-    fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String> {
+    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         let start = self.time_now();
         let result = self.vm.initialise_vm(program);
         let end = self.time_now();

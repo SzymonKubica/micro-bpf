@@ -14,7 +14,7 @@ use super::{middleware::helpers::HelperAccessList, rbpf_vm, FemtoContainerVm, Rb
 pub trait VirtualMachine<'a> {
     /// Loads, verifies, optionally resolves relocations and executes the program.
     fn full_run(&mut self, program: &'a mut [u8]) -> Result<u64, String> {
-        let patched_program = self.resolve_relocations(program)?;
+        let mut patched_program = self.resolve_relocations(program)?;
         self.initialise_vm(patched_program)?;
         self.verify()?;
         self.execute()
@@ -24,17 +24,17 @@ pub trait VirtualMachine<'a> {
         program: &'a mut [u8],
         pkt: &mut PacketBuffer,
     ) -> Result<u64, String> {
-        let patched_program = self.resolve_relocations(program)?;
+        let mut patched_program = self.resolve_relocations(program)?;
         self.initialise_vm(patched_program)?;
         self.verify()?;
         self.execute_on_coap_pkt(pkt)
     }
     /// Patches the program bytecode using the relocation metadata to fix accesses
     /// to .data and .rodata sections.
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a [u8], String>;
+    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String>;
     /// Verifies the program bytecode after it has been loaded into the VM.
     fn verify(&self) -> Result<(), String>;
-    fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String>;
+    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String>;
     /// Executes a given program and returns its return value.
     fn execute(&mut self) -> Result<u64, String>;
     /// Executes a given eBPF program giving it access to the provided PacketBuffer

@@ -13,6 +13,7 @@ use riot_wrappers::mutex::Mutex;
 use crate::infra::jit_prog_storage::{self, JIT_SLOT_SIZE};
 use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
 pub struct JitTestHandler {
+    jit_compilation_time: u32,
     execution_time: u32,
     result: i64,
 }
@@ -22,6 +23,7 @@ impl JitTestHandler {
         Self {
             execution_time: 0,
             result: 0,
+            jit_compilation_time: 0,
         }
     }
 
@@ -57,6 +59,7 @@ impl coap_handler::Handler for JitTestHandler {
         let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
         let mut program =
             suit_storage::load_program(&mut program_buffer, request.configuration.suit_slot);
+        debug!("eBPF program size: {} [B]", program.len());
 
         if request.configuration.binary_layout == BinaryFileLayout::RawObjectFile {
             let _ = mibpf_elf_utils::resolve_relocations(&mut program);
@@ -70,12 +73,12 @@ impl coap_handler::Handler for JitTestHandler {
         }
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-        let jitting_start: u32 = Self::time_now(clock);
         // Additional scope so that the mutexguard gets unlocked and we can then
         // call jit storage again to read the program
         {
             let mut jit_memory_buffer =
                 jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
+            let jitting_start: u32 = Self::time_now(clock);
             let mut jit_memory = rbpf::JitMemory::new(
                 program,
                 jit_memory_buffer.as_mut(),
@@ -85,10 +88,10 @@ impl coap_handler::Handler for JitTestHandler {
                 rbpf::InterpreterVariant::RawObjectFile,
             )
             .unwrap();
-            let jitting_time = Self::time_now(clock) - jitting_start;
+            self.jit_compilation_time = Self::time_now(clock) - jitting_start;
 
             debug!("JIT compilation successful");
-            debug!("Compilation step took: {} [us]", jitting_time);
+            debug!("JIT Compilation step took: {} [us]", self.jit_compilation_time);
             debug!("jitted program size: {} [B]", jit_memory.offset);
         }
 
@@ -96,7 +99,6 @@ impl coap_handler::Handler for JitTestHandler {
             jit_prog_storage::get_program_from_slot(request.configuration.suit_slot).unwrap();
         let mut ret = 0;
 
-        let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let start: u32 = Self::time_now(clock);
         unsafe {
             ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
@@ -115,9 +117,11 @@ impl coap_handler::Handler for JitTestHandler {
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!(
-            "{{\"execution_time\": {}, \"result\": {}}}",
-            self.execution_time, self.result
+            "{{\"jit_compilation_time\": {}, \"execution_time\": {}, \"result\": {}}}",
+            self.jit_compilation_time, self.execution_time, self.result
         );
         response.set_payload(resp.as_bytes());
     }
 }
+
+

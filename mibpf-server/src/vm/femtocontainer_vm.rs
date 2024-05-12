@@ -16,7 +16,7 @@ impl<'a> FemtoContainerVm<'a> {
 }
 
 impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a [u8], String> {
+    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String> {
         /// FemtoContainer VM doesn't support relocations so this is an identity mapping.
         Ok(program)
     }
@@ -37,7 +37,7 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
         }
     }
 
-    fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String> {
+    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         self.program = Some(program);
         Ok(())
     }

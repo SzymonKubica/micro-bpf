@@ -6,6 +6,7 @@
 //! write the program there and then execute it by casting into a function pointer.
 
 use alloc::{format, string::String};
+use log::debug;
 use riot_wrappers::mutex::{Mutex, MutexGuard};
 
 use super::suit_storage::{SUIT_STORAGE_SLOTS, SUIT_STORAGE_SLOT_SIZE};
@@ -47,12 +48,28 @@ pub fn get_program_from_slot(
     let slot_occupied = slot_states[slot_index];
 
     if !slot_occupied {
-        Err(format!("Slot index {} doesn't contain a jitted program", slot_index))?;
+        Err(format!(
+            "Slot index {} doesn't contain a jitted program",
+            slot_index
+        ))?;
     }
 
-    Ok(rbpf::JitMemory::get_prog_from_slice(
-        JIT_PROGRAM_SLOTS[slot_index].lock().as_mut(),
-    ))
+    let mut program_guard = JIT_PROGRAM_SLOTS[slot_index].lock();
+    debug!("Loading previously jitted program from slot {}", slot_index);
+    log_program_contents(program_guard.as_ref(), JIT_SLOT_SIZE);
+
+    Ok(rbpf::JitMemory::get_prog_from_slice(program_guard.as_mut()))
+}
+
+fn log_program_contents(program: &[u8], length: usize) {
+    let mut prog_str: String = String::new();
+    for (i, b) in program.iter().take(length).enumerate() {
+        prog_str.push_str(&format!("{:02x}", *b));
+        if i % 4 == 3 {
+            prog_str.push_str("\n");
+        }
+    }
+    debug!("program bytes:\n{}", prog_str);
 }
 
 fn validate_slot_index(slot_index: usize) -> Result<(), String> {

@@ -84,7 +84,7 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 }
 
 impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a [u8], String> {
+    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String> {
         if self.layout == BinaryFileLayout::RawObjectFile {
             mibpf_elf_utils::resolve_relocations(program)?;
         };
@@ -113,7 +113,7 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
         Ok(())
     }
 
-    fn initialise_vm(&mut self, program: &'a [u8]) -> Result<(), String> {
+    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         // We need to make a decision whether we use the helper list that was
         // sent in the request or read the allowed helpers from the metadata appended
         // to the program binary.

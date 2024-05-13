@@ -16,6 +16,7 @@ pub struct JitTestHandler {
     jit_compilation_time: u32,
     execution_time: u32,
     result: i64,
+    jit_prog_size: u32,
 }
 
 impl JitTestHandler {
@@ -24,6 +25,7 @@ impl JitTestHandler {
             execution_time: 0,
             result: 0,
             jit_compilation_time: 0,
+            jit_prog_size: 0,
         }
     }
 
@@ -41,6 +43,18 @@ use crate::vm::middleware::helpers::HelperFunction;
 struct AlignedBuffer([u8; 6]);
 
 static JIT_MEMORY: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
+/// Before we can jit-compile the program we need to adjust all .data and .rodata
+/// relocations so that they point to the sections that were copied over into the
+/// jit memory buffer. Because of this we need calculate the addresses of the new
+/// sections and then run the relocation resolution process so that the eBPF
+/// program references the data in those new section in the jitted program buffer.
+/// After that is done, we can jit compile it and so all relocated memory accesses
+/// will correctly point to the data/rodata located inside of the jitted program.
+///
+/// The reason for doing this is that we want to be able to discard the source
+/// eBPF program after we jit-compile it and thus save memory as jitted programs
+/// are substantially smaller.
+static PROGRAM_COPY_BUFFER: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 
 impl coap_handler::Handler for JitTestHandler {
     type RequestData = u8;
@@ -68,14 +82,20 @@ impl coap_handler::Handler for JitTestHandler {
             helpers_map.insert(h.id as u32, h.function);
         }
 
+        let jit_slot = request.configuration.suit_slot;
+
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let mut text_offset = 0;
         {
-            let mut jit_memory_buffer =
-                jit_prog_storage::acquire_storage_slot(request.configuration.suit_slot).unwrap();
+            // Here we acquire a pointer to global storage where the jitted
+            // program will be written. The additional scope is introduced so
+            // that the acquired MutexGuard goes out of scope at the end of it
+            // and so the lock is released. (RAII)
+            let mut jit_memory_buffer = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
             let jitting_start: u32 = Self::time_now(clock);
             let mut jit_memory = rbpf::JitMemory::new(
                 program,
+                PROGRAM_COPY_BUFFER.lock().as_mut(),
                 jit_memory_buffer.as_mut(),
                 &helpers_map,
                 false,
@@ -91,18 +111,19 @@ impl coap_handler::Handler for JitTestHandler {
                 self.jit_compilation_time
             );
             debug!("jitted program size: {} [B]", jit_memory.offset);
+            self.jit_prog_size = jit_memory.offset;
             text_offset = jit_memory.text_offset;
         }
 
-        let jitted_fn =
-            jit_prog_storage::get_program_from_slot(request.configuration.suit_slot, text_offset)
-                .unwrap();
-        let mut ret = 0;
+        let jitted_fn = jit_prog_storage::get_program_from_slot(jit_slot, text_offset).unwrap();
 
+        let mut ret = 0;
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let start: u32 = Self::time_now(clock);
         unsafe {
-            ret = jitted_fn(1 as *mut u8, 2, 1234 as *mut u8, 4);
+            // We don't pass any meaningful arguments here as the program doesn't
+            // work on a COAP message packet buffer.
+            ret = jitted_fn(0 as *mut u8, 0, 0 as *mut u8, 0);
         }
         self.execution_time = Self::time_now(clock) - start;
         self.result = ret as i64;
@@ -118,8 +139,8 @@ impl coap_handler::Handler for JitTestHandler {
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!(
-            "{{\"jit_compilation_time\": {}, \"execution_time\": {}, \"result\": {}}}",
-            self.jit_compilation_time, self.execution_time, self.result
+            "{{\"jit_prog_size\": {}, \"jit_compilation_time\": {}, \"execution_time\": {}, \"result\": {}}}",
+            self.jit_prog_size, self.jit_compilation_time, self.execution_time, self.result
         );
         response.set_payload(resp.as_bytes());
     }

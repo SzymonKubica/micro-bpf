@@ -37,8 +37,11 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
         }
     }
 
-    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         self.program = Some(program);
+        unsafe {
+            initialize_fc_vm(program.as_ptr() as *const u8, program.len());
+        }
         Ok(())
     }
 
@@ -48,13 +51,7 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
             Err("VM not initialised")?
         };
         unsafe {
-            let mut result: i64 = 0;
-            execute_fc_vm(
-                program.as_ptr() as *const u8,
-                program.len(),
-                &mut result as *mut i64,
-            );
-            return Ok(result as u64);
+            return Ok(execute_fc_vm() as u64);
         }
     }
 
@@ -86,6 +83,7 @@ extern "C" {
         return_value: *mut i64,
     ) -> u32;
 
-    fn execute_fc_vm(program: *const u8, program_len: usize, return_value: *mut i64) -> u32;
+    fn initialize_fc_vm(program: *const u8, program_len: usize) -> u32;
+    fn execute_fc_vm() -> u32;
     fn verify_fc_program(program: *const u8, program_len: usize) -> u32;
 }

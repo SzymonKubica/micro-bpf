@@ -117,7 +117,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
 
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        let resp = format!("{{\"return\": {}}}", self.result);
+        let resp = format!("{{\"result\": {}}}", self.result);
         response.set_payload(resp.as_bytes());
     }
 }
@@ -237,7 +237,7 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let results = self.time_results;
         let resp = format!(
-            "{{\"reloc\": {}, \"load\": {}, \"verif\": {}, \"exec\": {},\"prog\": {}, \"res\": {}}}",
+            "{{\"reloc\": {}, \"load\": {}, \"verif\": {}, \"exec\": {},\"prog\": {}, \"result\": {}}}",
             results.relocation_resolution_time, results.load_time, results.verification_time, results.execution_time, self.program_size, self.result
         );
         response.set_payload(resp.as_bytes());

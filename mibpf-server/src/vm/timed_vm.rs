@@ -50,9 +50,9 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         return result;
     }
 
-    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         let start = self.time_now();
-        let result = self.vm.initialise_vm(program);
+        let result = self.vm.initialize_vm(program);
         let end = self.time_now();
 
         self.results.borrow_mut().load_time = end - start;

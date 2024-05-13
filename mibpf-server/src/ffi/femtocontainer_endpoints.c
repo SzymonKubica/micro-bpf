@@ -118,7 +118,8 @@ typedef struct {
     size_t len;
 } pkt_buf;
 
-uint32_t verify_fc_program(uint8_t *program, uint32_t program_len) {
+uint32_t verify_fc_program(uint8_t *program, uint32_t program_len)
+{
 
     LOG_DEBUG("[BPF handler]: verifying the eBPF program\n");
     _bpf.application = program;
@@ -131,10 +132,8 @@ uint32_t verify_fc_program(uint8_t *program, uint32_t program_len) {
     return f12r_verify_preflight(&_bpf);
 }
 
-uint32_t execute_fc_vm(uint8_t *program, uint32_t program_len,
-                       uint64_t *return_value)
+void initialize_fc_vm(uint8_t *program, uint32_t program_len)
 {
-
     LOG_DEBUG("[BPF handler]: initialising the eBPF application struct\n");
     _bpf.application = program;
     _bpf.application_len = program_len;
@@ -145,21 +144,13 @@ uint32_t execute_fc_vm(uint8_t *program, uint32_t program_len,
     LOG_DEBUG("[BPF]: executing gcoap handler\n");
 
     f12r_setup(&_bpf);
+}
+
+uint32_t execute_fc_vm(void)
+{
     int64_t result = -1;
-    LOG_INFO("[BPF handler]: executing VM\n");
-    ztimer_acquire(ZTIMER_USEC);
-    ztimer_now_t start = ztimer_now(ZTIMER_USEC);
-    // Figure out the size of the context
-    int res = f12r_execute(&_bpf, 0, 64, &result);
-    ztimer_now_t end = ztimer_now(ZTIMER_USEC);
-    uint32_t execution_time = end - start;
-    *return_value = result;
-
-    LOG_INFO("Program returned: %d (%x)\n", result, result);
-    LOG_INFO("Exit code: %d\n", res);
-    LOG_INFO("Execution time: %d [us]\n", execution_time);
-
-    return execution_time;
+    f12r_execute(&_bpf, 0, 64, &result);
+    return result;
 }
 
 uint32_t execute_fc_vm_on_coap_pkt(uint8_t *program, uint32_t program_len,

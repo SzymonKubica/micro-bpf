@@ -26,7 +26,7 @@ static JIT_SLOT_STATE: Mutex<[bool; JIT_STORAGE_SLOTS_NUM]> =
 pub fn acquire_storage_slot(
     slot_index: usize,
 ) -> Result<MutexGuard<'static, [u8; JIT_SLOT_SIZE]>, String> {
-    validate_slot_index(slot_index);
+    validate_slot_index(slot_index)?;
 
     let mut slot_states = JIT_SLOT_STATE.lock();
     let slot_occupied = slot_states[slot_index];
@@ -39,11 +39,26 @@ pub fn acquire_storage_slot(
     Ok(JIT_PROGRAM_SLOTS[slot_index].lock())
 }
 
+pub fn free_storage_slot(slot_index: usize) -> Result<(), String> {
+    validate_slot_index(slot_index)?;
+
+    let mut slot_states = JIT_SLOT_STATE.lock();
+    let slot_occupied = slot_states[slot_index];
+
+    if !slot_occupied {
+        Err(format!("Slot index {} doesn't contain a jitted program", slot_index))?;
+    }
+
+    slot_states[slot_index] = false;
+    JIT_PROGRAM_SLOTS[slot_index].lock().fill(0);
+    Ok(())
+}
+
 pub fn get_program_from_slot(
     slot_index: usize,
     text_offset: usize,
 ) -> Result<unsafe fn(*mut u8, usize, *mut u8, usize) -> u32, String> {
-    validate_slot_index(slot_index);
+    validate_slot_index(slot_index)?;
 
     let mut slot_states = JIT_SLOT_STATE.lock();
     let slot_occupied = slot_states[slot_index];

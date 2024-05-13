@@ -131,6 +131,7 @@ impl coap_handler::Handler for JitTestHandler {
         self.execution_time = Self::time_now(clock) - start;
         self.result = ret as i64;
 
+        jit_prog_storage::free_storage_slot(jit_slot);
         debug!("JIT execution successful: {}", ret);
         coap_numbers::code::CHANGED
     }

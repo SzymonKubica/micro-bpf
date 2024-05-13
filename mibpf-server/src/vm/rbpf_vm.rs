@@ -113,7 +113,7 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
         Ok(())
     }
 
-    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         // We need to make a decision whether we use the helper list that was
         // sent in the request or read the allowed helpers from the metadata appended
         // to the program binary.

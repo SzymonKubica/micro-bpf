@@ -15,7 +15,7 @@ pub trait VirtualMachine<'a> {
     /// Loads, verifies, optionally resolves relocations and executes the program.
     fn full_run(&mut self, program: &'a mut [u8]) -> Result<u64, String> {
         let mut patched_program = self.resolve_relocations(program)?;
-        self.initialise_vm(patched_program)?;
+        self.initialize_vm(patched_program)?;
         self.verify()?;
         self.execute()
     }
@@ -25,7 +25,7 @@ pub trait VirtualMachine<'a> {
         pkt: &mut PacketBuffer,
     ) -> Result<u64, String> {
         let mut patched_program = self.resolve_relocations(program)?;
-        self.initialise_vm(patched_program)?;
+        self.initialize_vm(patched_program)?;
         self.verify()?;
         self.execute_on_coap_pkt(pkt)
     }
@@ -34,7 +34,7 @@ pub trait VirtualMachine<'a> {
     fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String>;
     /// Verifies the program bytecode after it has been loaded into the VM.
     fn verify(&self) -> Result<(), String>;
-    fn initialise_vm(&mut self, program: &'a mut [u8]) -> Result<(), String>;
+    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String>;
     /// Executes a given program and returns its return value.
     fn execute(&mut self) -> Result<u64, String>;
     /// Executes a given eBPF program giving it access to the provided PacketBuffer

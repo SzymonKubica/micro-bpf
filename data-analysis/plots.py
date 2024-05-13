@@ -1,4 +1,6 @@
+import pandas as pd
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 
 def old_bench():
@@ -163,5 +165,184 @@ def plots_benchmark_overhead_investigation():
     plt.show()
 
 
+def plots_examples():
+    fc_results = [
+        {"reloc": 1, "load": 0, "verif": 3, "exec": 4099, "prog": 162, "result": 0},
+        {"reloc": 1, "load": 0, "verif": 1, "exec": 8815, "prog": 274, "result": 5},
+        {"reloc": 1, "load": 0, "verif": 1, "exec": 8810, "prog": 250, "result": 5},
+        {"reloc": 1, "load": 1, "verif": 1, "exec": 10728, "prog": 338, "result": 1234},
+        {"reloc": 1, "load": 1, "verif": 1, "exec": 4576, "prog": 602, "result": 32742},
+    ]
+
+    raw_object_file_results = [
+        {"reloc": 91, "load": 136, "verif": 90, "exec": 934, "prog": 1016, "result": 0},
+        {
+            "reloc": 112,
+            "load": 139,
+            "verif": 93,
+            "exec": 5648,
+            "prog": 1200,
+            "result": 5,
+        },
+        {
+            "reloc": 109,
+            "load": 136,
+            "verif": 92,
+            "exec": 5648,
+            "prog": 1176,
+            "result": 5,
+        },
+        {
+            "reloc": 100,
+            "load": 138,
+            "verif": 101,
+            "exec": 7824,
+            "prog": 1320,
+            "result": 1234,
+        },
+        {
+            "reloc": 101,
+            "load": 135,
+            "verif": 109,
+            "exec": 3014,
+            "prog": 1544,
+            "result": 32742,
+        },
+    ]
+
+    fc_header_results = [
+        {"reloc": 0, "load": 137, "verif": 9, "exec": 827, "prog": 162, "result": 0},
+        {"reloc": 1, "load": 136, "verif": 13, "exec": 5534, "prog": 274, "result": 5},
+        {"reloc": 1, "load": 138, "verif": 12, "exec": 5539, "prog": 250, "result": 5},
+        {
+            "reloc": 0,
+            "load": 135,
+            "verif": 16,
+            "exec": 7717,
+            "prog": 338,
+            "result": 1234,
+        },
+        {
+            "reloc": 0,
+            "load": 137,
+            "verif": 20,
+            "exec": 2912,
+            "prog": 602,
+            "result": 32742,
+        },
+    ]
+
+    extended_header_results = [
+        {"reloc": 1, "load": 136, "verif": 9, "exec": 840, "prog": 194, "result": 0},
+        {"reloc": 1, "load": 138, "verif": 13, "exec": 5553, "prog": 306, "result": 5},
+        {"reloc": 1, "load": 135, "verif": 11, "exec": 5555, "prog": 282, "result": 5},
+        {
+            "reloc": 0,
+            "load": 138,
+            "verif": 16,
+            "exec": 7739,
+            "prog": 370,
+            "result": 1234,
+        },
+        {
+            "reloc": 1,
+            "load": 136,
+            "verif": 21,
+            "exec": 2927,
+            "prog": 634,
+            "result": 32742,
+        },
+    ]
+
+    only_text_section_results = [
+        {"reloc": 1, "load": 138, "verif": 13, "exec": 824, "prog": 152, "result": 0},
+        {"reloc": 0, "load": 135, "verif": 28, "exec": 5552, "prog": 384, "result": 5},
+        {"reloc": 1, "load": 138, "verif": 27, "exec": 5543, "prog": 368, "result": 5},
+        {
+            "reloc": 1,
+            "load": 135,
+            "verif": 33,
+            "exec": 7733,
+            "prog": 472,
+            "result": 1234,
+        },
+        {"reloc": 0, "load": 137, "verif": 20, "exec": 16, "prog": 232, "result": 0},
+    ]
+
+    jit_results = [
+        {
+            "prog_size": 1016,
+            "jit_prog_size": 100,
+            "jit_comp_time": 307,
+            "run_time": 3,
+            "result": 0,
+        },
+        {
+            "prog_size": 1200,
+            "jit_prog_size": 124,
+            "jit_comp_time": 341,
+            "run_time": 5,
+            "result": 134279611,
+        },
+        {
+            "prog_size": 1176,
+            "jit_prog_size": 120,
+            "jit_comp_time": 343,
+            "run_time": 4,
+            "result": 5,
+        },
+        {
+            "prog_size": 1320,
+            "jit_prog_size": 200,
+            "jit_comp_time": 385,
+            "run_time": 7,
+            "result": 1234,
+        },
+        {
+            "prog_size": 1544,
+            "jit_prog_size": 470,
+            "jit_comp_time": 366,
+            "run_time": 72,
+            "result": 32742,
+        },
+    ]
+    all_results = [
+        raw_object_file_results,
+        fc_results,
+        fc_header_results,
+        extended_header_results,
+        only_text_section_results,
+    ]
+    columns = [
+        "raw_object_file",
+        "fc",
+        "fc_header",
+        "extended_header",
+        "only_text_section",
+    ]
+
+    test_programs = [
+        "bpf_fetch.c",
+        "bpf_fmt_s16_dfp.c",
+        "bpf_fmt_u32_dec.c",
+        "bpf_store.c",
+        "fletcher16",
+    ]
+
+    metrics = ["reloc", "load", "verif", "exec", "prog"]
+    titles = {"reloc": "Relocation resolution time", "load": "Load time", "verif": "Verification time", "exec": "Execution time", "prog": "Program size"}
+    for metric in metrics:
+        data = defaultdict(lambda: [])
+        for i, column in enumerate(columns):
+            for j, prog in enumerate(test_programs):
+                data[column].append(all_results[i][j][metric])
+
+        _df = pd.DataFrame(data, columns=columns, index=test_programs)
+        _df.plot.bar(title=titles[metric])
+
+
+    plt.show()
+
+
 if __name__ == "__main__":
-    plots_benchmark_overhead_investigation()
+    plots_examples()

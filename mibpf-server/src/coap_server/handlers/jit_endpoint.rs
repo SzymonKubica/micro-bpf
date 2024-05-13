@@ -17,6 +17,7 @@ pub struct JitTestHandler {
     execution_time: u32,
     result: i64,
     jit_prog_size: u32,
+    prog_size: u32,
 }
 
 impl JitTestHandler {
@@ -26,6 +27,7 @@ impl JitTestHandler {
             result: 0,
             jit_compilation_time: 0,
             jit_prog_size: 0,
+            prog_size: 0,
         }
     }
 
@@ -74,6 +76,7 @@ impl coap_handler::Handler for JitTestHandler {
         let mut program =
             suit_storage::load_program(&mut program_buffer, request.configuration.suit_slot);
         debug!("eBPF program size: {} [B]", program.len());
+        self.prog_size = program.len() as u32;
 
         let helpers: Vec<HelperFunction> = Vec::from(middleware::ALL_HELPERS);
 
@@ -111,7 +114,7 @@ impl coap_handler::Handler for JitTestHandler {
                 self.jit_compilation_time
             );
             debug!("jitted program size: {} [B]", jit_memory.offset);
-            self.jit_prog_size = jit_memory.offset;
+            self.jit_prog_size = jit_memory.offset as u32;
             text_offset = jit_memory.text_offset;
         }
 
@@ -139,8 +142,8 @@ impl coap_handler::Handler for JitTestHandler {
     fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!(
-            "{{\"jit_prog_size\": {}, \"jit_compilation_time\": {}, \"execution_time\": {}, \"result\": {}}}",
-            self.jit_prog_size, self.jit_compilation_time, self.execution_time, self.result
+            "{{\"prog_size\": {}, \"jit_prog_size\": {}, \"jit_comp_time\": {}, \"run_time\": {}, \"result\": {}}}",
+            self.prog_size, self.jit_prog_size, self.jit_compilation_time, self.execution_time, self.result
         );
         response.set_payload(resp.as_bytes());
     }

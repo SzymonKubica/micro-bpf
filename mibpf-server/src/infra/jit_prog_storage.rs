@@ -41,6 +41,7 @@ pub fn acquire_storage_slot(
 
 pub fn get_program_from_slot(
     slot_index: usize,
+    text_offset: usize,
 ) -> Result<unsafe fn(*mut u8, usize, *mut u8, usize) -> u32, String> {
     validate_slot_index(slot_index);
 
@@ -56,9 +57,9 @@ pub fn get_program_from_slot(
 
     let mut program_guard = JIT_PROGRAM_SLOTS[slot_index].lock();
     debug!("Loading previously jitted program from slot {}", slot_index);
-    log_program_contents(program_guard.as_ref(), JIT_SLOT_SIZE);
+    //log_program_contents(program_guard.as_ref(), JIT_SLOT_SIZE);
 
-    Ok(rbpf::JitMemory::get_prog_from_slice(program_guard.as_mut()))
+    Ok(rbpf::JitMemory::get_prog_from_slice(program_guard.as_mut(), text_offset))
 }
 
 fn log_program_contents(program: &[u8], length: usize) {

@@ -28,7 +28,7 @@ mod vm;
 // The coap thread is running the CoAP network stack, therefore its
 // stack memory size needs to be appropriately larger.
 // The threading setup was adapted from here: https://gitlab.com/etonomy/riot-examples/-/tree/master/shell_threads?ref_type=heads
-static COAP_THREAD_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static COAP_THREAD_STACK: Mutex<[u8; 16384]> = Mutex::new([0; 16384]);
 static SHELL_THREAD_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
 riot_main!(main);

@@ -1,9 +1,10 @@
 ---- benchmark_femtocontainers stdout ----
-Response: {"reloc": 1, "load": 1, "verif": 4, "exec": 12670,"prog": 162, "result": 0}
-Response: {"reloc": 0, "load": 0, "verif": 2, "exec": 17462,"prog": 274, "result": 5}
-Response: {"reloc": 0, "load": 0, "verif": 2, "exec": 17462,"prog": 250, "result": 5}
-Response: {"reloc": 1, "load": 0, "verif": 1, "exec": 19548,"prog": 338, "result": 1234}
-Response: {"reloc": 1, "load": 1, "verif": 1, "exec": 13481,"prog": 602, "result": 32742}
+Response: {"reloc": 1, "load": 0, "verif": 3, "exec": 4099,"prog": 162, "result": 0}
+Response: {"reloc": 1, "load": 0, "verif": 1, "exec": 8815,"prog": 274, "result": 5}
+Response: {"reloc": 1, "load": 0, "verif": 1, "exec": 8810,"prog": 250, "result": 5}
+Response: {"reloc": 1, "load": 1, "verif": 1, "exec": 10728,"prog": 338, "result": 1234}
+Response: {"reloc": 1, "load": 1, "verif": 1, "exec": 4576,"prog": 602, "result": 32742}
+D
 
 Response: {"reloc": 91, "load": 136, "verif": 90, "exec": 934,"prog": 1016, "result": 0}
 Response: {"reloc": 112, "load": 139, "verif": 93, "exec": 5648,"prog": 1200, "result": 5}

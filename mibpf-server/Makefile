@@ -57,7 +57,6 @@ FEATURES_BLACKLIST += cortexm_mpu
 # project
 USEMODULE += ffi
 DIRS += $(CURDIR)/src/ffi
-INCLUDES += -I$(CURDIR)/src/ffi/include
 
 
 # Comment this out to disable code in RIOT that does safety checking

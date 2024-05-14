@@ -1,6 +1,7 @@
 use core::ffi::c_void;
 
 use alloc::{format, string::String};
+use log::debug;
 use riot_wrappers::{gcoap::PacketBuffer, println};
 
 use crate::vm::VirtualMachine;
@@ -46,25 +47,32 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
     }
 
     fn execute(&mut self) -> Result<u64, String> {
-        println!("Starting FemtoContainer VM execution.");
+        debug!("Starting FemtoContainer VM execution.");
         let Some(program) = self.program else {
             Err("VM not initialised")?
         };
+        let mut result: i64 = 0;
+        // We need to define the stack here and pass it into the VM.
+        // For some reason the static stack allocation in the c file doesn't work.
+        let mut stack: [u8; 512] = [0; 512];
         unsafe {
-            return Ok(execute_fc_vm() as u64);
+            execute_fc_vm(&mut stack as *mut u8, &mut result as *mut i64);
         }
+        Ok(result as u64)
     }
 
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
-        println!("Starting FemtoContainer VM execution.");
+        debug!("Starting FemtoContainer VM execution.");
         let Some(program) = self.program else {
             Err("VM not initialised")?
         };
         unsafe {
             let mut result: i64 = 0;
+            // We need to define the stack here and pass it into the VM.
+            // For some reason the static stack allocation in the c file doesn't work.
+            let mut stack: [u8; 512] = [0; 512];
             execute_fc_vm_on_coap_pkt(
-                program.as_ptr() as *const u8,
-                program.len(),
+                &mut stack as *mut u8,
                 pkt as *mut PacketBuffer as *mut c_void,
                 &mut result as *mut i64,
             );
@@ -77,13 +85,12 @@ extern "C" {
     /// Executes a femtocontainer VM where the eBPF program has access
     /// to the pointer to the CoAP packet.
     fn execute_fc_vm_on_coap_pkt(
-        program: *const u8,
-        program_len: usize,
+        stack: *mut u8,
         pkt: *mut c_void, // PacketBuffer isn't ffi-safe so we need to pass *c_void
-        return_value: *mut i64,
+        result: *mut i64,
     ) -> u32;
 
     fn initialize_fc_vm(program: *const u8, program_len: usize) -> u32;
-    fn execute_fc_vm() -> u32;
+    fn execute_fc_vm(stack: *mut u8, result: *mut i64) -> u32;
     fn verify_fc_program(program: *const u8, program_len: usize) -> u32;
 }

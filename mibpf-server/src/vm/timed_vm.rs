@@ -38,7 +38,7 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         let end = self.time_now();
 
         self.results.borrow_mut().verification_time = end - start;
-        return result;
+        result
     }
 
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
@@ -47,7 +47,7 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         let end = self.time_now();
 
         self.results.borrow_mut().load_time = end - start;
-        return result;
+        result
     }
 
     fn execute(&mut self) -> Result<u64, String> {
@@ -56,7 +56,7 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         let end = self.time_now();
 
         self.results.borrow_mut().execution_time = end - start;
-        return result;
+        result
     }
 
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
@@ -65,7 +65,30 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         let end = self.time_now();
 
         self.results.borrow_mut().execution_time = end - start;
-        return result;
+        result
+    }
+
+    fn full_run(&mut self, program: &'a mut [u8]) -> Result<u64, String> {
+        let start = self.time_now();
+        self.initialize_vm(program)?;
+        self.verify()?;
+        let result = self.execute();
+        let end = self.time_now();
+        self.results.borrow_mut().total_time = end - start;
+        result
+    }
+    fn full_run_on_coap_pkt(
+        &mut self,
+        program: &'a mut [u8],
+        pkt: &mut PacketBuffer,
+    ) -> Result<u64, String> {
+        let start = self.time_now();
+        self.initialize_vm(program)?;
+        self.verify()?;
+        let result = self.execute_on_coap_pkt(pkt);
+        let end = self.time_now();
+        self.results.borrow_mut().total_time = end - start;
+        result
     }
 }
 
@@ -74,4 +97,5 @@ pub struct BenchmarkResult {
     pub load_time: u32,
     pub verification_time: u32,
     pub execution_time: u32,
+    pub total_time: u32,
 }

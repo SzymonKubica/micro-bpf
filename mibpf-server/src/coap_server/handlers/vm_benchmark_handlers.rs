@@ -85,7 +85,8 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let results = self.time_results;
         let resp = format!(
-            "{{\"load\": {}, \"verif\": {}, \"exec\": {},\"prog\": {}, \"result\": {}}}",
+            "{{\"total\": {}, \"load\": {}, \"verif\": {}, \"exec\": {},\"prog\": {}, \"result\": {}}}",
+            results.total_time,
             results.load_time,
             results.verification_time,
             results.execution_time,
@@ -143,7 +144,6 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
         let mut vm = TimedVm::new(vm);
 
         self.program_size = program.len() as u32;
-
         self.payload_written = vm.full_run_on_coap_pkt(program, pkt).unwrap() as isize;
         self.time_results = vm.get_results();
         self.log_results();

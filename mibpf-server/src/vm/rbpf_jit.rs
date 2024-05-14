@@ -1,9 +1,10 @@
 use crate::vm::{middleware, VirtualMachine};
 use alloc::{
+    collections::BTreeMap,
     format,
     rc::Rc,
     string::{String, ToString},
-    vec::Vec, collections::BTreeMap,
+    vec::Vec,
 };
 use core::{ops::DerefMut, slice::from_raw_parts_mut};
 use log::debug;
@@ -84,11 +85,11 @@ impl<'a> VirtualMachine<'a> for RbpfJIT {
             // program will be written. The additional scope is introduced so
             // that the acquired MutexGuard goes out of scope at the end of it
             // and so the lock is released. (RAII)
-            let mut guard = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
+            let mut slot_guard = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
             let mut jit_memory = rbpf::JitMemory::new(
                 program,
                 PROGRAM_COPY_BUFFER.lock().as_mut(),
-                guard.0.as_mut(),
+                slot_guard.0.as_mut(),
                 &helpers_map,
                 false,
                 false,
@@ -98,7 +99,7 @@ impl<'a> VirtualMachine<'a> for RbpfJIT {
 
             debug!("JIT compilation successful");
             debug!("jitted program size: {} [B]", jit_memory.offset);
-            guard.1 = jit_memory.text_offset;
+            slot_guard.1 = jit_memory.text_offset;
         }
         Ok(())
     }

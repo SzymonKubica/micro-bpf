@@ -41,9 +41,6 @@ use crate::coap_server::handlers::util::preprocess_request_raw;
 use crate::vm::middleware;
 use crate::vm::middleware::helpers::HelperFunction;
 
-#[repr(C, align(4))]
-struct AlignedBuffer([u8; 6]);
-
 static JIT_MEMORY: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 /// Before we can jit-compile the program we need to adjust all .data and .rodata
 /// relocations so that they point to the sections that were copied over into the
@@ -62,6 +59,7 @@ impl coap_handler::Handler for JitTestHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+        /*
         let request_data = match preprocess_request_raw(request) {
             Ok(request_data) => request_data,
             Err(code) => return code,
@@ -133,6 +131,7 @@ impl coap_handler::Handler for JitTestHandler {
 
         jit_prog_storage::free_storage_slot(jit_slot);
         debug!("JIT execution successful: {}", ret);
+        */
         coap_numbers::code::CHANGED
     }
 

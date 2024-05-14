@@ -51,6 +51,11 @@ impl coap_handler::Handler for SuitPullHandler {
 
         let config = VMConfiguration::decode(request.config);
 
+        debug!(
+            "Received SUIT pull request: {:?}, config: {:?}",
+            request, config
+        );
+
         let fetch_result = suit_storage::suit_fetch(
             request.ip.as_str(),
             request.riot_netif.as_str(),

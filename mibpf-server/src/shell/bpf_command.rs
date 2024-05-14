@@ -63,6 +63,8 @@ impl VMExecutionShellCommandHandler {
             binary_layout,
             HelperAccessVerification::PreFlight,
             HelperAccessListSource::ExecuteRequest,
+            false,
+            false,
         );
 
         let allowed_helpers = Vec::from(ALL_HELPERS).into_iter().map(|f| f.id).collect();

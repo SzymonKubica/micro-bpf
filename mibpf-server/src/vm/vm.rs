@@ -25,8 +25,7 @@ pub trait VirtualMachine<'a> {
         program: &'a mut [u8],
         pkt: &mut PacketBuffer,
     ) -> Result<u64, String> {
-        let mut patched_program = self.resolve_relocations(program)?;
-        self.initialize_vm(patched_program)?;
+        self.initialize_vm(program)?;
         self.verify()?;
         self.execute_on_coap_pkt(pkt)
     }

@@ -7,15 +7,16 @@ use riot_wrappers::gcoap::PacketBuffer;
 
 use crate::infra::{local_storage, suit_storage};
 
-use super::{middleware::helpers::HelperAccessList, rbpf_vm, FemtoContainerVm, RbpfVm};
+use super::{
+    middleware::helpers::HelperAccessList, rbpf_jit::RbpfJIT, rbpf_vm, FemtoContainerVm, RbpfVm,
+};
 
 /// Structs implementing this interface should allow for executing eBPF programs
 /// both raw and with access to the incoming CoAP packet.
 pub trait VirtualMachine<'a> {
     /// Loads, verifies, optionally resolves relocations and executes the program.
     fn full_run(&mut self, program: &'a mut [u8]) -> Result<u64, String> {
-        let mut patched_program = self.resolve_relocations(program)?;
-        self.initialize_vm(patched_program)?;
+        self.initialize_vm(program)?;
         self.verify()?;
         self.execute()
     }
@@ -29,12 +30,13 @@ pub trait VirtualMachine<'a> {
         self.verify()?;
         self.execute_on_coap_pkt(pkt)
     }
-    /// Patches the program bytecode using the relocation metadata to fix accesses
-    /// to .data and .rodata sections.
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String>;
+    /// Initializes the VM, in case of the JIT this step involves jit-compilation.
+    /// In case of raw elf file binaries this is where the relocation resolution
+    /// should take place. In all other case we simply attach all helper functions
+    /// to the VM here.
+    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String>;
     /// Verifies the program bytecode after it has been loaded into the VM.
     fn verify(&self) -> Result<(), String>;
-    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String>;
     /// Executes a given program and returns its return value.
     fn execute(&mut self) -> Result<u64, String>;
     /// Executes a given eBPF program giving it access to the provided PacketBuffer
@@ -45,17 +47,21 @@ pub trait VirtualMachine<'a> {
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String>;
 }
 
-/// Responsible for initialising the VM. It loads the program bytecode from the
+/// Responsible for constructing the VM. It loads the program bytecode from the
 /// SUIT storage, and initialises the correct version of the VM struct.
 /// The reason we do both of those things at the same time is that the lifetime
 /// of the VM is tied to the lifetime of the program buffer (as every VM operates
 /// on only one program).
-pub fn initialize_vm<'a>(
+pub fn construct_vm<'a>(
     config: VMConfiguration,
     allowed_helpers: Vec<HelperFunctionID>,
     program_buffer: &'a mut [u8],
 ) -> Result<(&mut [u8], Box<dyn VirtualMachine<'a> + 'a>), String> {
     let mut program = suit_storage::load_program(program_buffer, config.suit_slot);
+
+    if config.jit {
+        return Ok((program, Box::new(RbpfJIT::new(config, allowed_helpers))));
+    }
 
     match config.vm_target {
         TargetVM::Rbpf => {

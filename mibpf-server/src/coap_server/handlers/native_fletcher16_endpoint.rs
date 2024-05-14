@@ -11,12 +11,15 @@ use mibpf_common::{BinaryFileLayout, VMExecutionRequest};
 use riot_wrappers::mutex::Mutex;
 
 use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
-pub struct Fletcher16NativeHandler {
+/// This handler is responsible for executing a requested fletcher 16 checksumming
+/// program. It is used for benchmarking the interpreters and the JIT against the
+/// native baseline.
+pub struct Fletcher16NativeTestHandler {
     execution_time: u32,
     result: i64,
 }
 
-impl Fletcher16NativeHandler {
+impl Fletcher16NativeTestHandler {
     pub fn new() -> Self {
         Self {
             execution_time: 0,
@@ -43,7 +46,7 @@ extern "C" {
     fn fletcher_16_2560B() -> u32;
 }
 
-impl coap_handler::Handler for Fletcher16NativeHandler {
+impl coap_handler::Handler for Fletcher16NativeTestHandler {
     type RequestData = u8;
 
     fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {

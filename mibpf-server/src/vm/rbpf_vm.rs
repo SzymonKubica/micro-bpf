@@ -45,33 +45,6 @@ impl<'a> RbpfVm<'a> {
             helper_access_list_source: config.helper_access_list_source,
         })
     }
-
-    // TODO: deprecate and move all of timing to the special wrapper.
-    fn timed_execution(&self, execution_fn: impl Fn() -> Result<u64, Error>) -> (i64, u32) {
-        println!("Starting rBPf VM execution.");
-        // This unsafe hacking is needed as the ztimer_now call expects to get an
-        // argument of type riot_sys::inline::ztimer_clock_t but the ztimer_clock_t
-        // ZTIMER_USEC that we get from riot_sys has type riot_sys::ztimer_clock_t.
-        let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-        let start: u32 = Self::time_now(clock);
-        let result = execution_fn();
-        let end: u32 = Self::time_now(clock);
-        let ret = if let Ok(val) = result {
-            println!("Program returned: {:?} ({:#x})", val, val);
-            val as i64
-        } else {
-            println!("Program returned: {:?}", result);
-            -1
-        };
-        let execution_time = end - start;
-        println!("Execution time: {} [us]", execution_time);
-        (ret as i64, execution_time)
-    }
-
-    #[inline(always)]
-    fn time_now(clock: *mut riot_sys::inline::ztimer_clock_t) -> u32 {
-        unsafe { riot_sys::inline::ztimer_now(clock) }
-    }
 }
 
 pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
@@ -84,12 +57,6 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 }
 
 impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String> {
-        if self.layout == BinaryFileLayout::RawObjectFile {
-            mibpf_elf_utils::resolve_relocations(program)?;
-        };
-        Ok(program)
-    }
     fn verify(&self) -> Result<(), String> {
         // The VM runs the verification when the new program is loaded into it.
         if let Some(vm) = self.vm.as_ref() {
@@ -114,6 +81,9 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
     }
 
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+        if self.layout == BinaryFileLayout::RawObjectFile {
+            mibpf_elf_utils::resolve_relocations(program)?;
+        };
         // We need to make a decision whether we use the helper list that was
         // sent in the request or read the allowed helpers from the metadata appended
         // to the program binary.

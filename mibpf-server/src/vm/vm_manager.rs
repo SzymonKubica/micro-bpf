@@ -19,7 +19,7 @@ use crate::{
     infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
     model::requests::{VMExecutionCompleteMsg, VMExecutionRequestIPC},
     spawn_thread,
-    vm::initialize_vm,
+    vm::construct_vm,
 };
 
 // Because of the lifetime rules we need to preallocate the stacks of all of the
@@ -210,7 +210,7 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
         );
 
         let mut program_buffer: [u8; SUIT_STORAGE_SLOT_SIZE] = [0; SUIT_STORAGE_SLOT_SIZE];
-        if let Ok((program, mut vm)) = initialize_vm(
+        if let Ok((program, mut vm)) = construct_vm(
             request.configuration,
             request.allowed_helpers,
             &mut program_buffer,

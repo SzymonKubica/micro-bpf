@@ -17,11 +17,6 @@ impl<'a> FemtoContainerVm<'a> {
 }
 
 impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String> {
-        /// FemtoContainer VM doesn't support relocations so this is an identity mapping.
-        Ok(program)
-    }
-
     fn verify(&self) -> Result<(), String> {
         let Some(program) = self.program else {
             Err("VM not initialised")?

@@ -14,15 +14,11 @@ use riot_wrappers::{
 use crate::{model::requests::VMExecutionRequestIPC, vm::VM_EXEC_REQUEST};
 
 use super::handlers::{
-    bpf_vm_endpoints::{
-        VMExecutionBenchmarkHandler, VMExecutionNoDataHandler, VMExecutionOnCoapPktHandler,
-        VMLongExecutionHandler,
-    },
-    jit_endpoint::JitTestHandler,
     miscellaneous::{ConsoleWriteHandler, RiotBoardHandler},
-    native_fletcher16_endpoint::Fletcher16NativeHandler,
     suit_pull_endpoint::SuitPullHandler,
-    TimedHandler,
+    Fletcher16NativeTestHandler, JitTestHandler, TimedHandler, VMExecutionBenchmarkHandler,
+    VMExecutionNoDataHandler, VMExecutionOnCoapPktBenchmarkHandler, VMExecutionOnCoapPktHandler,
+    VMLongExecutionHandler,
 };
 
 pub fn gcoap_server_main(
@@ -42,9 +38,10 @@ pub fn gcoap_server_main(
     let mut no_data_execution_handler = GcoapHandler(VMExecutionNoDataHandler::new());
     let mut benchmark_handler = GcoapHandler(VMExecutionBenchmarkHandler::new());
     let mut jit_handler = GcoapHandler(JitTestHandler::new());
-    let mut fletcher16_handler = GcoapHandler(Fletcher16NativeHandler::new());
+    let mut fletcher16_handler = GcoapHandler(Fletcher16NativeTestHandler::new());
     let mut long_execution_handler =
         GcoapHandler(VMLongExecutionHandler::new(execution_send.clone()));
+    let mut benchmark_on_coap_pkt_handler = VMExecutionOnCoapPktBenchmarkHandler;
 
     let mut console_write_listener = SingleHandlerListener::new(
         cstr!("/console/write"),
@@ -70,25 +67,31 @@ pub fn gcoap_server_main(
     );
 
     let mut coap_pkt_vm_listener = SingleHandlerListener::new(
-        cstr!("/vm/exec/coap-pkt"),
+        cstr!("/with_coap_pkt"),
         riot_sys::COAP_POST,
         &mut coap_pkt_timed_execution_handler,
     );
 
     let mut vm_listener = SingleHandlerListener::new(
-        cstr!("/vm/exec"),
+        cstr!("/short-execution"),
         riot_sys::COAP_POST,
         &mut no_data_execution_handler,
     );
 
     let mut benchmark_listener = SingleHandlerListener::new(
-        cstr!("/vm/bench"),
+        cstr!("/benchmark/short_execution"),
         riot_sys::COAP_POST,
         &mut benchmark_handler,
     );
 
+    let mut benchmark_on_coap_listener = SingleHandlerListener::new(
+        cstr!("/benchmark/with_coap_pkt"),
+        riot_sys::COAP_POST,
+        &mut benchmark_on_coap_pkt_handler,
+    );
+
     let mut vm_spawn_listener = SingleHandlerListener::new(
-        cstr!("/vm/spawn"),
+        cstr!("/long-running"),
         riot_sys::COAP_POST,
         &mut long_execution_handler,
     );
@@ -108,6 +111,7 @@ pub fn gcoap_server_main(
         greg.register(&mut fletcher16_listener);
         greg.register(&mut vm_listener);
         greg.register(&mut benchmark_listener);
+        greg.register(&mut benchmark_on_coap_pkt_handler);
         greg.register(&mut vm_spawn_listener);
         greg.register(&mut suit_pull_listener);
 

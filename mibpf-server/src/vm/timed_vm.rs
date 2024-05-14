@@ -32,15 +32,6 @@ impl<'a> TimedVm<'a> {
 }
 
 impl<'a> VirtualMachine<'a> for TimedVm<'a> {
-    fn resolve_relocations(&mut self, program: &'a mut [u8]) -> Result<&'a mut [u8], String> {
-        let start = self.time_now();
-        let result = self.vm.resolve_relocations(program);
-        let end = self.time_now();
-
-        self.results.borrow_mut().relocation_resolution_time = end - start;
-        return result;
-    }
-
     fn verify(&self) -> Result<(), String> {
         let start = self.time_now();
         let result = self.vm.verify();
@@ -80,7 +71,6 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
 
 #[derive(Default, Debug, Copy, Clone)]
 pub struct BenchmarkResult {
-    pub relocation_resolution_time: u32,
     pub load_time: u32,
     pub verification_time: u32,
     pub execution_time: u32,

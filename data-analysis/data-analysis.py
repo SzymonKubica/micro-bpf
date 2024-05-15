@@ -46,6 +46,10 @@ def process_fletcher16_320B():
             writer.writeheader()
             for result in sorted(results.items(), key=lambda x: x[0]):
                 writer.writerow({"vm_kind": result[0], metric: result[1]})
+            # We need to append this dummy row at the  end because that's how
+            # the latex csv parser works
+            writer.writerow({"vm_kind": 0, metric: 0})
+
 
 
 

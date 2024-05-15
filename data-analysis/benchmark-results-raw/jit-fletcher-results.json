@@ -1,50 +1,50 @@
 {
   "640": {
-    "total_time": 6154,
-    "load_time": 157,
-    "verification_time": 107,
-    "execution_time": 5887,
-    "program_size": 1864,
+    "total_time": 2044,
+    "load_time": 1714,
+    "verification_time": 166,
+    "execution_time": 163,
+    "program_size": 792,
     "result": 40362
   },
-  "320": {
-    "total_time": 3275,
-    "load_time": 159,
-    "verification_time": 107,
-    "execution_time": 3008,
-    "program_size": 1544,
-    "result": 32742
+  "1280": {
+    "total_time": 2197,
+    "load_time": 1724,
+    "verification_time": 168,
+    "execution_time": 304,
+    "program_size": 1432,
+    "result": 58709
   },
   "2560": {
-    "total_time": 23430,
-    "load_time": 157,
-    "verification_time": 108,
-    "execution_time": 23163,
-    "program_size": 3784,
+    "total_time": 2495,
+    "load_time": 1738,
+    "verification_time": 166,
+    "execution_time": 588,
+    "program_size": 2712,
     "result": 30378
   },
-  "80": {
-    "total_time": 1115,
-    "load_time": 159,
-    "verification_time": 107,
-    "execution_time": 848,
-    "program_size": 1304,
-    "result": 44620
-  },
   "160": {
-    "total_time": 1835,
-    "load_time": 157,
-    "verification_time": 108,
-    "execution_time": 1568,
-    "program_size": 1384,
+    "total_time": 1932,
+    "load_time": 1709,
+    "verification_time": 166,
+    "execution_time": 56,
+    "program_size": 312,
     "result": 1171
   },
-  "1280": {
-    "total_time": 11913,
-    "load_time": 159,
-    "verification_time": 107,
-    "execution_time": 11645,
-    "program_size": 2504,
-    "result": 58709
+  "320": {
+    "total_time": 1971,
+    "load_time": 1711,
+    "verification_time": 167,
+    "execution_time": 92,
+    "program_size": 472,
+    "result": 32742
+  },
+  "80": {
+    "total_time": 1915,
+    "load_time": 1708,
+    "verification_time": 167,
+    "execution_time": 38,
+    "program_size": 232,
+    "result": 44620
   }
 }

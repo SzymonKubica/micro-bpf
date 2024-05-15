@@ -1,0 +1,26 @@
+{
+  "160": {
+    "execution_time": 29,
+    "result": 1171
+  },
+  "320": {
+    "execution_time": 57,
+    "result": 32742
+  },
+  "2560": {
+    "execution_time": 451,
+    "result": 30378
+  },
+  "80": {
+    "execution_time": 15,
+    "result": 44620
+  },
+  "640": {
+    "execution_time": 114,
+    "result": 40362
+  },
+  "1280": {
+    "execution_time": 226,
+    "result": 58709
+  }
+}

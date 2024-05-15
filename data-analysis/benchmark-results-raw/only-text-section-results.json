@@ -1,0 +1,82 @@
+{
+  "bpf_fmt_s16_dfp_only_text.c": {
+    "total_time": 5710,
+    "load_time": 137,
+    "verification_time": 28,
+    "execution_time": 5544,
+    "program_size": 384,
+    "result": 5
+  },
+  "inlined_calls_only_text.c": {
+    "total_time": 15447,
+    "load_time": 137,
+    "verification_time": 51,
+    "execution_time": 15259,
+    "program_size": 736,
+    "result": 12345
+  },
+  "printf_only_text.c": {
+    "total_time": 14423,
+    "load_time": 138,
+    "verification_time": 47,
+    "execution_time": 14235,
+    "program_size": 680,
+    "result": 0
+  },
+  "jit_fletcher16_checksum_320B_data.c": {
+    "total_time": 176,
+    "load_time": 137,
+    "verification_time": 21,
+    "execution_time": 16,
+    "program_size": 232,
+    "result": 0
+  },
+  "sensor-processing.c": {
+    "total_time": 23407,
+    "load_time": 139,
+    "verification_time": 51,
+    "execution_time": 23216,
+    "program_size": 624,
+    "result": 288
+  },
+  "sensor-processing-from-storage.c": {
+    "total_time": 502,
+    "load_time": 137,
+    "verification_time": 54,
+    "execution_time": 310,
+    "program_size": 704,
+    "result": 300
+  },
+  "bpf_fetch_only_text.c": {
+    "total_time": 1152,
+    "load_time": 139,
+    "verification_time": 14,
+    "execution_time": 999,
+    "program_size": 152,
+    "result": 238
+  },
+  "bpf_store_only_text.c": {
+    "total_time": 7903,
+    "load_time": 137,
+    "verification_time": 34,
+    "execution_time": 7731,
+    "program_size": 472,
+    "result": 1234
+  },
+  "bpf_strlen_only_text.c": {
+    "total_time": 2379,
+    "load_time": 139,
+    "verification_time": 19,
+    "execution_time": 2220,
+    "program_size": 248,
+    "result": 21
+  },
+  "bpf_fmt_u32_dec_only_text.c": {
+    "total_time": 5709,
+    "load_time": 139,
+    "verification_time": 27,
+    "execution_time": 5542,
+    "program_size": 368,
+    "result": 5
+  }
+}

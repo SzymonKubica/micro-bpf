@@ -25,7 +25,7 @@ type HF = HelperFunction;
 
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [HelperFunction; 28] = [
+pub const ALL_HELPERS: [HelperFunction; 29] = [
     HF::new(ID::BPF_DEBUG_PRINT_IDX, bpf_print_debug),
     HF::new(ID::BPF_PRINTF_IDX, bpf_printf),
     HF::new(ID::BPF_STORE_LOCAL_IDX, bpf_store_local),
@@ -40,6 +40,7 @@ pub const ALL_HELPERS: [HelperFunction; 28] = [
     HF::new(ID::BPF_SAUL_REG_FIND_TYPE_IDX, bpf_saul_reg_find_type),
     HF::new(ID::BPF_SAUL_REG_WRITE_IDX, bpf_saul_reg_write),
     HF::new(ID::BPF_SAUL_REG_READ_IDX, bpf_saul_reg_read),
+    HF::new(ID::BPF_SAUL_REG_READ_TEMP, bpf_saul_read_temp),
     HF::new(ID::BPF_GCOAP_RESP_INIT_IDX, bpf_gcoap_resp_init),
     HF::new(ID::BPF_COAP_OPT_FINISH_IDX, bpf_coap_opt_finish),
     HF::new(ID::BPF_COAP_ADD_FORMAT_IDX, bpf_coap_add_format),
@@ -169,7 +170,23 @@ pub fn bpf_saul_reg_find_type(saul_dev_type: u64, _a2: u64, _a3: u64, _a4: u64, 
 pub fn bpf_saul_reg_read(dev_ptr: u64, data_ptr: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
     let dev: *mut riot_sys::saul_reg_t = dev_ptr as *mut riot_sys::saul_reg_t;
     let data: *mut riot_sys::phydat_t = data_ptr as *mut riot_sys::phydat_t;
+    debug!("Reading from saul device at: {:x}", dev_ptr);
+    debug!("Reading into phydat at: {:x}", data_ptr);
     unsafe { riot_sys::saul_reg_read(dev, data) as u64 }
+}
+
+/// Given a pointer to the SAUL device struct, it reads the value 0 from the device into the
+/// provided integer.
+pub fn bpf_saul_read_temp(dev_ptr: u64, value_ptr: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    let dev: *mut riot_sys::saul_reg_t = dev_ptr as *mut riot_sys::saul_reg_t;
+    let mut reading: riot_sys::phydat_t = Default::default();
+    unsafe {
+        let result = riot_sys::saul_reg_read(dev, &mut reading as *mut riot_sys::phydat_t);
+        *(value_ptr as *mut u32) = reading.val[0] as u32;
+        result as u64
+    }
+
+
 }
 
 /// Given a pointer to the SAUL device struct, it writes the provided phydat_t

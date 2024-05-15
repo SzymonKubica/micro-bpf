@@ -30,6 +30,7 @@ pub struct RbpfVm<'a> {
     pub allowed_helpers: Vec<HelperFunctionID>,
     pub helper_access_verification: HelperAccessVerification,
     pub helper_access_list_source: HelperAccessListSource,
+    pub program_length: usize,
 }
 
 impl<'a> RbpfVm<'a> {
@@ -43,6 +44,7 @@ impl<'a> RbpfVm<'a> {
             allowed_helpers,
             helper_access_verification: config.helper_access_verification,
             helper_access_list_source: config.helper_access_list_source,
+            program_length: 0,
         })
     }
 }
@@ -57,29 +59,6 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 }
 
 impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
-    fn verify(&self) -> Result<(), String> {
-        // The VM runs the verification when the new program is loaded into it.
-        if let Some(vm) = self.vm.as_ref() {
-            vm.verify_loaded_program()
-                .map_err(|e| format!("Error: {:?}", e))?;
-
-            if self.helper_access_verification == HelperAccessVerification::PreFlight {
-                let interpreter = map_interpreter(self.layout);
-                let helpers_idxs = self
-                    .allowed_helpers
-                    .iter()
-                    .map(|id| *id as u32)
-                    .collect::<Vec<u32>>();
-                vm.verify_helper_calls(&helpers_idxs, interpreter)
-                    .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
-            }
-        } else {
-            Err("VM not initialised".to_string())?;
-        }
-
-        Ok(())
-    }
-
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
         if self.layout == BinaryFileLayout::RawObjectFile {
             mibpf_elf_utils::resolve_relocations(program)?;
@@ -103,10 +82,34 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
             rbpf::EbpfVmMbuff::new(Some(program), map_interpreter(self.layout))
                 .map_err(|e| format!("Error: {:?}", e))?,
         );
+        self.program_length = program.len();
         middleware::helpers::register_helpers(
             self.vm.as_mut().unwrap(),
             helper_access_list.0.clone(),
         );
+        Ok(())
+    }
+
+    fn verify(&self) -> Result<(), String> {
+        // The VM runs the verification when the new program is loaded into it.
+        if let Some(vm) = self.vm.as_ref() {
+            vm.verify_loaded_program()
+                .map_err(|e| format!("Error: {:?}", e))?;
+
+            if self.helper_access_verification == HelperAccessVerification::PreFlight {
+                let interpreter = map_interpreter(self.layout);
+                let helpers_idxs = self
+                    .allowed_helpers
+                    .iter()
+                    .map(|id| *id as u32)
+                    .collect::<Vec<u32>>();
+                vm.verify_helper_calls(&helpers_idxs, interpreter)
+                    .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
+            }
+        } else {
+            Err("VM not initialised".to_string())?;
+        }
+
         Ok(())
     }
 
@@ -147,5 +150,9 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
         } else {
             Err("VM not initialised".to_string())
         }
+    }
+
+    fn get_program_length(&self) -> usize {
+        return self.program_length;
     }
 }

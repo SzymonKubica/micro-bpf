@@ -90,6 +90,10 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         self.results.borrow_mut().total_time = end - start;
         result
     }
+
+    fn get_program_length(&self) -> usize {
+        self.vm.get_program_length()
+    }
 }
 
 #[derive(Default, Debug, Copy, Clone)]

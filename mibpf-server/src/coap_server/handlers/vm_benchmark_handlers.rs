@@ -53,10 +53,9 @@ impl VMExecutionBenchmarkHandler {
 
         let mut vm = TimedVm::new(vm);
 
-        self.program_size = program.len() as u32;
-
         self.result = vm.full_run(program).unwrap() as i64;
         self.time_results = vm.get_results();
+        self.program_size = vm.get_program_length() as u32;
 
         Ok(coap_numbers::code::CHANGED)
     }

@@ -74,6 +74,10 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
             return Ok(result as u64);
         }
     }
+
+    fn get_program_length(&self) -> usize {
+        self.program.map_or(0, |p| p.len())
+    }
 }
 
 extern "C" {

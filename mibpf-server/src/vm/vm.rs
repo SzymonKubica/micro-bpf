@@ -44,6 +44,10 @@ pub trait VirtualMachine<'a> {
     /// the packet PDU + payload. The reason for this is that the handler then
     /// needs to know this length when sending the response back.
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String>;
+    /// Returns the length of the program that is currently loaded into the VM.
+    /// This is used for benchmarking, because when we are using the jit, we
+    /// don't know the final program size until we execute it.
+    fn get_program_length(&self) -> usize;
 }
 
 /// Responsible for constructing the VM. It loads the program bytecode from the

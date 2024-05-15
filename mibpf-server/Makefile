@@ -70,7 +70,7 @@ QUIET ?= 1
 # Add 3k extra stack: The Rust examples take more of it than gcoap expects,
 # presumably because the example use the standard library's sting formatting
 # instead of one of the more optimized formatters.
-CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 8192)'
+CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 8192+4096)'
 
 # Default COAP manifest resource location when fetched through gpio trigger
 CFLAGS += -DSUIT_MANIFEST_RESOURCE=\"$(SUIT_COAP_ROOT)/$(SUIT_NOTIFY_MANIFEST)\"
@@ -97,7 +97,7 @@ CFLAGS += -DHD44780_PARAM_PINS_DATA=\{GPIO_PIN\(1,13\),GPIO_PIN\(1,14\),GPIO_PIN
 
 # Need more stack space for shell printf and threading
 # We need more room for two CoAP stacks
-CFLAGS += '-DTHREAD_STACKSIZE_MAIN=(THREAD_STACKSIZE_DEFAULT + 20480)'
+CFLAGS += '-DTHREAD_STACKSIZE_MAIN=(THREAD_STACKSIZE_DEFAULT + 8192)'
 
 # The name of crate (as per Cargo.toml package name, but with '-' replaced with '_')
 APPLICATION_RUST_MODULE = mibpf_server

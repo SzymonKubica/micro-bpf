@@ -6,7 +6,7 @@ use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use core::{ops::DerefMut, slice::from_raw_parts_mut};
+use core::{cell::RefCell, ops::DerefMut, slice::from_raw_parts_mut};
 use log::debug;
 use mibpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
@@ -43,7 +43,7 @@ use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
 static PROGRAM_COPY_BUFFER: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 
 pub struct RbpfJIT<'a> {
-    pub program: Option<&'a [u8]>,
+    pub program: Option<RefCell<&'a mut [u8]>>,
     pub layout: BinaryFileLayout,
     pub allowed_helpers: Vec<HelperFunctionID>,
     pub helper_access_verification: HelperAccessVerification,
@@ -70,7 +70,6 @@ impl<'a> RbpfJIT<'a> {
 
 impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
-        self.program = Some(program);
         if !self.recompile {
             return Ok(());
         }
@@ -94,10 +93,12 @@ impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
         // and so the lock is released. (RAII)
         let mut slot_guard = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
         let mut text_offset = 0;
+
+        let program_cell = RefCell::new(program);
         {
+            let mut program_mut = program_cell.borrow_mut();
             let mut jit_memory = rbpf::JitMemory::new(
-                program,
-                PROGRAM_COPY_BUFFER.lock().as_mut(),
+                &mut program_mut,
                 slot_guard.0.as_mut(),
                 &helpers_map,
                 false,
@@ -110,13 +111,18 @@ impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
             debug!("jitted program size: {} [B]", jit_memory.offset);
             text_offset = jit_memory.text_offset;
         }
+        self.program = Some(program_cell);
         slot_guard.1 = text_offset;
         Ok(())
     }
     fn verify(&self) -> Result<(), String> {
-        let mut vm =
-            rbpf::EbpfVmMbuff::new(Some(self.program.unwrap()), map_interpreter(self.layout))
-                .map_err(|e| format!("Error: {:?}", e))?;
+        let prog_ref_cell = self.program.as_ref().unwrap();
+        let prog_ref = prog_ref_cell.borrow();
+        let mut vm = rbpf::EbpfVmMbuff::new(
+            Some(prog_ref.as_ref()),
+            map_interpreter(self.layout),
+        )
+        .map_err(|e| format!("Error: {:?}", e))?;
         middleware::helpers::register_helpers(
             &mut vm,
             HelperAccessList::from(self.allowed_helpers.clone()).0,

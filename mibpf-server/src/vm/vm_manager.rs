@@ -24,10 +24,10 @@ use crate::{
 
 // Because of the lifetime rules we need to preallocate the stacks of all of the
 // VM worker threads beforehand as static constants.
-static VM_WORKER_0_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
-static VM_WORKER_1_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
-static VM_WORKER_2_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
-static VM_WORKER_3_STACK: Mutex<[u8; 6144]> = Mutex::new([0; 6144]);
+static VM_WORKER_0_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static VM_WORKER_1_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static VM_WORKER_2_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static VM_WORKER_3_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
 
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;
@@ -217,11 +217,16 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
         ) {
             // We notify everyone that the slot we are using holds a long running VM.
             suit_storage::suit_mark_slot_running(request.configuration.suit_slot as usize);
-            let result = vm.full_run(program).unwrap_or(0);
+
+            let execution_result = vm.full_run(program);
+            if let Ok(result) = execution_result {
+                info!("return: {}", result);
+            } else  {
+                error!("Error: {:?}", execution_result.unwrap_err());
+            };
             // Now we mark that the slot still contains the program but noone is currently
             // executing it
             suit_storage::suit_mark_slot_occupied(request.configuration.suit_slot as usize);
-            debug!("return: {}", result);
         } else {
             error!("Failed to initialize the VM.");
         };

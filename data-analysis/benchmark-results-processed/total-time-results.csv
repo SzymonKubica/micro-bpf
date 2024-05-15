@@ -1,5 +1,6 @@
 vm_kind,total_time
 extended-header,2995
 femtocontainers-header,1291
-jit,1971
+jit,2060
 native,0
+0,0

@@ -1,5 +1,6 @@
 vm_kind,execution_time
 extended-header,2910
 femtocontainers-header,1282
-jit,92
+jit,91
 native,57
+0,0

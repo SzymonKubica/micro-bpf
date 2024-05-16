@@ -1,82 +1,82 @@
 {
-  "sensor-processing.c": {
-    "total_time": 23211,
-    "load_time": 134,
-    "verification_time": 50,
-    "execution_time": 23025,
-    "program_size": 682,
-    "result": 281
-  },
-  "bpf_strlen.c": {
-    "total_time": 2370,
-    "load_time": 134,
-    "verification_time": 14,
-    "execution_time": 2222,
-    "program_size": 258,
-    "result": 21
-  },
-  "printf.c": {
-    "total_time": 11119,
-    "load_time": 133,
-    "verification_time": 15,
-    "execution_time": 10969,
-    "program_size": 330,
-    "result": 0
-  },
-  "bpf_fetch.c": {
-    "total_time": 1140,
-    "load_time": 133,
-    "verification_time": 9,
-    "execution_time": 995,
-    "program_size": 162,
-    "result": 229
-  },
-  "bpf_store.c": {
-    "total_time": 7783,
-    "load_time": 134,
-    "verification_time": 16,
-    "execution_time": 7633,
-    "program_size": 338,
-    "result": 1234
-  },
   "jit_fletcher16_checksum_320B_data.c": {
-    "total_time": 3034,
-    "load_time": 134,
+    "total_time": 3096,
+    "load_time": 174,
     "verification_time": 21,
-    "execution_time": 2879,
+    "execution_time": 2900,
     "program_size": 602,
     "result": 32742
   },
-  "inlined_calls.c": {
-    "total_time": 15371,
-    "load_time": 134,
+  "sensor-processing-from-storage.c": {
+    "total_time": 600,
+    "load_time": 182,
+    "verification_time": 54,
+    "execution_time": 362,
+    "program_size": 770,
+    "result": 219
+  },
+  "printf.c": {
+    "total_time": 11151,
+    "load_time": 160,
     "verification_time": 15,
-    "execution_time": 15222,
-    "program_size": 426,
-    "result": 12345
+    "execution_time": 10975,
+    "program_size": 330,
+    "result": 0
   },
   "bpf_fmt_s16_dfp.c": {
-    "total_time": 5684,
-    "load_time": 134,
-    "verification_time": 13,
-    "execution_time": 5536,
+    "total_time": 5704,
+    "load_time": 157,
+    "verification_time": 12,
+    "execution_time": 5532,
     "program_size": 274,
     "result": 5
   },
   "bpf_fmt_u32_dec.c": {
-    "total_time": 5681,
-    "load_time": 133,
+    "total_time": 5709,
+    "load_time": 156,
     "verification_time": 11,
-    "execution_time": 5533,
+    "execution_time": 5538,
     "program_size": 250,
     "result": 5
   },
-  "sensor-processing-from-storage.c": {
-    "total_time": 548,
-    "load_time": 133,
-    "verification_time": 53,
-    "execution_time": 359,
-    "program_size": 770,
-    "result": 294
+  "bpf_fetch.c": {
+    "total_time": 1163,
+    "load_time": 152,
+    "verification_time": 9,
+    "execution_time": 1000,
+    "program_size": 162,
+    "result": 239
+  },
+  "inlined_calls.c": {
+    "total_time": 15404,
+    "load_time": 166,
+    "verification_time": 15,
+    "execution_time": 15223,
+    "program_size": 426,
+    "result": 12345
+  },
+  "bpf_store.c": {
+    "total_time": 7808,
+    "load_time": 161,
+    "verification_time": 15,
+    "execution_time": 7630,
+    "program_size": 338,
+    "result": 1234
+  },
+  "bpf_strlen.c": {
+    "total_time": 2386,
+    "load_time": 157,
+    "verification_time": 14,
+    "execution_time": 2213,
+    "program_size": 258,
+    "result": 21
+  },
+  "sensor-processing.c": {
+    "total_time": 23257,
+    "load_time": 178,
+    "verification_time": 51,
+    "execution_time": 23026,
+    "program_size": 682,
+    "result": 289
   }
 }

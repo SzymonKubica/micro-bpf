@@ -4,15 +4,16 @@ use alloc::{format, string::String};
 use log::debug;
 use riot_wrappers::{gcoap::PacketBuffer, println};
 
-use crate::vm::VirtualMachine;
+use crate::{vm::VirtualMachine, infra::suit_storage};
 
 pub struct FemtoContainerVm<'a> {
     program: Option<&'a [u8]>,
+    suit_slot: usize,
 }
 
 impl<'a> FemtoContainerVm<'a> {
-    pub fn new() -> Self {
-        Self { program: None }
+    pub fn new(suit_slot: usize) -> Self {
+        Self { program: None, suit_slot, }
     }
 }
 
@@ -34,6 +35,7 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
     }
 
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+        let program = suit_storage::load_program(program, self.suit_slot);
         self.program = Some(program);
         unsafe {
             initialize_fc_vm(program.as_ptr() as *const u8, program.len());

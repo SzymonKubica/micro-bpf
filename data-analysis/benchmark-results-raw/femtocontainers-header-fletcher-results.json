@@ -1,50 +1,50 @@
 {
-  "320": {
-    "total_time": 1291,
-    "load_time": 1,
-    "verification_time": 6,
-    "execution_time": 1282,
-    "program_size": 602,
-    "result": 32742
-  },
-  "640": {
-    "total_time": 2564,
-    "load_time": 1,
-    "verification_time": 6,
-    "execution_time": 2554,
-    "program_size": 922,
-    "result": 40362
-  },
   "160": {
-    "total_time": 655,
-    "load_time": 1,
+    "total_time": 690,
+    "load_time": 36,
     "verification_time": 6,
     "execution_time": 646,
     "program_size": 442,
     "result": 1171
   },
-  "2560": {
-    "total_time": 10200,
-    "load_time": 1,
+  "640": {
+    "total_time": 2623,
+    "load_time": 61,
     "verification_time": 6,
-    "execution_time": 10192,
-    "program_size": 2842,
-    "result": 30378
+    "execution_time": 2555,
+    "program_size": 922,
+    "result": 40362
+  },
+  "80": {
+    "total_time": 368,
+    "load_time": 32,
+    "verification_time": 6,
+    "execution_time": 328,
+    "program_size": 362,
+    "result": 44620
   },
   "1280": {
-    "total_time": 5109,
-    "load_time": 0,
+    "total_time": 5201,
+    "load_time": 92,
     "verification_time": 6,
     "execution_time": 5100,
     "program_size": 1562,
     "result": 58709
   },
-  "80": {
-    "total_time": 336,
-    "load_time": 1,
+  "2560": {
+    "total_time": 10356,
+    "load_time": 156,
     "verification_time": 6,
-    "execution_time": 328,
-    "program_size": 362,
-    "result": 44620
+    "execution_time": 10191,
+    "program_size": 2842,
+    "result": 30378
+  },
+  "320": {
+    "total_time": 1335,
+    "load_time": 44,
+    "verification_time": 6,
+    "execution_time": 1282,
+    "program_size": 602,
+    "result": 32742
   }
 }

@@ -1,26 +1,26 @@
 {
-  "80": {
-    "execution_time": 14,
-    "result": 44620
-  },
-  "160": {
-    "execution_time": 30,
-    "result": 1171
-  },
   "320": {
-    "execution_time": 57,
+    "execution_time": 58,
     "result": 32742
   },
+  "160": {
+    "execution_time": 29,
+    "result": 1171
+  },
   "640": {
-    "execution_time": 113,
+    "execution_time": 114,
     "result": 40362
+  },
+  "1280": {
+    "execution_time": 226,
+    "result": 58709
   },
   "2560": {
     "execution_time": 451,
     "result": 30378
   },
-  "1280": {
-    "execution_time": 226,
-    "result": 58709
+  "80": {
+    "execution_time": 15,
+    "result": 44620
   }
 }

@@ -29,19 +29,6 @@ use super::{
 use crate::infra::jit_prog_storage::{self, JIT_SLOT_SIZE};
 use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
 
-/// Before we can jit-compile the program we need to adjust all .data and .rodata
-/// relocations so that they point to the sections that were copied over into the
-/// jit memory buffer. Because of this we need calculate the addresses of the new
-/// sections and then run the relocation resolution process so that the eBPF
-/// program references the data in those new section in the jitted program buffer.
-/// After that is done, we can jit compile it and so all relocated memory accesses
-/// will correctly point to the data/rodata located inside of the jitted program.
-///
-/// The reason for doing this is that we want to be able to discard the source
-/// eBPF program after we jit-compile it and thus save memory as jitted programs
-/// are substantially smaller.
-static PROGRAM_COPY_BUFFER: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
-
 pub struct RbpfJIT<'a> {
     pub program: Option<RefCell<&'a mut [u8]>>,
     pub layout: BinaryFileLayout,
@@ -118,27 +105,16 @@ impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
     fn verify(&self) -> Result<(), String> {
         let prog_ref_cell = self.program.as_ref().unwrap();
         let prog_ref = prog_ref_cell.borrow();
-        let mut vm = rbpf::EbpfVmMbuff::new(
-            Some(prog_ref.as_ref()),
-            map_interpreter(self.layout),
-        )
-        .map_err(|e| format!("Error: {:?}", e))?;
-        middleware::helpers::register_helpers(
-            &mut vm,
-            HelperAccessList::from(self.allowed_helpers.clone()).0,
-        );
-
-        vm.verify_loaded_program()
-            .map_err(|e| format!("Error: {:?}", e))?;
+        let interpreter = map_interpreter(self.layout);
+        rbpf::EbpfVmMbuff::verify_program(interpreter, prog_ref.as_ref());
 
         if self.helper_access_verification == HelperAccessVerification::PreFlight {
-            let interpreter = map_interpreter(self.layout);
             let helpers_idxs = self
                 .allowed_helpers
                 .iter()
                 .map(|id| *id as u32)
                 .collect::<Vec<u32>>();
-            vm.verify_helper_calls(&helpers_idxs, interpreter)
+            rbpf::check_helpers(prog_ref.as_ref(), &helpers_idxs, interpreter)
                 .map_err(|e| format!("Error when checking helper function access: {:?}", e))?;
         }
         Ok(())

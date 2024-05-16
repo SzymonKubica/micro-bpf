@@ -57,6 +57,8 @@ impl<'a> RbpfJIT<'a> {
 
 impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+        let program = suit_storage::load_program(program, self.jit_prog_slot);
+
         if !self.recompile {
             return Ok(());
         }

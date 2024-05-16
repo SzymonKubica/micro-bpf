@@ -1,4 +1,4 @@
-use crate::vm::{middleware, VirtualMachine};
+use crate::{vm::{middleware, VirtualMachine}, infra::suit_storage};
 use alloc::{
     format,
     rc::Rc,
@@ -31,6 +31,7 @@ pub struct RbpfVm<'a> {
     pub helper_access_verification: HelperAccessVerification,
     pub helper_access_list_source: HelperAccessListSource,
     pub program_length: usize,
+    pub suit_slot: usize,
 }
 
 impl<'a> RbpfVm<'a> {
@@ -45,6 +46,7 @@ impl<'a> RbpfVm<'a> {
             helper_access_verification: config.helper_access_verification,
             helper_access_list_source: config.helper_access_list_source,
             program_length: 0,
+            suit_slot: config.suit_slot,
         })
     }
 }
@@ -60,6 +62,8 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 
 impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+        let program = suit_storage::load_program(program, self.suit_slot);
+
         if self.layout == BinaryFileLayout::RawObjectFile {
             mibpf_elf_utils::resolve_relocations(program)?;
         };

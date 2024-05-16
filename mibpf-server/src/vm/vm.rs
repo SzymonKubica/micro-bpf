@@ -58,9 +58,8 @@ pub trait VirtualMachine<'a> {
 pub fn construct_vm<'a>(
     config: VMConfiguration,
     allowed_helpers: Vec<HelperFunctionID>,
-    program_buffer: &'a mut [u8],
-) -> Result<(&mut [u8], Box<dyn VirtualMachine<'a> + 'a>), String> {
-    let mut program = suit_storage::load_program(program_buffer, config.suit_slot);
+    program: &'a mut [u8],
+) -> Result<(&'a mut [u8], Box<dyn VirtualMachine<'a> + 'a>), String> {
 
     if config.jit {
         return Ok((program, Box::new(RbpfJIT::new(config, allowed_helpers))));
@@ -71,7 +70,7 @@ pub fn construct_vm<'a>(
             return Ok((program, Box::new(RbpfVm::new(config, allowed_helpers)?)));
         }
         TargetVM::FemtoContainer => {
-            return Ok((program, Box::new(FemtoContainerVm::new())));
+            return Ok((program, Box::new(FemtoContainerVm::new(config.suit_slot))));
         }
     }
 }

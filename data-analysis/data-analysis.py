@@ -23,6 +23,7 @@ METRICS = [
     "program_size",
 ]
 
+
 def process_fletcher16(data_size: int):
     """
     Takes in the data size of the fletcher16 benchmark (between 80-2560B)
@@ -35,26 +36,37 @@ def process_fletcher16(data_size: int):
 
     results_per_metric = load_fletcher16_metrics_data(data_size)
 
-
-    for (metric, results) in results_per_metric.items():
+    for metric, results in results_per_metric.items():
         metric_str = metric.replace("_", "-")
-        file_name = f"{RESULTS_PROCESSED_DIR}/fletcher16-{data_size}-{metric_str}-results.csv"
+        file_name = (
+            f"{RESULTS_PROCESSED_DIR}/fletcher16-{data_size}-{metric_str}-results.csv"
+        )
         with open(file_name, "w") as f:
             writer = csv.DictWriter(f, fieldnames=["platform", metric])
             writer.writeheader()
             for platform in platforms:
                 # in the native C case, we don't measure all metrics so we skip this entry in the CSV
-                if platform == "native" and metric in ["load_time", "verification_time", "program_size"]:
+                if platform == "native" and metric in [
+                    "load_time",
+                    "verification_time",
+                    "program_size",
+                ]:
                     continue
                 # in case of native total time is the execution time
                 if platform == "native" and metric == "total_time":
-                  writer.writerow({"platform": platform, metric: results_per_metric["execution_time"][platform]})
-                  continue
+                    writer.writerow(
+                        {
+                            "platform": platform,
+                            metric: results_per_metric["execution_time"][platform],
+                        }
+                    )
+                    continue
                 writer.writerow({"platform": platform, metric: results[platform]})
 
             # We need to append this dummy row at the  end because that's how
             # the latex csv parser works
             writer.writerow({"platform": 0, metric: 0})
+
 
 def load_fletcher16_metrics_data(data_size: int) -> Dict[str, Dict[str, int]]:
     result_files = [
@@ -71,8 +83,11 @@ def load_fletcher16_metrics_data(data_size: int) -> Dict[str, Dict[str, int]]:
             with open(file_name, "r") as f:
                 data = json.load(f)
                 vm_kind = file.replace("-fletcher-results.json", "")
-                results_per_metric[m][vm_kind] = data[str(data_size)][m] if m in data[str(data_size)].keys() else 0
+                results_per_metric[m][vm_kind] = (
+                    data[str(data_size)][m] if m in data[str(data_size)].keys() else 0
+                )
     return results_per_metric
+
 
 def process_jit_fletcher16_amortized_cost():
     """
@@ -92,12 +107,19 @@ def process_jit_fletcher16_amortized_cost():
     jit_exec_times = {}
     for data_size in data_sizes:
         results_per_metric = load_fletcher16_metrics_data(data_size)
-        total_fc_times[data_size] = results_per_metric["total_time"]["femtocontainers-header"]
+        total_fc_times[data_size] = results_per_metric["total_time"][
+            "femtocontainers-header"
+        ]
         total_jit_times[data_size] = results_per_metric["total_time"]["jit"]
         jit_comp_times[data_size] = results_per_metric["load_time"]["jit"]
         jit_exec_times[data_size] = results_per_metric["execution_time"]["jit"]
 
-    outputs = [("femtocontainer-total-time", total_fc_times), ("jit-total-time", total_jit_times), ("jit-comp-time", jit_comp_times), ("jit-exec-time", jit_exec_times)]
+    outputs = [
+        ("femtocontainer-total-time", total_fc_times),
+        ("jit-total-time", total_jit_times),
+        ("jit-comp-time", jit_comp_times),
+        ("jit-exec-time", jit_exec_times),
+    ]
 
     for name, data in outputs:
         file_name = f"{RESULTS_PROCESSED_DIR}/fletcher16-all-sizes-{name}.csv"
@@ -111,6 +133,54 @@ def process_jit_fletcher16_amortized_cost():
             writer.writerow({"data_size": 0, name: 0})
 
 
+def process_program_sizes():
+    """
+    This analysis produces a breakdown of program sizes for a set of chosen
+    example programs for each of the solutions.
+    """
+
+    example_programs = [
+        "bpf_fetch.c",
+        "bpf_store.c",
+        "bpf_strlen.c",
+        "bpf_fmt_s16_dfp.c",
+        "bpf_fmt_u32_dec.c",
+        "printf.c",
+        "inlined_calls.c",
+        "jit_fletcher16_checksum_320B_data.c",
+        "sensor-processing.c",
+        "sensor-processing-from-storage.c",
+    ]
+
+    platforms = ["femtocontainers-header", "extended-header", "jit"]
+
+    result_files = [
+        "femtocontainers-header-results.json",
+        "extended-header-results.json",
+        "jit-results.json",
+    ]
+
+    results_per_platform = defaultdict(lambda: {})
+    for platform, results_file in zip(platforms, result_files):
+        with open(f"{RESULTS_RAW_DIR}/{results_file}") as f:
+            data = json.load(f)
+            for program in example_programs:
+                program_size = data[program]["program_size"]
+                results_per_platform[platform][program] = program_size
+
+
+    for platform, results in results_per_platform.items():
+        file_name = f"{RESULTS_PROCESSED_DIR}/{platform}-example-program-sizes.csv"
+        with open(file_name, "w") as f:
+            writer = csv.DictWriter(f, fieldnames=["program", "program_size"])
+            writer.writeheader()
+            for program in example_programs:
+                writer.writerow({"program": program, "program_size": results[program]})
+            # We need to append this dummy row at the  end because that's how
+            # the latex csv parser works
+            writer.writerow({"program": 0, "program_size": 0})
+
+
 
 if __name__ == "__main__":
     # if len(sys.argv) < 2:
@@ -120,3 +190,4 @@ if __name__ == "__main__":
     # process_data(file_name)
     process_fletcher16(640)
     process_jit_fletcher16_amortized_cost()
+    process_program_sizes()

@@ -2,6 +2,7 @@ import sys
 import json
 import csv
 from collections import defaultdict
+from typing import Dict
 
 
 def process_data(file_name: str):
@@ -11,43 +12,33 @@ def process_data(file_name: str):
         print(pretty_json)
 
 
+RESULTS_RAW_DIR = "benchmark-results-raw"
+RESULTS_PROCESSED_DIR = "benchmark-results-processed"
+
+METRICS = [
+    "load_time",
+    "verification_time",
+    "execution_time",
+    "total_time",
+    "program_size",
+]
+
 def process_fletcher16(data_size: int):
     """
     Takes in the data size of the fletcher16 benchmark (between 80-2560B)
-    and produces csv outputs for that datapoint.
+    and produces csv outputs for that datapoint. It produces a csv containing
+    performance of all different solutions for a single metric.
     """
-    results_directory = "benchmark-results-raw"
-    result_files = [
-        "femtocontainers-header-fletcher-results.json",
-        "extended-header-fletcher-results.json",
-        "jit-fletcher-results.json",
-        "native-fletcher-results.json",
-    ]
-
-    metrics = [
-        "load_time",
-        "verification_time",
-        "execution_time",
-        "total_time",
-        "program_size",
-    ]
 
     # this array controlls the sorting of the fields in the output csv files
     platforms = ["native", "femtocontainers-header", "extended-header", "jit"]
 
-    results_per_metric = defaultdict(lambda: {})
-    for m in metrics:
-        for file in result_files:
-            file_name = f"{results_directory}/{file}"
-            with open(file_name, "r") as f:
-                data = json.load(f)
-                vm_kind = file.replace("-fletcher-results.json", "")
-                results_per_metric[m][vm_kind] = data[str(data_size)][m] if m in data[str(data_size)].keys() else 0
+    results_per_metric = load_fletcher16_metrics_data(data_size)
 
 
     for (metric, results) in results_per_metric.items():
         metric_str = metric.replace("_", "-")
-        file_name = f"benchmark-results-processed/fletcher16-{data_size}-{metric_str}-results.csv"
+        file_name = f"{RESULTS_PROCESSED_DIR}/fletcher16-{data_size}-{metric_str}-results.csv"
         with open(file_name, "w") as f:
             writer = csv.DictWriter(f, fieldnames=["platform", metric])
             writer.writeheader()
@@ -65,6 +56,59 @@ def process_fletcher16(data_size: int):
             # the latex csv parser works
             writer.writerow({"platform": 0, metric: 0})
 
+def load_fletcher16_metrics_data(data_size: int) -> Dict[str, Dict[str, int]]:
+    result_files = [
+        "femtocontainers-header-fletcher-results.json",
+        "extended-header-fletcher-results.json",
+        "jit-fletcher-results.json",
+        "native-fletcher-results.json",
+    ]
+
+    results_per_metric: Dict[str, Dict[str, int]] = defaultdict(lambda: {})
+    for m in METRICS:
+        for file in result_files:
+            file_name = f"{RESULTS_RAW_DIR}/{file}"
+            with open(file_name, "r") as f:
+                data = json.load(f)
+                vm_kind = file.replace("-fletcher-results.json", "")
+                results_per_metric[m][vm_kind] = data[str(data_size)][m] if m in data[str(data_size)].keys() else 0
+    return results_per_metric
+
+def process_jit_fletcher16_amortized_cost():
+    """
+    The idea behind this analysis is to show how the relative jit compilation cost decreases
+    with an increase in the program computation. It produces three csv files:
+        - total fletcher16 execution time for Femto-Container baseline for varying fletcher16 data sizes
+        - total execution for mibpf jit as above.
+        - jit compilation time as above
+        - jit execution time for datapoints as above
+    """
+
+    data_sizes = [80 * 2**i for i in range(6)]
+
+    total_fc_times = {}
+    total_jit_times = {}
+    jit_comp_times = {}
+    jit_exec_times = {}
+    for data_size in data_sizes:
+        results_per_metric = load_fletcher16_metrics_data(data_size)
+        total_fc_times[data_size] = results_per_metric["total_time"]["femtocontainers-header"]
+        total_jit_times[data_size] = results_per_metric["total_time"]["jit"]
+        jit_comp_times[data_size] = results_per_metric["load_time"]["jit"]
+        jit_exec_times[data_size] = results_per_metric["execution_time"]["jit"]
+
+    outputs = [("femtocontainer-total-time", total_fc_times), ("jit-total-time", total_jit_times), ("jit-comp-time", jit_comp_times), ("jit-exec-time", jit_exec_times)]
+
+    for name, data in outputs:
+        file_name = f"{RESULTS_PROCESSED_DIR}/fletcher16-all-sizes-{name}.csv"
+        with open(file_name, "w") as f:
+            writer = csv.DictWriter(f, fieldnames=["data_size", name])
+            writer.writeheader()
+            for data_size in data_sizes:
+                writer.writerow({"data_size": data_size, name: data[data_size]})
+            # We need to append this dummy row at the  end because that's how
+            # the latex csv parser works
+            writer.writerow({"data_size": 0, name: 0})
 
 
 
@@ -75,3 +119,4 @@ if __name__ == "__main__":
     # file_name = sys.argv[1]
     # process_data(file_name)
     process_fletcher16(640)
+    process_jit_fletcher16_amortized_cost()

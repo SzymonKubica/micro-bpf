@@ -1,49 +1,49 @@
 {
-  "640": {
-    "total_time": 6154,
-    "load_time": 157,
-    "verification_time": 108,
-    "execution_time": 5887,
-    "program_size": 1864,
-    "result": 40362
+  "1280": {
+    "total_time": 11812,
+    "load_time": 158,
+    "verification_time": 106,
+    "execution_time": 11546,
+    "program_size": 2504,
+    "result": 58709
   },
   "2560": {
-    "total_time": 23430,
+    "total_time": 23230,
     "load_time": 158,
-    "verification_time": 108,
-    "execution_time": 23164,
+    "verification_time": 106,
+    "execution_time": 22966,
     "program_size": 3784,
     "result": 30378
   },
-  "160": {
-    "total_time": 1835,
+  "640": {
+    "total_time": 6101,
     "load_time": 158,
-    "verification_time": 108,
-    "execution_time": 1569,
+    "verification_time": 106,
+    "execution_time": 5835,
+    "program_size": 1864,
+    "result": 40362
+  },
+  "160": {
+    "total_time": 1819,
+    "load_time": 158,
+    "verification_time": 106,
+    "execution_time": 1553,
     "program_size": 1384,
     "result": 1171
   },
   "80": {
-    "total_time": 1115,
-    "load_time": 159,
-    "verification_time": 107,
-    "execution_time": 848,
+    "total_time": 1106,
+    "load_time": 157,
+    "verification_time": 106,
+    "execution_time": 840,
     "program_size": 1304,
     "result": 44620
   },
-  "1280": {
-    "total_time": 11913,
-    "load_time": 160,
-    "verification_time": 107,
-    "execution_time": 11645,
-    "program_size": 2504,
-    "result": 58709
-  },
   "320": {
-    "total_time": 3275,
-    "load_time": 159,
-    "verification_time": 107,
-    "execution_time": 3007,
+    "total_time": 3247,
+    "load_time": 157,
+    "verification_time": 106,
+    "execution_time": 2982,
     "program_size": 1544,
     "result": 32742
   }

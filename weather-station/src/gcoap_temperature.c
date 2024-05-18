@@ -19,27 +19,23 @@ typedef struct __attribute__((packed)) {
 } coap_hdr_t;
 
 
-typedef struct {
-    void* pkt;      /**< Opaque pointer to the coap_pkt_t struct */
-    uint8_t* buf;   /**< Packet buffer */
-    size_t buf_len; /**< Packet buffer length */
-} coap_context_t;
+#define TEMPERATURE_STORAGE_INDEX 15
+const unsigned SUCCESS_RESPONSE_CODE = (2 << 5) | 5;
 
-#define TEMPERATURE_STORAGE_INDEX 0
-
-int coap_test(bpf_coap_ctx_t *gcoap)
+int gcoap_temperature(bpf_coap_ctx_t *gcoap)
 {
     bpf_coap_pkt_t *pkt = gcoap->pkt;
-    int temp = 0;
-    bpf_fetch_global(TEMPERATURE_STORAGE_INDEX, &temp);
 
-    char stringified[20];
+    uint32_t temperature = 0;
+    bpf_fetch_global(TEMPERATURE_STORAGE_INDEX, &temperature);
+
+    char fmt_buffer[5];
+
     // -1 means that there is one decimal point.
-    size_t str_len = bpf_fmt_s16_dfp(stringified, temp, -1);
+    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, temperature, -1);
 
-    unsigned code = (2 << 5) | 5;
-    bpf_printf("Writing response code: %d\n", code);
-    bpf_gcoap_resp_init(gcoap, (2 << 5) | 5);
+    bpf_printf("Writing response code: %d\n", SUCCESS_RESPONSE_CODE);
+    bpf_gcoap_resp_init(gcoap, SUCCESS_RESPONSE_CODE);
 
     // Check that the code has been written correctly
     coap_hdr_t *hdr = (coap_hdr_t *)(intptr_t)(pkt->hdr_p);
@@ -55,15 +51,17 @@ int coap_test(bpf_coap_ctx_t *gcoap)
 
     bpf_printf("Copying stringified temperature reading payload\n");
     if (pkt->payload_len >= str_len) {
-        char start[] = "{\"temperature\": ";
-        int start_len = 15;
-        char end[] = "}\n";
-        int end_len = 3;
-        bpf_memcpy(payload, start, start_len);
-        bpf_memcpy(payload+start_len, stringified, str_len);
-        bpf_memcpy(payload+start_len+str_len, end, end_len);
+        char fmt[] = "{\"temperature\": }";
+        int start_len = 16;
+        int end_len = 2;
+        bpf_memcpy(payload, fmt, start_len);
+        bpf_memcpy(payload + start_len, fmt_buffer, str_len);
+        bpf_memcpy(payload + start_len + str_len, fmt + start_len, end_len);
+        // It is very important that the programs modifying response packet
+        // buffer return the correct length of the payload. This is because this
+        // return value is then used by the server to determine which subsection
+        // of the buffer was written to and needs to be sent back to the client.
         return pdu_len + str_len + start_len + end_len;
     }
-
     return -1;
 }

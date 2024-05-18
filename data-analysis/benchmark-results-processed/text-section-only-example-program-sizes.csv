@@ -1,0 +1,12 @@
+program,program_size
+bpf_fetch_only_text.c,152
+bpf_store_only_text.c,472
+bpf_strlen_only_text.c,248
+bpf_fmt_s16_dfp_only_text.c,384
+bpf_fmt_u32_dec_only_text.c,368
+printf_only_text.c,680
+inlined_calls_only_text.c,736
+jit_fletcher16_checksum_320B_data.c,232
+sensor-processing.c,624
+sensor-processing-from-storage.c,704
+0,0

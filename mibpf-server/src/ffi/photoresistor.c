@@ -16,7 +16,7 @@ typedef struct photoresitor {
 } photoresistor_t;
 
 #define RES ADC_RES_10BIT
-#define PHOTORESISTOR_ADC_INDEX 5
+#define PHOTORESISTOR_ADC_INDEX 1
 
 uint32_t read_light_intensity(unsigned adc_index) {
     unsigned char adc = ADC_LINE(adc_index);

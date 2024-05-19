@@ -44,7 +44,7 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
     unsafe {
         initialise_adc(0);
-        initialise_adc(5);
+        initialise_adc(1);
         sound_sensor_saul_register();
         photoresistor_saul_register();
     }

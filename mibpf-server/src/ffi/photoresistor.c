@@ -44,6 +44,7 @@ static photoresistor_t saul_dev = {
 static saul_driver_t photoresistor_saul_driver = {
     .read =  saul_photoresistor_read,
     .write = saul_write_notsup,
+    .type = SAUL_SENSE_LIGHT,
 };
 
 static saul_reg_t photoresistor_saul_reg = {

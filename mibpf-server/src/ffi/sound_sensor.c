@@ -74,7 +74,7 @@ int saul_sound_sensor_read(const void * dev, phydat_t *res)
 {
     sound_sensor_t *sensor = (sound_sensor_t *)dev;
     res->val[0] = read_db(sensor->adc_index);
-    res->unit = UNIT_UNDEF;
+    res->unit = UNIT_DB;
     res->scale = 0;
     return 1;
 }
@@ -87,6 +87,7 @@ static sound_sensor_t saul_dev = {
 static saul_driver_t sound_sensor_saul_driver = {
     .read = saul_sound_sensor_read,
     .write = saul_write_notsup,
+    .type = SAUL_SENSE_SOUND,
 };
 
 static saul_reg_t sound_sensor_saul_reg = {

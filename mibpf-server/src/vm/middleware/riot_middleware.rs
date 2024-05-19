@@ -14,7 +14,7 @@ use riot_wrappers::stdio::println;
 
 use crate::{
     infra::local_storage::{self, local_storage_store},
-    modules::hd44780_lcd::{hd44780_t, HD44780LCD},
+    peripherals::hd44780_lcd::{hd44780_t, HD44780LCD},
 };
 
 use super::helpers::HelperFunction;

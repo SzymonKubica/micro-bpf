@@ -20,6 +20,7 @@ USEMODULE += ztimer_msec
 USEMODULE += ztimer_sec
 
 USEMODULE += periph_gpio
+USEMODULE += periph_adc
 
 USEMODULE += shell
 USEMODULE += shell_cmds_default

@@ -20,7 +20,7 @@ use riot_wrappers::{mutex::Mutex, riot_main, thread};
 mod coap_server;
 mod infra;
 mod model;
-mod modules;
+mod peripherals;
 mod shell;
 mod util;
 mod vm;
@@ -35,6 +35,16 @@ riot_main!(main);
 
 fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     util::logger::initialise_logger();
+
+    extern "C" {
+      fn sound_sensor_saul_register();
+      fn initialise_adc(adc_index: u8) -> u32;
+    }
+
+    unsafe {
+        initialise_adc(0);
+        sound_sensor_saul_register();
+    }
 
     // We need to initialise the message queue so that the CoAP server can send
     // requests to the VM executor responsible for spawning instances of the VM.

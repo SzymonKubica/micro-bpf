@@ -3,3 +3,4 @@
 
 pub mod hd44780_lcd;
 pub mod sound_sensor;
+pub mod photoresistor;

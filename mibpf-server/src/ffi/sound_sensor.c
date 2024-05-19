@@ -9,11 +9,10 @@
 /* This module implements functions to interact with the sound sensor (KY037)
  * connected to one of the analog input pins.
  *
- * It allows for initialising the given pin as ADC and reading the sound
- * intensity value in decibels. Note that it uses a rather crude approach for
- * calculating the sound intensity, as it measures the peak-to-peak difference
- * over a given period and from that uses rescaling to get the value into the
- * range between 49.5 and 90 [db]
+ * It allows for reading the sound intensity value in decibels.  Note that it
+ * uses a rather crude approach for calculating the sound intensity, as it
+ * measures the peak-to-peak difference over a given period and from that uses
+ * rescaling to get the value into the range between 49.5 and 90 [db]
  */
 
 #define RES ADC_RES_10BIT
@@ -23,18 +22,6 @@
 float map_range(float x, float in_min, float in_max, float out_min,
                 float out_max);
 
-uint32_t initialise_adc(unsigned adc_index)
-{
-    if (adc_init(ADC_LINE(adc_index)) < 0) {
-        LOG_DEBUG("[sound sensor] Initialization of ADC_LINE(%u) failed\n",
-                  adc_index);
-        return 1;
-    } else {
-        LOG_DEBUG("[sound sensor] Successfully initialized ADC_LINE(%u)\n",
-                  adc_index);
-    }
-    return 0;
-}
 
 float map_range(float x, float in_min, float in_max, float out_min,
                 float out_max);

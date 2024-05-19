@@ -7,9 +7,9 @@
 #![no_std]
 
 extern crate alloc;
+extern crate macros;
 extern crate mibpf_common;
 extern crate mibpf_elf_utils;
-extern crate macros;
 extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;
@@ -37,13 +37,16 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
     util::logger::initialise_logger();
 
     extern "C" {
-      fn sound_sensor_saul_register();
-      fn initialise_adc(adc_index: u8) -> u32;
+        fn sound_sensor_saul_register();
+        fn photoresistor_saul_register();
+        fn initialise_adc(adc_index: u8) -> u32;
     }
 
     unsafe {
         initialise_adc(0);
+        initialise_adc(5);
         sound_sensor_saul_register();
+        photoresistor_saul_register();
     }
 
     // We need to initialise the message queue so that the CoAP server can send
@@ -70,7 +73,8 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         let pri = riot_sys::THREAD_PRIORITY_MAIN;
 
         thread::scope(|scope| {
-            let _gcoapthread = spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 1);
+            let _gcoapthread =
+                spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 1);
             let _shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
             vm_manager.start();
         });

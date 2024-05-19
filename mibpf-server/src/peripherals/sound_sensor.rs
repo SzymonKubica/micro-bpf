@@ -1,13 +1,19 @@
+use alloc::{string::String, format};
+
 pub struct SoundSensor {
     adc_index: u8,
 }
 
 impl SoundSensor {
-    pub fn new(adc_index: u8) -> Self {
+    pub fn new(adc_index: u8) -> Result<Self, String> {
         unsafe {
             initialise_adc(adc_index);
+            let result = initialise_adc(adc_index);
+            if result != 0 {
+                return Err(format!("Failed to initialise ADC line: {}", adc_index));
+            }
         }
-        SoundSensor { adc_index }
+        Ok(SoundSensor { adc_index })
     }
     pub fn read_db(&self) -> u32 {
         unsafe { read_db(self.adc_index) }

@@ -14,7 +14,7 @@ use riot_wrappers::stdio::println;
 
 use crate::{
     infra::local_storage::{self, local_storage_store},
-    peripherals::hd44780_lcd::{hd44780_t, HD44780LCD},
+    peripherals::{hd44780_lcd::{hd44780_t, HD44780LCD}, keypad_shield_buttons::KeypadShieldButtons},
 };
 
 use super::helpers::HelperFunction;
@@ -25,7 +25,7 @@ type HF = HelperFunction;
 
 /// List of all helpers together with their corresponding numbers (used
 /// directly as function pointers in the compiled eBPF bytecode).
-pub const ALL_HELPERS: [HelperFunction; 29] = [
+pub const ALL_HELPERS: [HelperFunction; 30] = [
     HF::new(ID::BPF_DEBUG_PRINT_IDX, bpf_print_debug),
     HF::new(ID::BPF_PRINTF_IDX, bpf_printf),
     HF::new(ID::BPF_STORE_LOCAL_IDX, bpf_store_local),
@@ -55,6 +55,7 @@ pub const ALL_HELPERS: [HelperFunction; 29] = [
     HF::new(ID::BPF_HD44780_CLEAR, bpf_hd44780_clear),
     HF::new(ID::BPF_HD44780_PRINT, bpf_hd44780_print),
     HF::new(ID::BPF_HD44780_SET_CURSOR, bpf_hd44780_set_cursor),
+    HF::new(ID::BPF_KEYPAD_GET_INPUT, bpf_keypad_get_input),
 ];
 
 /* Print/debug helper functions - implementation */
@@ -377,4 +378,10 @@ pub fn bpf_hd44780_set_cursor(dev: u64, row: u64, column: u64, _a4: u64, _a5: u6
     let dev = HD44780LCD::from(dev as *mut hd44780_t);
     dev.set_cursor(row as u8, column as u8);
     return 0;
+}
+
+pub fn bpf_keypad_get_input(adc_index: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
+    let dev = KeypadShieldButtons::new(adc_index as u8).unwrap();
+    let direction = dev.read_direction();
+    return direction as u64;
 }

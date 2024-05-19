@@ -22,7 +22,6 @@
 float map_range(float x, float in_min, float in_max, float out_min,
                 float out_max);
 
-
 float map_range(float x, float in_min, float in_max, float out_min,
                 float out_max);
 
@@ -61,7 +60,6 @@ float map_range(float x, float in_min, float in_max, float out_min,
     return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-
 /* Below we implement the SAUL functions to allow for attaching the microphone
  * to the SAUL registry.
  */
@@ -70,7 +68,7 @@ typedef struct sound_sensor {
     uint32_t adc_index;
 } sound_sensor_t;
 
-int saul_sound_sensor_read(const void * dev, phydat_t *res)
+int saul_sound_sensor_read(const void *dev, phydat_t *res)
 {
     sound_sensor_t *sensor = (sound_sensor_t *)dev;
     res->val[0] = read_db(sensor->adc_index);

@@ -8,16 +8,19 @@ pub struct KeypadShieldButtons {
 /// Encodes available direction buttons that can be chosen on the keypad.
 /// The select button doesn't work (hardware might not be connected), so we
 /// only have those 4 options.
+
 pub enum KeypadDirection {
-    Right,
-    Up,
-    Down,
-    Left,
+    Right = 0,
+    Up = 1,
+    Down = 2,
+    Left = 3,
+    NoInput = 4,
 }
 
 const RIGHT_THRESHOLD: u32 = 200;
 const UP_THRESHOLD: u32 = 500;
 const DOWN_THRESHOLD: u32 = 700;
+const LEFT_THRESHOLD: u32 = 900;
 
 impl KeypadShieldButtons {
     pub fn new(adc_index: u8) -> Result<Self, String> {
@@ -39,12 +42,15 @@ impl KeypadShieldButtons {
             KeypadDirection::Up
         } else if reading < DOWN_THRESHOLD {
             KeypadDirection::Down
-        } else {
+        } else if reading < LEFT_THRESHOLD {
             KeypadDirection::Left
+        } else {
+            KeypadDirection::NoInput
         }
     }
 }
 
 extern "C" {
+    fn initialise_adc(adc_index: u8) -> u32;
     fn read_adc(adc_index: u8) -> u32;
 }

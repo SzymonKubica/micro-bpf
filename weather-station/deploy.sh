@@ -1,15 +1,15 @@
 
 # Long running programs
-SENSOR_READ_PROGRAM_SLOT=0
+TEMP_HUM_PROGRAM_SLOT=0
+SOUND_LIGHT_PROGRAM_SLOT=1
 #UPDATE_DISPLAY_PROGRAM_SLOT=1
 
 # Short scripts for querying the system
-QUERY_TEMPERATURE_PROGRAM_SLOT=1
-QUERY_HUMIDITY_PROGRAM_SLOT=2
+QUERY_TEMPERATURE_PROGRAM_SLOT=2
+QUERY_HUMIDITY_PROGRAM_SLOT=3
 
 # it takes a while to pull the program image
-IMAGE_PULL_DELAY=1 # seconds
-
+IMAGE_PULL_DELAY=2 # seconds
 
 export RUST_LOG=DEBUG
 export DOTENV=.env-nucleo-wifi
@@ -18,24 +18,35 @@ TOOLS=../tools/target/release/mibpf-tools
 
 echo "Deploying the temperature/humidity collecting program..."
 $TOOLS --use-env deploy --bpf-source-file src/temperature-humidity-update-thread.c \
-         -s $SENSOR_READ_PROGRAM_SLOT --binary-layout ExtendedHeader  --erase
+         -s $TEMP_HUM_PROGRAM_SLOT --binary-layout ExtendedHeader  --erase
 
-sleep IMAGE_PULL_DELAY
+sleep $IMAGE_PULL_DELAY
 
-$TOOLS --use-env execute --suit-storage-slot $SENSOR_READ_PROGRAM_SLOT \
+$TOOLS --use-env execute --suit-storage-slot $TEMP_HUM_PROGRAM_SLOT \
   --execution-model LongRunning --binary-layout ExtendedHeader \
   --helper-access-verification PreFlight --helper-access-list-source ExecuteRequest \
   --helper-indices 1 48 49 50 17 19 82 52 96 97
 
 
-sleep IMAGE_PULL_DELAY
+echo "Deploying the light/sound intensity collecting program..."
+$TOOLS --use-env deploy --bpf-source-file src/sound-light-intensity-update-thread.c \
+         -s $SOUND_LIGHT_PROGRAM_SLOT --binary-layout ExtendedHeader  --erase
+
+sleep $IMAGE_PULL_DELAY
+
+$TOOLS --use-env execute --suit-storage-slot $SOUND_LIGHT_PROGRAM_SLOT \
+  --execution-model LongRunning --binary-layout ExtendedHeader \
+  --helper-access-verification PreFlight --helper-access-list-source ExecuteRequest \
+  --helper-indices 1 48 49 50 17 19 82 52 96 97
+
+sleep $IMAGE_PULL_DELAY
 
 
 echo "Deploying the query temperature program..."
 $TOOLS --use-env deploy --bpf-source-file src/gcoap_temperature.c \
          -s $QUERY_TEMPERATURE_PROGRAM_SLOT --binary-layout ExtendedHeader  --erase
 
-sleep IMAGE_PULL_DELAY
+sleep $IMAGE_PULL_DELAY
 
 echo "Deploying the query humidity program..."
 $TOOLS --use-env deploy --bpf-source-file src/gcoap_humidity.c \

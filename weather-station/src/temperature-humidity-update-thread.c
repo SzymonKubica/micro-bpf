@@ -41,6 +41,7 @@ uint32_t sensor_processing_update_thread(void *ctx)
                 phydat_t hum_data[2];
 
                 bpf_saul_reg_read(dht1_temp, &temp_data[0]);
+                wait(DELAY);
                 bpf_saul_reg_read(dht2_temp, &temp_data[1]);
 
                 // We neet do wait at least 2 seconds between subsequent dht
@@ -50,6 +51,7 @@ uint32_t sensor_processing_update_thread(void *ctx)
                 wait(DELAY);
 
                 bpf_saul_reg_read(dht1_hum, &hum_data[0]);
+                wait(DELAY);
                 bpf_saul_reg_read(dht2_hum, &hum_data[1]);
 
                 bpf_printf("[dht] Collected sensor readings. \n");

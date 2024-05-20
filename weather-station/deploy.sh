@@ -17,7 +17,7 @@ export DOTENV=.env-nucleo-wifi
 TOOLS=../tools/target/release/mibpf-tools
 
 echo "Deploying the temperature/humidity collecting program..."
-$TOOLS --use-env deploy --bpf-source-file src/sensor-processing-update-thread.c \
+$TOOLS --use-env deploy --bpf-source-file src/temperature-humidity-update-thread.c \
          -s $SENSOR_READ_PROGRAM_SLOT --binary-layout ExtendedHeader  --erase
 
 sleep IMAGE_PULL_DELAY

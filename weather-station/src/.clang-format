@@ -1,0 +1,5 @@
+UseTab: Never
+IndentWidth: 8
+BreakBeforeBraces: Linux
+SortIncludes: false
+

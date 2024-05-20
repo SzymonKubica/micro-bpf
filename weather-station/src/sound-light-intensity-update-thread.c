@@ -1,19 +1,20 @@
 #include <stdint.h>
 #include "helpers.h"
+#include "constants.h"
 
-
-/* This program reads temperature from the DHT sensor and writes it into
- * a storage location from where it is later taken for processing by
- * the processing program.
+/* This program is responsible for periodically reading the values reported by
+ * all peripheral sensors conntected the device and updating the latest readings
+ * in the global storage.
  */
 
 #define SAUL_SENSE_TEMP 130
 #define SAUL_SENSE_HUM 131
+#define SAUL_SENSE_LIGHT 132
+#define SAUL_SENSE_SOUND 133
+
 #define US_PER_SEC (1000 * 1000)
 #define DELAY (2 * US_PER_SEC)
 
-#define TEMPERATURE_STORAGE_INDEX 15
-#define HUMIDITY_STORAGE_INDEX 14
 
 
 uint32_t sensor_processing_update_thread(void *ctx)
@@ -23,17 +24,11 @@ uint32_t sensor_processing_update_thread(void *ctx)
     bpf_saul_reg_t *user_button;
     phydat_t temperature_data;
     phydat_t humidity_data;
-    phydat_t button_data;
 
     while (1) {
         dht_temp = bpf_saul_reg_find_type(SAUL_SENSE_TEMP);
         dht_hum = bpf_saul_reg_find_type(SAUL_SENSE_HUM);
         user_button = bpf_saul_reg_find_nth(3);
-        bpf_saul_reg_read(user_button, &button_data);
-        if (button_data.val[0] == 1) {
-            bpf_printf("Button pressed, terminating...\n");
-            return 0;
-        }
 
         bpf_saul_reg_read(dht_temp, &temperature_data);
 

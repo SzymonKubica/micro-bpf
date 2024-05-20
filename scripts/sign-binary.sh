@@ -24,8 +24,6 @@ board=$2
 coaproot_dir=$3
 binary_name=$4
 
-# Should be either 0 or 1, RIOT supports two distinct SUIT storage slots and
-# only one binary can be loaded into a given slot at a time.
 suit_storage_slot=$5
 
 # The authentication keys used when checking integrity of the SUIT update.
@@ -53,8 +51,28 @@ slot0_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest0)
 echo "Slot 0 sequence number found: $slot0_seq_num"
 slot1_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest1)
 echo "Slot 1 sequence number found: $slot1_seq_num"
+slot2_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest2)
+echo "Slot 2 sequence number found: $slot2_seq_num"
+slot3_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest3)
+echo "Slot 3 sequence number found: $slot3_seq_num"
+slot4_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest4)
+echo "Slot 4 sequence number found: $slot4_seq_num"
+slot5_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest5)
+echo "Slot 5 sequence number found: $slot5_seq_num"
+slot5_seq_num=$(get_sequence_number $coaproot_dir/suit_manifest6)
+echo "Slot 6 sequence number found: $slot6_seq_num"
 
-max_seq_num=$(( $slot0_seq_num > $slot1_seq_num ? $slot0_seq_num : $slot1_seq_num ))
+sequence_numbers=($slot0_seq_num $slot1_seq_num $slot2_seq_num $slot3_seq_num $slot4_seq_num $slot5_seq_num $slot6_seq_num)
+
+max=${sequence_numbers[0]}
+for number in "${sequence_numbers[@]}"; do
+  if (( number > max )); then
+    max=$number
+  fi
+done
+
+
+max_seq_num=$max
 new_seq_num=$(($max_seq_num + 1))
 
 echo "New sequence number: $new_seq_num"

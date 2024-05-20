@@ -68,6 +68,8 @@ static bpf_saul_reg_t *(*bpf_saul_reg_find_type)(uint8_t type) = (void *)
     BPF_FUNC_BPF_SAUL_REG_FIND_TYPE;
 static int (*bpf_saul_reg_read)(bpf_saul_reg_t *dev, phydat_t *data) = (void *)
     BPF_FUNC_BPF_SAUL_REG_READ;
+static int (*bpf_saul_read_temp)(bpf_saul_reg_t *dev, uint32_t *data) = (void *)
+    BPF_FUNC_BPF_SAUL_READ_TEMP;
 static int (*bpf_saul_reg_write)(bpf_saul_reg_t *dev, phydat_t *data) = (void *)
     BPF_FUNC_BPF_SAUL_REG_WRITE;
 
@@ -111,5 +113,8 @@ static uint64_t (*bpf_hd44780_print)(uint32_t dev, const char *data) = (void *)
 static uint64_t (*bpf_hd44780_set_cursor)(uint32_t dev, uint32_t row,
                                           uint32_t col) = (void *)
     BPF_FUNC_HD44780_SET_CURSOR;
+
+static uint64_t (*bpf_keypad_get_input)(uint32_t adc_index) = (void *)
+    BPF_KEYPAD_GET_INPUT;
 
 #endif /* BPF_APPLICATION_CALL_H */

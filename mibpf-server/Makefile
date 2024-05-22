@@ -20,7 +20,13 @@ USEMODULE += ztimer_msec
 USEMODULE += ztimer_sec
 
 USEMODULE += periph_gpio
+ifeq ($(BOARD), nucleo-f446re)
 USEMODULE += periph_adc
+endif
+
+ifeq ($(BOARD), nucleo-f446re)
+USEMODULE += atwinc15x0
+endif
 
 USEMODULE += shell
 USEMODULE += shell_cmds_default
@@ -71,16 +77,17 @@ QUIET ?= 1
 # Add 3k extra stack: The Rust examples take more of it than gcoap expects,
 # presumably because the example use the standard library's sting formatting
 # instead of one of the more optimized formatters.
-CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 8192+4096)'
+CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 8192)'
 
 # Default COAP manifest resource location when fetched through gpio trigger
 CFLAGS += -DSUIT_MANIFEST_RESOURCE=\"$(SUIT_COAP_ROOT)/$(SUIT_NOTIFY_MANIFEST)\"
 
 # Config for the SUIT RAM storage
-CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=7 -DCONFIG_SUIT_STORAGE_RAM_SIZE=3072
+CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=4 -DCONFIG_SUIT_STORAGE_RAM_SIZE=4096
 
 # config for the wifi board
-USEMODULE += atwinc15x0
+
+
 CFLAGS += -DATWINC15X0_PARAM_SSN_PIN=GPIO_PIN\(1,6\)
 CFLAGS += -DATWINC15X0_PARAM_RESET_PIN=GPIO_PIN\(1,4\)
 CFLAGS += -DATWINC15X0_PARAM_IRQ_PIN=GPIO_PIN\(0,8\)

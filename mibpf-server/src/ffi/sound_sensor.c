@@ -31,7 +31,11 @@ uint32_t read_db(unsigned adc_index)
 
     unsigned char adc = ADC_LINE(adc_index);
 
+#ifdef BOARD_NUCLEO_F446RE // ADC is not available on native
     sample = adc_sample(adc, RES);
+#else
+    sample = 555;
+#endif
 
     uint32_t start = ztimer_now(ZTIMER_MSEC);
     uint32_t signal_max = 0;
@@ -40,7 +44,11 @@ uint32_t read_db(unsigned adc_index)
 
     uint32_t sample_window = 50;
     while (ztimer_now(ZTIMER_MSEC) - start < sample_window) {
-        sample = adc_sample(ADC_LINE(0), RES);
+#ifdef BOARD_NUCLEO_F446RE // ADC is not available on native
+        sample = adc_sample(adc, RES);
+#else
+        sample = 555;
+#endif
         if (sample < signal_min) {
             signal_min = sample;
         }

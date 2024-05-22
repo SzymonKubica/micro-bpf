@@ -917,6 +917,9 @@ dependencies = [
  "goblin",
  "libm",
  "log",
+ "num",
+ "num-derive",
+ "num-traits",
  "time",
 ]
 

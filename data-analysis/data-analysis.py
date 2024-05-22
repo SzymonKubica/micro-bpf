@@ -73,6 +73,8 @@ def load_fletcher16_metrics_data(data_size: int) -> Dict[str, Dict[str, int]]:
     result_files = [
         "femtocontainers-header-fletcher-results.json",
         "extended-header-fletcher-results.json",
+        "extended-header-fast-insn-fletcher-results.json",
+        "extended-header-slow-insn-fletcher-results.json",
         "jit-fletcher-results.json",
         "native-fletcher-results.json",
     ]
@@ -99,10 +101,13 @@ def process_jit_fletcher16_execution_time():
     # is no longer visible
     data_sizes = [80 * 2**i for i in range(4)]
 
+    platforms = PLATFORMS + ["extended-header-fast-insn", "extended-header-slow-insn"]
+
+
     results_per_platform = defaultdict(lambda: {})
     for data_size in data_sizes:
         results_per_metric = load_fletcher16_metrics_data(data_size)
-        for platform in PLATFORMS:
+        for platform in platforms:
             results_per_platform[platform][data_size] = results_per_metric[
                 "execution_time"
             ][platform]
@@ -237,12 +242,7 @@ def process_program_sizes():
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) < 2:
-    #    print(f"Usage: python {sys.argv[0]} <file_name>")
-    #    sys.exit(1)
-    # file_name = sys.argv[1]
-    # process_data(file_name)
-    process_fletcher16(640)
-    process_jit_fletcher16_amortized_cost()
+    #process_fletcher16(640)
+    #process_jit_fletcher16_amortized_cost()
     process_jit_fletcher16_execution_time()
-    process_program_sizes()
+    #process_program_sizes()

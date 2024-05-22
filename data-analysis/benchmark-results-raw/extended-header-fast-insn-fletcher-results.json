@@ -1,0 +1,50 @@
+{
+  "640": {
+    "total_time": 4046,
+    "load_time": 125,
+    "verification_time": 14,
+    "execution_time": 3906,
+    "program_size": 927,
+    "result": 40362
+  },
+  "2560": {
+    "total_time": 15758,
+    "load_time": 220,
+    "verification_time": 14,
+    "execution_time": 15521,
+    "program_size": 2847,
+    "result": 30378
+  },
+  "160": {
+    "total_time": 1119,
+    "load_time": 101,
+    "verification_time": 15,
+    "execution_time": 1003,
+    "program_size": 447,
+    "result": 1171
+  },
+  "80": {
+    "total_time": 635,
+    "load_time": 100,
+    "verification_time": 14,
+    "execution_time": 519,
+    "program_size": 367,
+    "result": 44620
+  },
+  "1280": {
+    "total_time": 7950,
+    "load_time": 157,
+    "verification_time": 14,
+    "execution_time": 7778,
+    "program_size": 1567,
+    "result": 58709
+  },
+  "320": {
+    "total_time": 2095,
+    "load_time": 108,
+    "verification_time": 14,
+    "execution_time": 1971,
+    "program_size": 607,
+    "result": 32742
+  }
+}

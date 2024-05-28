@@ -104,5 +104,5 @@ uint32_t execute_fc_vm_on_coap_pkt(uint8_t *stack, pkt_buf *ctx,
                     FC_MEM_REGION_READ | FC_MEM_REGION_WRITE);
 
     _bpf.stack = stack;
-    return f12r_execute_ctx(&_bpf, &bpf_ctx, 64, result);
+    return f12r_execute_ctx(&_bpf, &bpf_ctx, 12, result);
 }

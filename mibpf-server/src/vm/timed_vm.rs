@@ -1,6 +1,7 @@
 use core::cell::RefCell;
 
 use alloc::{boxed::Box, string::String};
+use log::debug;
 use riot_wrappers::gcoap::PacketBuffer;
 
 use super::VirtualMachine;
@@ -86,6 +87,7 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         self.initialize_vm(program)?;
         self.verify()?;
         let result = self.execute_on_coap_pkt(pkt);
+        debug!("Timed VM execution returned: {}.", result.clone().unwrap() as i64);
         let end = self.time_now();
         self.results.borrow_mut().total_time = end - start;
         result

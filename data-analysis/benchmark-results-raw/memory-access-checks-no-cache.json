@@ -1,0 +1,86 @@
+{
+  "stack_memory_access": {
+    "1": {
+      "total_time": 217198,
+      "load_time": 251,
+      "verification_time": 105,
+      "execution_time": 216842,
+      "program_size": 1312,
+      "result": 84
+    },
+    "4": {
+      "total_time": 217213,
+      "load_time": 255,
+      "verification_time": 105,
+      "execution_time": 216850,
+      "program_size": 1312,
+      "result": 84
+    },
+    "12": {
+      "total_time": 217249,
+      "load_time": 275,
+      "verification_time": 105,
+      "execution_time": 216867,
+      "program_size": 1312,
+      "result": 84
+    },
+    "8": {
+      "total_time": 217227,
+      "load_time": 265,
+      "verification_time": 105,
+      "execution_time": 216855,
+      "program_size": 1312,
+      "result": 84
+    },
+    "16": {
+      "total_time": 217258,
+      "load_time": 284,
+      "verification_time": 104,
+      "execution_time": 216869,
+      "program_size": 1312,
+      "result": 84
+    }
+  },
+  "data_section_memory_access": {
+    "4": {
+      "total_time": 383392,
+      "load_time": 293,
+      "verification_time": 118,
+      "execution_time": 382980,
+      "program_size": 1520,
+      "result": 84
+    },
+    "1": {
+      "total_time": 318377,
+      "load_time": 287,
+      "verification_time": 118,
+      "execution_time": 317970,
+      "program_size": 1520,
+      "result": 84
+    },
+    "8": {
+      "total_time": 470073,
+      "load_time": 301,
+      "verification_time": 118,
+      "execution_time": 469653,
+      "program_size": 1520,
+      "result": 84
+    },
+    "12": {
+      "total_time": 556761,
+      "load_time": 312,
+      "verification_time": 117,
+      "execution_time": 556331,
+      "program_size": 1520,
+      "result": 84
+    },
+    "16": {
+      "total_time": 643439,
+      "load_time": 321,
+      "verification_time": 117,
+      "execution_time": 643001,
+      "program_size": 1520,
+      "result": 84
+    }
+  }
+}

@@ -97,12 +97,11 @@ def process_jit_fletcher16_execution_time():
     Shows the raw execution time of the JIT for the fletcher16 benchmark.
     """
 
-    #Here we only do first 4 datapoins because later it grows too large and it
+    # Here we only do first 4 datapoins because later it grows too large and it
     # is no longer visible
     data_sizes = [80 * 2**i for i in range(4)]
 
     platforms = PLATFORMS + ["extended-header-fast-insn", "extended-header-slow-insn"]
-
 
     results_per_platform = defaultdict(lambda: {})
     for data_size in data_sizes:
@@ -120,7 +119,9 @@ def process_jit_fletcher16_execution_time():
             writer = csv.DictWriter(f, fieldnames=["data_size", "execution-time"])
             writer.writeheader()
             for data_size in data_sizes:
-                writer.writerow({"data_size": data_size, "execution-time": data[data_size]})
+                writer.writerow(
+                    {"data_size": data_size, "execution-time": data[data_size]}
+                )
             # We need to append this dummy row at the  end because that's how
             # the latex csv parser works
             writer.writerow({"data_size": 0, "execution-time": 0})
@@ -241,8 +242,47 @@ def process_program_sizes():
             writer.writerow({"program": 0, "program_size": 0})
 
 
+def process_memory_access_checks():
+    allowed_regions_list_lengths = [1, 4, 8, 12, 16]
+    region_types = ["stack_memory_access", "data_section_memory_access"]
+    raw_result_files = [
+        "memory-access-checks-cached.json",
+        "memory-access-checks-no-cache.json",
+    ]
+
+    def load_json(file_name: str):
+        file = f"{RESULTS_RAW_DIR}/{file_name}"
+        with open(file, "r") as f:
+            data = json.load(f)
+            return data
+
+    data_cached = load_json(raw_result_files[0])
+    data_no_cache = load_json(raw_result_files[1])
+
+    data = [(data_cached, "cache"), (data_no_cache, "no_cache")]
+    for d, s in data:
+        stack_access_datapoints = []
+        data_access_datapoints = []
+        for l in allowed_regions_list_lengths:
+            stack_access_datapoints.append((l, d[region_types[0]][str(l)]["total_time"]))
+            data_access_datapoints.append((l, d[region_types[1]][str(l)]["total_time"]))
+
+        for t, d in zip(region_types, [stack_access_datapoints, data_access_datapoints]):
+            file_name = f"{RESULTS_PROCESSED_DIR}/{t}_{s}.csv"
+            csv_fieldnames = ["allowed-regions-length", "execution-time"]
+            with open(file_name, "w") as f:
+                writer = csv.DictWriter(f, fieldnames=csv_fieldnames)
+                writer.writeheader()
+                for l, t in d:
+                    writer.writerow({csv_fieldnames[0]: l, csv_fieldnames[1]: t})
+                # We need to append this dummy row at the  end because that's how
+                # the latex csv parser works
+                writer.writerow({csv_fieldnames[0]: 0, csv_fieldnames[1]: 0})
+
+
 if __name__ == "__main__":
-    #process_fletcher16(640)
-    #process_jit_fletcher16_amortized_cost()
-    process_jit_fletcher16_execution_time()
-    #process_program_sizes()
+    # process_fletcher16(640)
+    # process_jit_fletcher16_amortized_cost()
+    # process_jit_fletcher16_execution_time()
+    process_memory_access_checks()
+    # process_program_sizes()

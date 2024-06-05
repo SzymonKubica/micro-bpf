@@ -1,6 +1,6 @@
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="misc/logo-square-shadow.png">
-  <img src="misc/logo-square-shadow.png">
+  <source media="(prefers-color-scheme: dark)" srcset="misc/logo-square-shadow-dark.png">
+  <img src="misc/logo-square-shadow-dark.png">
 </picture>
 
 This is a placeholder readme. Need to commit something before I add the

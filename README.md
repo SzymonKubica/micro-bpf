@@ -1,5 +1,5 @@
 <picture>
-  <img src="misc/logo-square-shadow-dark.png" width="200">
+  <img src="misc/logo-square-shadow-dark.png" width="300">
 </picture>
 
 This is a placeholder readme. Need to commit something before I add the

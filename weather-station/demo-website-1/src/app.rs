@@ -86,7 +86,7 @@ fn ExecuteForm() -> impl IntoView {
             let _ = send_execution_request.dispatch(slot.get() as usize);
             set_response(send_execution_request.value().get().unwrap());
         }>
-            "Send deploy request"
+            "Send execute request"
         </button>
         <p>"Response:"</p>
         <p>{response}</p>
@@ -96,8 +96,6 @@ fn ExecuteForm() -> impl IntoView {
 #[component]
 fn DeployForm() -> impl IntoView {
     let (name, set_name) = create_signal("file_name.c".to_string());
-    // Directory with all of the ebpf sources
-    let (directory, set_directory) = create_signal("bpf/".to_string());
     let (slot, set_slot) = create_signal(0);
 
     let send_deploy_request = create_action(|input: &(String, usize)|{
@@ -109,17 +107,6 @@ fn DeployForm() -> impl IntoView {
 
     view! {
         <p>"Deploy Form"</p>
-        <p>"Enter the directory where the file is located: "</p>
-        <input
-            type="text"
-            on:input=move |ev| {
-                set_directory(event_target_value(&ev));
-            }
-
-            // the `prop:` syntax lets you update a DOM property,
-            // rather than an attribute.
-            prop:value=directory
-        />
         <p>"Enter the file to be deployed: "</p>
         <input
             type="text"
@@ -142,7 +129,7 @@ fn DeployForm() -> impl IntoView {
         />
 
         <button on:click=move |_| {
-            send_deploy_request.dispatch((format!("{}/{}", directory.get(), name.get()), slot.get() as usize));
+            send_deploy_request.dispatch((name.get(), slot.get() as usize));
         }>
             Send deploy request
         </button>
@@ -157,7 +144,7 @@ pub async fn deploy(source_file: String, storage_slot: usize) -> Result<(), Serv
     let environment: Environment = load_env();
 
     let deploy_response = deploy(
-     &source_file,
+     &format!("{}/{}", &environment.src_dir, source_file),
      &environment.out_dir,
      TargetVM::Rbpf,
      BinaryFileLayout::RawObjectFile,

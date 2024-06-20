@@ -1,12 +1,12 @@
 <picture>
-  <img src="examples/docs/logo-square-shadow-dark.png" width="300">
+  <img src="examples/docs/logo-square-shadow-dark.png" width="150">
 </picture>
 
 Using eBPF for microcontroller compartmentalization.
 
 * [Description](#description)
 * [Project directory structure](#project-directory-structure)
-* [Programming model](#programming-model)
+* [System architecture and programming model](#system-architecture-and-programming-model)
 * [Deployment workflow](#deployment-workflow)
 * [Getting started](#getting-started)
 
@@ -60,11 +60,23 @@ This repository also contains a set of example eBPF programs and applications
 built on top of `micro-bpf`. Those are located under `examples`. Additionally,
 a set of convenience scripts is provided in `scripts`.
 
-## System architecture
+## System architecture and programming model
 
-## Programming model
+µBPF divides the process of deploying eBPF programs into two steps: deployment
+stage and execution stage. The first stage involves compiling, verifying and
+loading the program into memory of the target device. After that, in the
+execution stage, clients can send requests to run previously-deployed programs.
+
+To learn how to send a deployment and execution request to the target device,
+refer to the [README](tools/README.md) of the `tools` submodule.
+
+The deployment pipeline used by µBPF can be seen below.
 
 ## Deployment workflow
+
+<picture>
+  <img src="examples/docs/architecture-final-rev3-with-logo.png" width="600">
+</picture>
 
 ## Getting started
 

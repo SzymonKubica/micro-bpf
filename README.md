@@ -41,6 +41,25 @@ microcontroller.
 
 ## Project directory structure
 
+`micro-bpf` repository consists of four main components:
+
+- `RIOT` - a fork of RIOT - a popular operating system used in IoT applications
+   it is used as the host OS on top of which runs the server infrastructure responsible
+   for loading, managing and executing programs.
+- `micro-bpf-server` - the server infrastructure that needs to be flashed onto the
+   target devices, it contains a CoAP server used to communicate with the device
+   and modules responsible for loading, verifying and executing eBPF code.
+- `tools` - a suite of tools allowing to compile, verify, cryptographically
+   sign and send eBPF programs to the deployed devices. It also provides a CLI
+   tool to control program deployment and request execution.
+- `vm` - the implementation of the eBPF VM used by `micro-bpf`, it contains a
+   fork of [`rbpf`](https://github.com/qmonnet/rbpf/pull/106) and an implementation
+   of an eBPF-to-ARMv7 JIT compiler.
+
+This repository also contains a set of example eBPF programs and applications
+built on top of `micro-bpf`. Those are located under `examples`. Additionally,
+a set of convenience scripts is provided in `scripts`.
+
 ## System architecture
 
 ## Programming model

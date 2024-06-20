@@ -56,7 +56,7 @@ microcontroller.
    sign and send eBPF programs to the deployed devices. It also provides a CLI
    tool to control program deployment and request execution.
 - `vm` - the implementation of the eBPF VM used by `micro-bpf`, it contains a
-   fork of [`rbpf`](https://github.com/qmonnet/rbpf/pull/106) and an implementation
+   fork of [`rbpf`](https://github.com/qmonnet/rbpf) and an implementation
    of an eBPF-to-ARMv7 JIT compiler.
 
 This repository also contains a set of example eBPF programs and applications

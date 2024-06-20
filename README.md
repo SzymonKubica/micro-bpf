@@ -73,7 +73,7 @@ loading the program into memory of the target device. After that, in the
 execution stage, clients can send requests to run previously-deployed programs.
 
 To learn how to send a deployment and execution request to the target device,
-refer to the [README](https://github.com/SzymonKubica/micro-bpf-tools/README.md) of the `tools` submodule.
+refer to the README of the [`tools`](https://github.com/SzymonKubica/micro-bpf-tools) submodule.
 
 The deployment pipeline used by µBPF can be seen below.
 

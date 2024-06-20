@@ -6,4 +6,5 @@ target/
 suit.tmp
 coaproot
 .cache
+.env*
 

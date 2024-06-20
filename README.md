@@ -113,7 +113,7 @@ program using the VM interpreter or using the JIT compiler and then executing
 the emitted native code. After a given program is JIT-compiled, its bytecode is
 stored in an additional JIT program storage (see Figure 1). Upon receiving a
 request to rerun the program, the compilation process can be skipped. Here we
-note that when using the JIT compiler additional mem- ory is required as the
+note that when using the JIT compiler additional memory is required as the
 eBPF bytecode needs to be translated into the native instructions and written
 into a new memory buffer. However, after this is done, the original eBPF
 program can be discarded allowing to save memory
@@ -121,6 +121,13 @@ program can be discarded allowing to save memory
 <picture>
   <img src="examples/docs/jit-storage.png" width="600">
 </picture>
+
+Figure above illustrates how the µBPF JIT compiler gets access to one of the
+program buffers in the JIT program storage, translates the source eBPF program
+into native machine code instructions and writes them into the buffer. After
+that, the program is stored in the JIT-compiled program storage. It can then be
+retrieved and executed multiple times allowing to amortise the cost of JIT
+compilation.
 
 ## Getting started
 

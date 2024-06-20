@@ -9,6 +9,7 @@ RIOTBASE ?= $(CURDIR)/../RIOT
 
 # Basic networking, and gcoap
 USEMODULE += gcoap
+USEMODULE += nanocoap
 USEMODULE += netdev_default
 USEMODULE += auto_init_gnrc_netif
 USEMODULE += gnrc_ipv6_default
@@ -74,10 +75,7 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-# Add 3k extra stack: The Rust examples take more of it than gcoap expects,
-# presumably because the example use the standard library's sting formatting
-# instead of one of the more optimized formatters.
-CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 8192)'
+CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 16384)'
 
 # Default COAP manifest resource location when fetched through gpio trigger
 CFLAGS += -DSUIT_MANIFEST_RESOURCE=\"$(SUIT_COAP_ROOT)/$(SUIT_NOTIFY_MANIFEST)\"
@@ -99,6 +97,9 @@ CFLAGS += -DHD44780_PARAM_PIN_RS=GPIO_PIN\(0,10\)
 CFLAGS += -DHD44780_PARAM_PIN_RW=GPIO_UNDEF
 CFLAGS += -DHD44780_PARAM_PIN_ENABLE=GPIO_PIN\(0,9\)
 CFLAGS += -DHD44780_PARAM_PINS_DATA=\{GPIO_PIN\(1,13\),GPIO_PIN\(1,14\),GPIO_PIN\(1,15\),GPIO_PIN\(1,1\),GPIO_UNDEF,GPIO_UNDEF,GPIO_UNDEF,GPIO_UNDEF\}
+
+# Allow for processing larger request entities
+CFLAGS += -DCONFIG_GCOAP_PDU_BUF_SIZE=128
 
 
 

@@ -66,7 +66,10 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // It is very important that the program executing on the CoAP packet returns
         // the length of the payload + PDU so that the handler can send the
         // response accordingly. In case of error the response length should be set to 0.
-        vm.full_run_on_coap_pkt(program, pkt).unwrap_or(0) as isize
+        vm.full_run_on_coap_pkt(program, pkt).unwrap_or_else(|e| {
+            debug!("Error: {:?}", e);
+            0
+        }) as isize
     }
 }
 
@@ -121,5 +124,3 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         response.set_payload(resp.as_bytes());
     }
 }
-
-

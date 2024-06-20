@@ -4,7 +4,7 @@ use alloc::{format, string::String};
 use log::debug;
 use riot_wrappers::{gcoap::PacketBuffer, println};
 
-use crate::{vm::VirtualMachine, infra::suit_storage};
+use crate::{infra::suit_storage, vm::VirtualMachine};
 
 pub struct FemtoContainerVm<'a> {
     program: Option<&'a [u8]>,
@@ -13,7 +13,10 @@ pub struct FemtoContainerVm<'a> {
 
 impl<'a> FemtoContainerVm<'a> {
     pub fn new(suit_slot: usize) -> Self {
-        Self { program: None, suit_slot, }
+        Self {
+            program: None,
+            suit_slot,
+        }
     }
 }
 
@@ -27,7 +30,7 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
         if return_code != 0 {
             return Err(format!(
                 "FemtoContainer VM program verification failed with code {}",
-                return_code
+                return_code as i32,
             ));
         } else {
             return Ok(());
@@ -52,9 +55,13 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
         // We need to define the stack here and pass it into the VM.
         // For some reason the static stack allocation in the c file doesn't work.
         let mut stack: [u8; 512] = [0; 512];
+
+        let result = unsafe { test_printf() };
+        /*
         unsafe {
             execute_fc_vm(&mut stack as *mut u8, &mut result as *mut i64);
         }
+        */
         Ok(result as u64)
     }
 
@@ -63,6 +70,7 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
         let Some(program) = self.program else {
             Err("VM not initialised")?
         };
+
         unsafe {
             let mut result: i64 = 0;
             // We need to define the stack here and pass it into the VM.
@@ -94,4 +102,7 @@ extern "C" {
     fn initialize_fc_vm(program: *const u8, program_len: usize) -> u32;
     fn execute_fc_vm(stack: *mut u8, result: *mut i64) -> u32;
     fn verify_fc_program(program: *const u8, program_len: usize) -> u32;
+    fn sensor_processing_from_storage() -> u32;
+    fn temperature_read() -> u32;
+    fn test_printf() -> u32;
 }

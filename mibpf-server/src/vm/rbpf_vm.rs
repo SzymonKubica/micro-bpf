@@ -1,10 +1,14 @@
-use crate::{vm::{middleware, VirtualMachine}, infra::suit_storage};
+use crate::{
+    infra::suit_storage,
+    vm::{middleware, VirtualMachine},
+};
 use alloc::{
     format,
     rc::Rc,
     string::{String, ToString},
     vec::Vec,
 };
+use log::debug;
 use core::{ops::DerefMut, slice::from_raw_parts_mut};
 use mibpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
@@ -132,14 +136,14 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
         let coap_context: &mut [u8] = unsafe {
             const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();
             let ctx = pkt as *mut _ as *mut CoapContext;
-            println!("Context: {:?}", *ctx);
+            debug!("CoAP context: {:?}", *ctx);
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };
 
         // Actual packet struct
         let mem = unsafe {
             let ctx = pkt as *mut _ as *mut CoapContext;
-            println!("Coap context: {:?}", *ctx);
+            debug!("CoAP context: {:?}", *ctx);
             from_raw_parts_mut((*ctx).pkt as *mut u8, (*ctx).len)
         };
 
@@ -149,8 +153,11 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
         };
 
         if let Some(vm) = self.vm.as_mut() {
-            vm.execute_program(mem, coap_context, alloc::vec![pkt_buffer_region])
-                .map_err(|e| format!("Error: {:?}", e))
+            let result = vm.execute_program(mem, coap_context, alloc::vec![pkt_buffer_region])
+                .map_err(|e| format!("Error: {:?}", e));
+            debug!("CoAP execution result: {:?}", result.clone().unwrap_or(0));
+            return result;
+
         } else {
             Err("VM not initialised".to_string())
         }

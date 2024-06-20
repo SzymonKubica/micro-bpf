@@ -145,6 +145,7 @@ pub fn bpf_memcpy(dest_p: u64, src_p: u64, size: u64, _a4: u64, _a5: u64) -> u64
     let dest: *mut riot_sys::libc::c_void = dest_p as *mut riot_sys::libc::c_void;
     let src: *const riot_sys::libc::c_void = src_p as *const riot_sys::libc::c_void;
     let size = size as u32;
+    debug!("Copying {} bytes from {:x} to {:x}", size, src_p, dest_p);
     unsafe {
         return riot_sys::memcpy(dest, src, size) as u64;
     }
@@ -298,6 +299,8 @@ pub fn bpf_strlen(str_ptr: u64, _a2: u64, _a3: u64, _a4: u64, _a5: u64) -> u64 {
 /// Convert 16-bit fixed point number to a decimal string.
 /// Returns the length of the resulting string.
 pub fn bpf_fmt_s16_dfp(out_p: u64, val: u64, fp_digits: u64, _a4: u64, _a5: u64) -> u64 {
+    debug!("Formatting s16 dfp args: {:?}, {:?}, {:?}, {:?}, {:?}", out_p, val, fp_digits, _a4, _a5);
+
     extern "C" {
         fn fmt_s16_dfp(out: *mut u8, val: i16, fp_digits: i32) -> usize;
     }

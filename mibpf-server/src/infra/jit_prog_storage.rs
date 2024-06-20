@@ -42,7 +42,6 @@ pub fn acquire_storage_slot(
     if slot_occupied {
         Err(format!("Slot index {} already occupied", slot_index))?;
     }
-
     slot_states[slot_index] = true;
     Ok(JIT_PROGRAM_SLOTS[slot_index].lock())
 }

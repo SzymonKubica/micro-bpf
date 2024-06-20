@@ -38,6 +38,7 @@ pub struct RbpfJIT<'a> {
     pub recompile: bool,
     pub jit_prog_slot: usize,
     pub jit_program_length: usize,
+    pub jitted_fn: Option<unsafe fn(*mut u8, usize, *mut u8, usize) -> u32>,
 }
 
 impl<'a> RbpfJIT<'a> {
@@ -51,20 +52,24 @@ impl<'a> RbpfJIT<'a> {
             recompile: config.jit_compile,
             jit_prog_slot: config.suit_slot,
             jit_program_length: 0,
+            jitted_fn: None,
         }
     }
 }
 
 impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
     fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
-        let program = suit_storage::load_program(program, self.jit_prog_slot);
-
         if !self.recompile {
+            self.jitted_fn = Some(jit_prog_storage::get_program_from_slot(self.jit_prog_slot).unwrap());
             return Ok(());
         }
+        let program = suit_storage::load_program(program, self.jit_prog_slot);
+
         if self.layout != BinaryFileLayout::RawObjectFile {
             Err("The JIT only supports raw object file binary layout")?;
         };
+
+        let _ = jit_prog_storage::free_storage_slot(self.jit_prog_slot);
         // We take the list of helpers from the execute request as this is the
         // only one way supported by the raw elf file binary layout that we use for the JIT.
         let mut helpers_map = BTreeMap::new();
@@ -80,31 +85,39 @@ impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
         // program will be written. The additional scope is introduced so
         // that the acquired MutexGuard goes out of scope at the end of it
         // and so the lock is released. (RAII)
-        let mut slot_guard = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
-        let mut text_offset = 0;
-
-        let program_cell = RefCell::new(program);
         {
-            let mut program_mut = program_cell.borrow_mut();
-            let mut jit_memory = rbpf::JitMemory::new(
-                &mut program_mut,
-                slot_guard.0.as_mut(),
-                &helpers_map,
-                false,
-                false,
-                rbpf::InterpreterVariant::RawObjectFile,
-            )
-            .unwrap();
-            self.jit_program_length = jit_memory.offset;
-            debug!("JIT compilation successful");
-            debug!("jitted program size: {} [B]", jit_memory.offset);
-            text_offset = jit_memory.text_offset;
+            let mut slot_guard = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
+            let mut text_offset = 0;
+
+            let program_cell = RefCell::new(program);
+            {
+                let mut program_mut = program_cell.borrow_mut();
+                let mut jit_memory = rbpf::JitMemory::new(
+                    &mut program_mut,
+                    slot_guard.0.as_mut(),
+                    &helpers_map,
+                    true,
+                    false,
+                    rbpf::InterpreterVariant::RawObjectFile,
+                )
+                .unwrap();
+                self.jit_program_length = jit_memory.offset;
+                debug!("JIT compilation successful");
+                debug!("jitted program size: {} [B]", jit_memory.offset);
+                text_offset = jit_memory.text_offset;
+            }
+
+
+            self.program = Some(program_cell);
+            slot_guard.1 = text_offset;
         }
-        self.program = Some(program_cell);
-        slot_guard.1 = text_offset;
+        self.jitted_fn = Some(jit_prog_storage::get_program_from_slot(self.jit_prog_slot).unwrap());
         Ok(())
     }
     fn verify(&self) -> Result<(), String> {
+        if !self.recompile {
+            return Ok(());
+        }
         let prog_ref_cell = self.program.as_ref().unwrap();
         let prog_ref = prog_ref_cell.borrow();
         let interpreter = map_interpreter(self.layout);
@@ -123,21 +136,32 @@ impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
     }
 
     fn execute(&mut self) -> Result<u64, String> {
-        let jitted_fn = jit_prog_storage::get_program_from_slot(self.jit_prog_slot).unwrap();
-
         let mut ret = 0;
         unsafe {
             // We don't pass any meaningful arguments here as the program doesn't
             // work on a COAP message packet buffer.
-            ret = jitted_fn(0 as *mut u8, 0, 0 as *mut u8, 0);
+            ret = self.jitted_fn.unwrap()(0 as *mut u8, 0, 0 as *mut u8, 0);
         }
-        jit_prog_storage::free_storage_slot(self.jit_prog_slot);
         debug!("JIT execution successful: {}", ret);
         Ok(ret as u64)
     }
 
     fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
-        todo!()
+        let coap_context: &mut [u8] = unsafe {
+            const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();
+            let ctx = pkt as *mut _ as *mut CoapContext;
+            debug!("CoAP context: {:?}", *ctx);
+            from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
+        };
+
+        let mut ret = 0;
+        unsafe {
+            // We don't pass any meaningful arguments here as the program doesn't
+            // work on a COAP message packet buffer.
+            ret = self.jitted_fn.unwrap()(coap_context as *mut _ as *mut u8, 0, 0 as *mut u8, 0);
+        }
+        debug!("JIT execution successful: {}", ret);
+        Ok(ret as u64)
     }
 
     fn get_program_length(&self) -> usize {

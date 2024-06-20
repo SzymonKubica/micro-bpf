@@ -8,7 +8,7 @@ UPDATE_DISPLAY_PROGRAM_SLOT=2
 QUERY_PROGRAM_SLOT=3
 
 # it takes a while to pull the program image
-IMAGE_PULL_DELAY=2 # seconds
+IMAGE_PULL_DELAY=3 # seconds
 
 export RUST_LOG=DEBUG
 export DOTENV=.env-nucleo-wifi

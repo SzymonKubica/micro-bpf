@@ -150,10 +150,10 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
     }
 
     fn log_results(&self) {
-        debug!("VM Execution benchmark results:");
-        debug!("Timings: \n{:?}", self.time_results);
-        debug!("Program size: {} [B]", self.program_size);
-        debug!("Payload written: {}", self.payload_written);
+        info!("VM Execution benchmark results:");
+        info!("Timings: \n{:?}", self.time_results);
+        info!("Program size: {} [B]", self.program_size);
+        info!("Payload written: {}", self.payload_written);
     }
 }
 

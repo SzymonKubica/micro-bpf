@@ -6,4 +6,4 @@
 	url = https://github.com/SzymonKubica/rbpf-for-microcontrollers
 [submodule "tools"]
 	path = tools
-	url = https://github.com/SzymonKubica/mibpf-tools
+	url = https://github.com/SzymonKubica/micro-bpf-tools

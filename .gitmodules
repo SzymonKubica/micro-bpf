@@ -2,11 +2,8 @@
 	path = RIOT
 	url = https://github.com/SzymonKubica/RIOT
 [submodule "rbpf-for-microcontrollers"]
-	path = rbpf-for-microcontrollers
+	path = vm
 	url = https://github.com/SzymonKubica/rbpf-for-microcontrollers
-[submodule "mibpf-tools"]
-	path = mibpf-tools
-	url = https://github.com/SzymonKubica/mibpf-tools
 [submodule "tools"]
 	path = tools
 	url = https://github.com/SzymonKubica/mibpf-tools

@@ -9,6 +9,7 @@ Using eBPF for microcontroller compartmentalization.
 * [System architecture and programming model](#system-architecture-and-programming-model)
 * [Deployment workflow](#deployment-workflow)
 * [Getting started](#getting-started)
+*  [Detailed overview](#detailed-overview)
 
 
 ## Description
@@ -62,6 +63,8 @@ a set of convenience scripts is provided in `scripts`.
 
 ## System architecture and programming model
 
+### Deployment model
+
 µBPF divides the process of deploying eBPF programs into two steps: deployment
 stage and execution stage. The first stage involves compiling, verifying and
 loading the program into memory of the target device. After that, in the
@@ -72,11 +75,56 @@ refer to the [README](tools/README.md) of the `tools` submodule.
 
 The deployment pipeline used by µBPF can be seen below.
 
-## Deployment workflow
+<picture>
+  <img src="examples/docs/architecture-final-rev3-with-logo.png" width="800">
+</picture>
+
+The deployment pipeline of µBPF consists of four steps: compila- tion, signing,
+firmware upload, and verification. Figure above shows the pipeline. Grey boxes
+represent existing infrastructure, whereas the contribution of µBPF is marked
+in blue.
+
+### Start of the pipeline
+
+At the start of the the pipeline, source files in C are compiled into eBPF
+bytecode. After that follows an optional bytecode patching step required for
+backwards compatibility with Femto-Containers. µBPF supports 4 different eBPF
+binary formats so this step can be skipped and a raw object file can
+be fed into the next step of the pipeline.
+
+### SUIT firmware update
+
+Next step involves sending the program binary to the target device using the
+SUIT update workflow provided by RIOT. First, the produced binaries are signed
+with encryption keys matching the ones stored in the OS image running on the
+target device. Then, a manifest file is created and signed. It is then stored
+together with the program binary in the root directory of the CoAP fileserver.
+The manifest provides information required by the target device to verify that
+the loaded program has not been tampered with and originates from a trusted
+source. The device then fetches the compiled eBPF bytecode and its manifest
+file from the CoAP fileserver, verifies the signature and loads the program
+into one of the RAM storage slots provided by the RIOT’s SUIT subsystem.
+
+### Execution stage
+
+After the deployment stage is complete, clients can begin sending requests to
+start executing the loaded programs. Clients can choose between executing the
+program using the VM interpreter or using the JIT compiler and then executing
+the emitted native code. After a given program is JIT-compiled, its bytecode is
+stored in an additional JIT program storage (see Figure 1). Upon receiving a
+request to rerun the program, the compilation process can be skipped. Here we
+note that when using the JIT compiler additional mem- ory is required as the
+eBPF bytecode needs to be translated into the native instructions and written
+into a new memory buffer. However, after this is done, the original eBPF
+program can be discarded allowing to save memory
 
 <picture>
-  <img src="examples/docs/architecture-final-rev3-with-logo.png" width="600">
+  <img src="examples/docs/jit-storage.png" width="600">
 </picture>
 
 ## Getting started
 
+## Detailed overview
+
+A thorough documentation of the implementation process and an evaluation of
+the system performance can be found in my Master's thesis [here](examples/docs/paper.pdf)

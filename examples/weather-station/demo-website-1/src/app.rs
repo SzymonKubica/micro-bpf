@@ -139,10 +139,11 @@ fn DeployForm() -> impl IntoView {
 
 #[server(DeployRequest, "/deploy")]
 pub async fn deploy(source_file: String, storage_slot: usize) -> Result<(), ServerFnError> {
-    use mibpf_common::*;
-    use mibpf_tools::*;
+    use micro_bpf_common::*;
+    use micro_bpf_tools::*;
     let environment: Environment = load_env();
 
+    println!("Env: {:?}", environment);
     let deploy_response = deploy(
      &format!("{}/{}", &environment.src_dir, source_file),
      &environment.out_dir,
@@ -155,7 +156,7 @@ pub async fn deploy(source_file: String, storage_slot: usize) -> Result<(), Serv
      &environment.host_net_if,
      &environment.host_ip,
      &environment.board_name,
-     Some(&environment.mibpf_root_dir),
+     Some(&environment.micro_bpf_root_dir),
      vec![],
      HelperAccessVerification::PreFlight,
      HelperAccessListSource::ExecuteRequest,
@@ -167,8 +168,8 @@ pub async fn deploy(source_file: String, storage_slot: usize) -> Result<(), Serv
 
 #[server(ExecuteRequest, "/execute")]
 pub async fn execute(storage_slot: usize) -> Result<String, ServerFnError> {
-    use mibpf_common::*;
-    use mibpf_tools::*;
+    use micro_bpf_common::*;
+    use micro_bpf_tools::*;
     let environment: Environment = load_env();
 
     let execution_response = execute(

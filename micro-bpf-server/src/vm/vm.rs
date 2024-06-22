@@ -1,8 +1,8 @@
 use alloc::{boxed::Box, format, string::String, vec::Vec};
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, HelperAccessVerification, HelperFunctionID, TargetVM, VMConfiguration,
 };
-use mibpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
+use micro_bpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
 use riot_wrappers::gcoap::PacketBuffer;
 
 use crate::infra::{local_storage, suit_storage};

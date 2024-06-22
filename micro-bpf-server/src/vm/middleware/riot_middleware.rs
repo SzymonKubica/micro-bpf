@@ -18,7 +18,7 @@ use crate::{
 };
 
 use super::helpers::HelperFunction;
-use mibpf_common::HelperFunctionID as ID;
+use micro_bpf_common::HelperFunctionID as ID;
 
 // Alias the type to make the table below more concise
 type HF = HelperFunction;

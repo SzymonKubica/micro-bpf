@@ -1,6 +1,6 @@
 use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
 use core::convert::TryInto;
-use mibpf_elf_utils::resolve_relocations;
+use micro_bpf_elf_utils::resolve_relocations;
 
 use log::{debug, error, info};
 
@@ -14,7 +14,7 @@ use crate::{
     vm::{construct_vm, timed_vm::BenchmarkResult, TimedVm},
 };
 
-use mibpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
+use micro_bpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
 
 use crate::{
     coap_server::handlers::util::preprocess_request_raw,

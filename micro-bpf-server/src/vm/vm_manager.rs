@@ -13,7 +13,7 @@ use riot_wrappers::{
 use riot_sys;
 use riot_sys::msg_t;
 
-use mibpf_common::VMExecutionRequest;
+use micro_bpf_common::VMExecutionRequest;
 
 use crate::{
     infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},

@@ -8,8 +8,8 @@
 
 extern crate alloc;
 extern crate macros;
-extern crate mibpf_common;
-extern crate mibpf_elf_utils;
+extern crate micro_bpf_common;
+extern crate micro_bpf_elf_utils;
 extern crate rbpf;
 extern crate riot_sys;
 extern crate rust_riotmodules;

@@ -7,7 +7,7 @@ use alloc::vec::Vec;
 use coap_message::{MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use log::debug;
-use mibpf_common::{BinaryFileLayout, VMExecutionRequest};
+use micro_bpf_common::{BinaryFileLayout, VMExecutionRequest};
 use riot_wrappers::mutex::Mutex;
 
 use crate::infra::jit_prog_storage::{self, JIT_SLOT_SIZE};

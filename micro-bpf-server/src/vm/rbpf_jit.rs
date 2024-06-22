@@ -8,11 +8,11 @@ use alloc::{
 };
 use core::{cell::RefCell, ops::DerefMut, slice::from_raw_parts_mut};
 use log::debug;
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
     VMConfiguration,
 };
-use mibpf_elf_utils::extract_allowed_helpers;
+use micro_bpf_elf_utils::extract_allowed_helpers;
 
 use rbpf::without_std::Error;
 

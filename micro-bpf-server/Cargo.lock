@@ -648,7 +648,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c8640c5d730cb13ebd907d8d04b52f55ac9a2eec55b440c8892f40d56c76c1d"
 
 [[package]]
-name = "mibpf-common"
+name = "micro-bpf-common"
 version = "0.1.0"
 dependencies = [
  "enum-iterator",
@@ -660,17 +660,17 @@ dependencies = [
 ]
 
 [[package]]
-name = "mibpf-elf-utils"
+name = "micro-bpf-elf-utils"
 version = "0.1.0"
 dependencies = [
  "goblin",
  "log",
- "mibpf-common",
+ "micro-bpf-common",
  "rbpf",
 ]
 
 [[package]]
-name = "mibpf-server"
+name = "micro-bpf-server"
 version = "0.1.0"
 dependencies = [
  "coap-handler 0.1.6",
@@ -683,8 +683,8 @@ dependencies = [
  "goblin",
  "log",
  "macros",
- "mibpf-common",
- "mibpf-elf-utils",
+ "micro-bpf-common",
+ "micro-bpf-elf-utils",
  "num",
  "num-derive",
  "num-traits",

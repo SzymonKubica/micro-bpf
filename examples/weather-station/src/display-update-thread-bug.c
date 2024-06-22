@@ -51,6 +51,11 @@ int lcd_display_measurement_logging(void *ctx)
                                     (current_measurement - 1) % 4;
                                 update_display = true;
                         }
+                        if (new_input == RIGHT) {
+                            int32_t *invalid_address = (int32_t*)-1;
+                            uint32_t invalid_value = *invalid_address;
+                            bpf_printf("Invalid memory access value: %d\n", invalid_value);
+                        }
                         previous_input = new_input;
                 }
                 if (!update_display && counter % DISPLAY_UPDATE_PERIOD == 0) {

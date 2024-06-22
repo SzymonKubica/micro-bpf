@@ -5,11 +5,11 @@ use alloc::{
 };
 use core::convert::TryInto;
 use log::{debug, error};
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, SuitPullRequest,
     VMConfiguration,
 };
-use mibpf_elf_utils::extract_allowed_helpers;
+use micro_bpf_elf_utils::extract_allowed_helpers;
 
 use coap_message::{MutableWritableMessage, ReadableMessage};
 

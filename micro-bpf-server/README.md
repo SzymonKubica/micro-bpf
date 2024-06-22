@@ -24,7 +24,7 @@ directly on the host desktop machine.
    ```
    In the example above, the compilation process expects that RIOT can be accessed
    under ../RIOT relative to the current working directory.
-   Please ensure that after cloning the base `mibpf` repo, you have initialised
+   Please ensure that after cloning the base `micro-bpf` repo, you have initialised
    all git submodules using
    ```bash
    git submodule init && git submodule update
@@ -34,7 +34,7 @@ directly on the host desktop machine.
 3. Configure `tap` networking to allow for communicating with the running RIOT
    instance using CoAP. For more detailed documentation see [here](https://doc.riot-os.org/getting-started.html#:~:text=tap0%20make%20term-,Setting%20up%20a%20tap%20network,-There%20is%20a).
    You can easily create two tap networks and a bridge using the following command
-   (assuming your working directory is mibpf/mibpf-native-example):
+   (assuming your working directory is micro-bpf/micro_bpf-native-example):
    ```bash
    sudo ../RIOT/dist/tools/tapsetup/tapsetup
    ```
@@ -64,7 +64,7 @@ directly on the host desktop machine.
    you get when using the `ifconfig` command in the RIOT shell (the one that was
    open after the build command has successfully finished). Once you have successfully
    connected to the UDP server advertising on the native instance, you should be
-   able to interact with it via CoAP using the `mibpf-tools`.
+   able to interact with it via CoAP using the `micro-bpf-tools`.
 7. Before being able to send programs to the device, you first need to spin up
    a fileserver over the CoAP network so that the running RIOT instance can pull
    the eBPF program images from the host desktop. This requires using the
@@ -90,18 +90,18 @@ directly on the host desktop machine.
    aiocoap-fileserver coaproot
    ```
 
-7. Use `mibpf-tools` to compile, load and execute the program on the simulated
+7. Use `micro-bpf-tools` to compile, load and execute the program on the simulated
    microcontroller (`native`)
    First, ensure that the `tools` directory contains the submodule for the
-   `mibpf-tools` repo. Then, navigate there and build the tools using
+   `micro-bpf-tools` repo. Then, navigate there and build the tools using
    ```bash
    cargo build --release
    ```
-   Once the tools are built, you can navigate to the root directory of the `mibpf`
+   Once the tools are built, you can navigate to the root directory of the `micro-bpf`
    repo and use the following command to compile, sign, and load an eBPF program
    into the RIOT example application:
    ```bash
-   ./tools/target/release/mibpf-tools deploy --bpf-source-file bpf/helper-tests/printf.c  --out-dir bpf/helper-tests/out -s 0 --riot-ipv6-addr <riot-instance-ip-address> --host-ipv6-addr <host-os-ip-address> --host-network-interface tapbr0 --board-name native
+   ./tools/target/release/micro-bpf-tools deploy --bpf-source-file bpf/helper-tests/printf.c  --out-dir bpf/helper-tests/out -s 0 --riot-ipv6-addr <riot-instance-ip-address> --host-ipv6-addr <host-os-ip-address> --host-network-interface tapbr0 --board-name native
    ```
    As before the riot-ipv6-addr above is the ip address of the RIOT native instance
    and can be optained using the `ifconfig` command in the RIOT shell. The other
@@ -121,7 +121,7 @@ directly on the host desktop machine.
    so that it can be used more easily. You can learn more about the meaning
    of the arguments to the command above using
    ```bash
-   ./tools/target/release/mibpf-tools deploy --help
+   ./tools/target/release/micro-bpf-tools deploy --help
    ```
 
    After the program has been successfully loaded you should see a similar output
@@ -161,7 +161,7 @@ directly on the host desktop machine.
    Once this is done, you can send a request to the instance to start executing
    the eBPF program in the VM:
    ```bash
-   ./tools/target/release/mibpf-tools  execute --riot-ipv6-addr fe80::a0d9:ebff:fed5:986b --suit-storage-slot 0 --host-network-interface tapbr0
+   ./tools/target/release/micro-bpf-tools  execute --riot-ipv6-addr fe80::a0d9:ebff:fed5:986b --suit-storage-slot 0 --host-network-interface tapbr0
    ```
 
    ```

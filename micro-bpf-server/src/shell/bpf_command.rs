@@ -4,7 +4,7 @@ use crate::{
 };
 use alloc::{boxed::Box, sync::Arc, vec::Vec};
 use core::{fmt::Write, str::FromStr};
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, TargetVM, VMConfiguration,
     VMExecutionRequest,
 };

@@ -1,5 +1,5 @@
 # name of your application
-APPLICATION = mibpf_server
+APPLICATION = micro_bpf_server
 
 # If no BOARD is found in the environment, use this default:
 BOARD ?= native
@@ -113,7 +113,7 @@ CFLAGS += -DCONFIG_GCOAP_PDU_BUF_SIZE=128
 CFLAGS += '-DTHREAD_STACKSIZE_MAIN=(THREAD_STACKSIZE_DEFAULT + 4096)'
 
 # The name of crate (as per Cargo.toml package name, but with '-' replaced with '_')
-APPLICATION_RUST_MODULE = mibpf_server
+APPLICATION_RUST_MODULE = micro_bpf_server
 BASELIBS += $(APPLICATION_RUST_MODULE).module
 
 FEATURES_REQUIRED += rust_target

@@ -1,5 +1,5 @@
 [package]
-name = "mibpf-server"
+name = "micro-bpf-server"
 version = "0.1.0"
 authors = ["Szymon Kubica <szymo.kubica@gmail.com"]
 edition = "2018"
@@ -40,8 +40,8 @@ log = "0.4.20"
 goblin = {version = "0.8.0", default_features = false , features = ["elf32", "elf64", "endian_fd"]}
 
 rbpf = { path = "../vm", default-features = false }
-mibpf-common = { path = "../tools/common" }
-mibpf-elf-utils = { path = "../tools/elf-utils" }
+micro-bpf-common = { path = "../tools/common" }
+micro-bpf-elf-utils = { path = "../tools/elf-utils" }
 macros = { path = "../tools/macros" }
 
 

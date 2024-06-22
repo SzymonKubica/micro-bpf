@@ -62,6 +62,6 @@ echo "Deploying the query temperature program..."
 $TOOLS --use-env deploy --bpf-source-file src/gcoap_temperature.c \
          -s $QUERY_PROGRAM_SLOT --binary-layout ExtendedHeader  --erase }
 }
-deploy_temp_hum
-deploy_light_sound
+#deploy_temp_hum
+#deploy_light_sound
 deploy_display_update

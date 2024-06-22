@@ -1,6 +1,6 @@
 use alloc::string::{String, ToString};
 use coap_message::ReadableMessage;
-use mibpf_common::VMExecutionRequest;
+use micro_bpf_common::VMExecutionRequest;
 use riot_wrappers::gcoap::PacketBuffer;
 
 use log::{debug, error, info};

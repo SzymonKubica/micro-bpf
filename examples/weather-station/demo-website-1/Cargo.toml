@@ -8,10 +8,12 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 actix-files = { version = "0.6", optional = true }
-mibpf-tools = { path = "../../tools/tools", optional = true }
-mibpf-common = { path = "../../tools/common", optional = true }
+micro-bpf-tools = { path = "../../../tools/tools", optional = true }
+micro-bpf-common = { path = "../../../tools/common", optional = true }
 actix-web = { version = "4", optional = true, features = ["macros"] }
 console_error_panic_hook = "0.1"
+log = "0.4"
+env_logger = "0.11.3"
 http = { version = "1.0.0", optional = true }
 leptos = { version = "0.6", features = ["nightly"] }
 leptos_meta = { version = "0.6", features = ["nightly"] }
@@ -24,8 +26,8 @@ default = ["csr", "ssr"]
 csr = ["leptos/csr", "leptos_meta/csr", "leptos_router/csr"]
 hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
 ssr = [
-  "dep:mibpf-tools",
-  "dep:mibpf-common",
+  "dep:micro-bpf-tools",
+  "dep:micro-bpf-common",
   "dep:actix-files",
   "dep:actix-web",
   "dep:leptos_actix",

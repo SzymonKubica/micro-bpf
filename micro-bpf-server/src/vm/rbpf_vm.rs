@@ -10,11 +10,11 @@ use alloc::{
 };
 use log::debug;
 use core::{ops::DerefMut, slice::from_raw_parts_mut};
-use mibpf_common::{
+use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
     VMConfiguration,
 };
-use mibpf_elf_utils::extract_allowed_helpers;
+use micro_bpf_elf_utils::extract_allowed_helpers;
 
 use rbpf::without_std::Error;
 
@@ -69,16 +69,16 @@ impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
         let program = suit_storage::load_program_static(self.suit_slot);
 
         if self.layout == BinaryFileLayout::RawObjectFile {
-            mibpf_elf_utils::resolve_relocations(program)?;
+            micro_bpf_elf_utils::resolve_relocations(program)?;
         };
         // We need to make a decision whether we use the helper list that was
         // sent in the request or read the allowed helpers from the metadata appended
         // to the program binary.
         let helper_access_list = match self.helper_access_list_source {
-            mibpf_common::HelperAccessListSource::ExecuteRequest => {
+            micro_bpf_common::HelperAccessListSource::ExecuteRequest => {
                 HelperAccessList::from(self.allowed_helpers.clone())
             }
-            mibpf_common::HelperAccessListSource::BinaryMetadata => {
+            micro_bpf_common::HelperAccessListSource::BinaryMetadata => {
                 if self.layout == BinaryFileLayout::ExtendedHeader {
                     HelperAccessList::from(extract_allowed_helpers(program))
                 } else {

@@ -1,10 +1,10 @@
 use core::ffi::c_void;
 
 use alloc::boxed::Box;
-use mibpf_common::VMExecutionRequest;
+use micro_bpf_common::VMExecutionRequest;
 use riot_sys::msg_t;
 
-/// Wrapper around the [`mibpf_common::VMExecutionRequest`] to allow for sending
+/// Wrapper around the [`micro_bpf_common::VMExecutionRequest`] to allow for sending
 /// it over the RIOT IPC.
 pub struct VMExecutionRequestIPC {
     pub request: Box<VMExecutionRequest>,

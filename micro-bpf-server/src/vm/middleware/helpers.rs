@@ -3,7 +3,7 @@ use core::num::ParseIntError;
 use alloc::{collections::BTreeMap, format, string::String, vec::Vec};
 
 use super::ALL_HELPERS;
-use mibpf_common::HelperFunctionID;
+use micro_bpf_common::HelperFunctionID;
 
 #[derive(Copy, Clone)]
 pub struct HelperFunction {

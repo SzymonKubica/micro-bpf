@@ -50,6 +50,36 @@ uint32_t load_bytes_from_suit_storage(uint8_t *buff, uint8_t *location_id)
     return length;
 }
 
+
+uint32_t get_storage_ptr(uint8_t *location_id, uint32_t *length_ret)
+{
+
+    char *location = (char *)location_id;
+    LOG_DEBUG("[SUIT storage loader]: getting SUIT storage given id: %s. \n",
+              location);
+
+    suit_storage_t *storage = suit_storage_find_by_id(location);
+
+    assert(storage);
+
+    LOG_DEBUG(
+        "[SUIT storage loader]: setting suit storage active location: %s\n",
+        location);
+
+    suit_storage_set_active_location(storage, location);
+    const uint8_t *mem_region;
+    size_t length;
+
+    LOG_DEBUG("[SUIT storage loader]: getting a pointer to the data stored in "
+              "the SUIT "
+              "location: %s.\n",
+              location);
+    suit_storage_read_ptr(storage, &mem_region, &length);
+
+    *length_ret = length;
+    return (uint32_t) mem_region;
+}
+
 void handle_suit_storage_erase(uint8_t *location_id)
 {
 

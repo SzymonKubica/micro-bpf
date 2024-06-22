@@ -15,17 +15,16 @@ use super::{
 /// both raw and with access to the incoming CoAP packet.
 pub trait VirtualMachine<'a> {
     /// Loads, verifies, optionally resolves relocations and executes the program.
-    fn full_run(&mut self, program: &'a mut [u8]) -> Result<u64, String> {
-        self.initialize_vm(program)?;
+    fn full_run(&mut self) -> Result<u64, String> {
+        self.initialize_vm()?;
         self.verify()?;
         self.execute()
     }
     fn full_run_on_coap_pkt(
         &mut self,
-        program: &'a mut [u8],
         pkt: &mut PacketBuffer,
     ) -> Result<u64, String> {
-        self.initialize_vm(program)?;
+        self.initialize_vm()?;
         self.verify()?;
         self.execute_on_coap_pkt(pkt)
     }
@@ -33,7 +32,7 @@ pub trait VirtualMachine<'a> {
     /// In case of raw elf file binaries this is where the relocation resolution
     /// should take place. In all other case we simply attach all helper functions
     /// to the VM here.
-    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String>;
+    fn initialize_vm(&mut self) -> Result<(), String>;
     /// Verifies the program bytecode after it has been loaded into the VM.
     fn verify(&self) -> Result<(), String>;
     /// Executes a given program and returns its return value.
@@ -58,19 +57,18 @@ pub trait VirtualMachine<'a> {
 pub fn construct_vm<'a>(
     config: VMConfiguration,
     allowed_helpers: Vec<HelperFunctionID>,
-    program: &'a mut [u8],
-) -> Result<(&'a mut [u8], Box<dyn VirtualMachine<'a> + 'a>), String> {
+) -> Result<Box<dyn VirtualMachine<'a> + 'a>, String> {
 
     if config.jit {
-        return Ok((program, Box::new(RbpfJIT::new(config, allowed_helpers))));
+        return Ok(Box::new(RbpfJIT::new(config, allowed_helpers)));
     }
 
     match config.vm_target {
         TargetVM::Rbpf => {
-            return Ok((program, Box::new(RbpfVm::new(config, allowed_helpers)?)));
+            return Ok(Box::new(RbpfVm::new(config, allowed_helpers)?));
         }
         TargetVM::FemtoContainer => {
-            return Ok((program, Box::new(FemtoContainerVm::new(config.suit_slot))));
+            return Ok(Box::new(FemtoContainerVm::new(config.suit_slot)));
         }
     }
 }

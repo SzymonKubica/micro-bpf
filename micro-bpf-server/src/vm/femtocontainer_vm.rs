@@ -37,8 +37,8 @@ impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
         }
     }
 
-    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
-        let program = suit_storage::load_program(program, self.suit_slot);
+    fn initialize_vm(&mut self) -> Result<(), String> {
+        let program = suit_storage::load_program_static(self.suit_slot);
         self.program = Some(program);
         unsafe {
             initialize_fc_vm(program.as_ptr() as *const u8, program.len());

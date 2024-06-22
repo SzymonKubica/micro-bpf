@@ -42,18 +42,16 @@ impl VMExecutionBenchmarkHandler {
     }
 
     fn handle_benchmark_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
-        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
 
-        let (program, mut vm) = construct_vm(
+        let mut vm = construct_vm(
             request.configuration,
             request.allowed_helpers,
-            &mut program_buffer,
         )
         .map_err(util::internal_server_error)?;
 
         let mut vm = TimedVm::new(vm);
 
-        self.result = vm.full_run(program).unwrap() as i64;
+        self.result = vm.full_run().unwrap() as i64;
         self.time_results = vm.get_results();
         self.program_size = vm.get_program_length() as u32;
 
@@ -130,20 +128,17 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
         request: VMExecutionRequest,
         pkt: &mut PacketBuffer,
     ) -> isize {
-        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-
-        let Ok((program, mut vm)) = construct_vm(
+        let Ok(mut vm) = construct_vm(
             request.configuration,
             request.allowed_helpers,
-            &mut program_buffer,
         ) else {
             return Self::NO_BYTES_WRITTEN;
         };
 
         let mut vm = TimedVm::new(vm);
 
-        self.program_size = program.len() as u32;
-        self.payload_written = vm.full_run_on_coap_pkt(program, pkt).unwrap() as isize;
+        self.program_size = vm.get_program_length() as u32;
+        self.payload_written = vm.full_run_on_coap_pkt(pkt).unwrap() as isize;
         self.time_results = vm.get_results();
         self.log_results();
         self.payload_written

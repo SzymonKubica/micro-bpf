@@ -58,12 +58,12 @@ impl<'a> RbpfJIT<'a> {
 }
 
 impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
-    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+    fn initialize_vm(&mut self) -> Result<(), String> {
         if !self.recompile {
             self.jitted_fn = Some(jit_prog_storage::get_program_from_slot(self.jit_prog_slot).unwrap());
             return Ok(());
         }
-        let program = suit_storage::load_program(program, self.jit_prog_slot);
+        let program = suit_storage::load_program_static(self.jit_prog_slot);
 
         if self.layout != BinaryFileLayout::RawObjectFile {
             Err("The JIT only supports raw object file binary layout")?;

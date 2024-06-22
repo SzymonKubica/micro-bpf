@@ -48,14 +48,12 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         debug!("Received VM Execution Request: {:?}", request.configuration);
 
-        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
         let init_result = construct_vm(
             request.configuration,
             request.allowed_helpers,
-            &mut program_buffer,
         );
 
-        let Ok((program, mut vm)) = init_result else {
+        let Ok(mut vm) = init_result else {
             error!(
                 "Failed to initialize the VM: {}",
                 init_result.err().unwrap()
@@ -66,7 +64,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         // It is very important that the program executing on the CoAP packet returns
         // the length of the payload + PDU so that the handler can send the
         // response accordingly. In case of error the response length should be set to 0.
-        vm.full_run_on_coap_pkt(program, pkt).unwrap_or_else(|e| {
+        vm.full_run_on_coap_pkt(pkt).unwrap_or_else(|e| {
             debug!("Error: {:?}", e);
             0
         }) as isize
@@ -86,16 +84,13 @@ impl VMExecutionNoDataHandler {
     }
 
     fn handle_vm_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
-        let mut program_buffer = [0; SUIT_STORAGE_SLOT_SIZE];
-
-        let (program, mut vm) = construct_vm(
+        let mut vm = construct_vm(
             request.configuration,
             request.allowed_helpers,
-            &mut program_buffer,
         )
         .map_err(util::internal_server_error)?;
 
-        self.result = vm.full_run(program).unwrap() as i64;
+        self.result = vm.full_run().unwrap() as i64;
         Ok(coap_numbers::code::CHANGED)
     }
 }

@@ -42,9 +42,9 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         result
     }
 
-    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
+    fn initialize_vm(&mut self) -> Result<(), String> {
         let start = self.time_now();
-        let result = self.vm.initialize_vm(program);
+        let result = self.vm.initialize_vm();
         let end = self.time_now();
 
         self.results.borrow_mut().load_time = end - start;
@@ -69,9 +69,9 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
         result
     }
 
-    fn full_run(&mut self, program: &'a mut [u8]) -> Result<u64, String> {
+    fn full_run(&mut self) -> Result<u64, String> {
         let start = self.time_now();
-        self.initialize_vm(program)?;
+        self.initialize_vm()?;
         self.verify()?;
         let result = self.execute();
         let end = self.time_now();
@@ -80,11 +80,10 @@ impl<'a> VirtualMachine<'a> for TimedVm<'a> {
     }
     fn full_run_on_coap_pkt(
         &mut self,
-        program: &'a mut [u8],
         pkt: &mut PacketBuffer,
     ) -> Result<u64, String> {
         let start = self.time_now();
-        self.initialize_vm(program)?;
+        self.initialize_vm()?;
         self.verify()?;
         let result = self.execute_on_coap_pkt(pkt);
         debug!("Timed VM execution returned: {}.", result.clone().unwrap() as i64);

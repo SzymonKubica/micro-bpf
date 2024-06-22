@@ -209,16 +209,14 @@ fn vm_main_thread(send_port: &CompletionSendPort) {
             request.configuration
         );
 
-        let mut program_buffer: [u8; SUIT_STORAGE_SLOT_SIZE] = [0; SUIT_STORAGE_SLOT_SIZE];
-        if let Ok((program, mut vm)) = construct_vm(
+        if let Ok(mut vm) = construct_vm(
             request.configuration,
             request.allowed_helpers,
-            &mut program_buffer,
         ) {
             // We notify everyone that the slot we are using holds a long running VM.
             suit_storage::suit_mark_slot_running(request.configuration.suit_slot as usize);
 
-            let execution_result = vm.full_run(program);
+            let execution_result = vm.full_run();
             if let Ok(result) = execution_result {
                 info!("return: {}", result);
             } else  {

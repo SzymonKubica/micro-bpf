@@ -1,4 +1,4 @@
-use core::ffi::c_int;
+use core::{ffi::c_int, slice::from_raw_parts_mut};
 
 use alloc::{
     format,
@@ -50,6 +50,7 @@ extern "C" {
     fn load_bytes_from_suit_storage(buffer: *mut u8, location_id: *const u8) -> u32;
     /// Responsible for erasing a given SUIT storage slot
     fn handle_suit_storage_erase(location_id: *const u8);
+    fn get_storage_ptr(location_id: *const u8, length_ret: *mut u32) -> u32;
 }
 
 /// Responsible for fetching data from a remote CoAP fileserver using a SUIT
@@ -166,4 +167,20 @@ pub fn load_program<'a>(program_buffer: &'a mut [u8], slot: usize) -> &'a mut [u
     local_storage::register_suit_slot(slot);
 
     &mut program_buffer[..(len as usize)]
+}
+
+pub fn load_program_static(slot: usize) -> &'static mut [u8] {
+    let location = format!(".ram.{0}\0", slot);
+    let mut len: u32 = 0;
+    let prog_buffer;
+    unsafe {
+        let location_ptr = location.as_ptr();
+        let storage_ptr = get_storage_ptr(location_ptr, &mut len as *mut u32) as *mut u8;
+        prog_buffer = from_raw_parts_mut(storage_ptr, len as usize);
+    };
+
+    debug!("{}[B] program loaded from SUIT storage slot {}.", len, slot);
+    local_storage::register_suit_slot(slot);
+
+    &mut prog_buffer[..(len as usize)]
 }

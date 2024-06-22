@@ -65,8 +65,8 @@ pub fn map_interpreter(layout: BinaryFileLayout) -> rbpf::InterpreterVariant {
 }
 
 impl<'a> VirtualMachine<'a> for RbpfVm<'a> {
-    fn initialize_vm(&mut self, program: &'a mut [u8]) -> Result<(), String> {
-        let program = suit_storage::load_program(program, self.suit_slot);
+    fn initialize_vm(&mut self) -> Result<(), String> {
+        let program = suit_storage::load_program_static(self.suit_slot);
 
         if self.layout == BinaryFileLayout::RawObjectFile {
             mibpf_elf_utils::resolve_relocations(program)?;

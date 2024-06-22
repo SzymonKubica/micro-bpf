@@ -8,12 +8,12 @@ UPDATE_DISPLAY_PROGRAM_SLOT=2
 QUERY_PROGRAM_SLOT=3
 
 # it takes a while to pull the program image
-IMAGE_PULL_DELAY=3 # seconds
+IMAGE_PULL_DELAY=4 # seconds
 
 export RUST_LOG=DEBUG
-export DOTENV=.env-nucleo-wifi
+export DOTENV=.env-nucleo-$1
 
-TOOLS=../tools/target/release/mibpf-tools
+TOOLS=../../tools/target/release/mibpf-tools
 
 deploy_temp_hum() {
 echo "Deploying the temperature/humidity collecting program..."

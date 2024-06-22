@@ -27,6 +27,8 @@ endif
 
 ifeq ($(BOARD), nucleo-f446re)
 USEMODULE += atwinc15x0
+# The ethernet adapter (not working, overheats and drops packets.)
+# USEMODULE += enc28j60
 endif
 
 USEMODULE += shell
@@ -83,9 +85,13 @@ CFLAGS += -DSUIT_MANIFEST_RESOURCE=\"$(SUIT_COAP_ROOT)/$(SUIT_NOTIFY_MANIFEST)\"
 # Config for the SUIT RAM storage
 CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=4 -DCONFIG_SUIT_STORAGE_RAM_SIZE=4096
 
+
+# config for the wifi adapter
+CFLAGS += -DENC28J60_PARAM_CS=GPIO_PIN\(1,6\)
+CFLAGS += -DENC28J60_PARAM_RESET=GPIO_PIN\(1,4\)
+CFLAGS += -DENC28J60_PARAM_INT=GPIO_PIN\(0,8\)
+
 # config for the wifi board
-
-
 CFLAGS += -DATWINC15X0_PARAM_SSN_PIN=GPIO_PIN\(1,6\)
 CFLAGS += -DATWINC15X0_PARAM_RESET_PIN=GPIO_PIN\(1,4\)
 CFLAGS += -DATWINC15X0_PARAM_IRQ_PIN=GPIO_PIN\(0,8\)

@@ -52,6 +52,9 @@ int lcd_display_measurement_logging(void *ctx)
                                 update_display = true;
                         }
                         if (new_input == RIGHT) {
+                            bpf_hd44780_clear(dev);
+                            bpf_hd44780_set_cursor(dev, 0, 0);
+                            bpf_hd44780_print(dev, "Error");
                             int32_t *invalid_address = (int32_t*)-1;
                             uint32_t invalid_value = *invalid_address;
                             bpf_printf("Invalid memory access value: %d\n", invalid_value);

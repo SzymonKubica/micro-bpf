@@ -26,13 +26,13 @@ int gcoap_humidity(bpf_coap_ctx_t *gcoap)
 {
     bpf_coap_pkt_t *pkt = gcoap->pkt;
 
-    uint32_t temperature = 0;
-    bpf_fetch_global(DHT1_HUM_STORAGE_INDEX, &temperature);
+    uint32_t sound = 0;
+    bpf_fetch_global(SOUND_INTENSITY_STORAGE_INDEX, &sound);
 
     char fmt_buffer[5];
 
     // -1 means that there is one decimal point.
-    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, temperature, -1);
+    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, sound, 0);
 
     bpf_printf("Writing response code: %d\n", SUCCESS_RESPONSE_CODE);
     bpf_gcoap_resp_init(gcoap, SUCCESS_RESPONSE_CODE);
@@ -51,8 +51,8 @@ int gcoap_humidity(bpf_coap_ctx_t *gcoap)
 
     bpf_printf("Copying stringified temperature reading payload\n");
     if (pkt->payload_len >= str_len) {
-        char fmt[] = "{\"humidity\": }";
-        int start_len = 13;
+        char fmt[] = "{\"sound_volume\": }";
+        int start_len = 17;
         int end_len = 2;
         bpf_memcpy(payload, fmt, start_len);
         bpf_memcpy(payload + start_len, fmt_buffer, str_len);

@@ -1,4 +1,4 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use leptos::*;
 use leptos_meta::*;
@@ -19,17 +19,26 @@ pub fn App() -> impl IntoView {
         <Router>
             <main>
                 <Routes>
-                    <Route path="" view=HomePage/>
-                    <Route path="/*any" view=NotFound/>
+                    <Route path="" view=WeatherStation/>
+                    <Route path="/admin" view=AdminPage/>
+                    <Route path="/*" view=NotFound/>
                 </Routes>
             </main>
         </Router>
     }
 }
 
-/// Renders the home page of your application.
 #[component]
-fn HomePage() -> impl IntoView {
+fn WeatherStation() -> impl IntoView {
+    view! {
+        <h1>"Weather Station"</h1>
+        <ApplicationDeploy/>
+
+    }
+}
+
+#[component]
+fn AdminPage() -> impl IntoView {
     view! {
         <h1>"µBPF Admin Tools"</h1>
         <DeployForm/>
@@ -140,15 +149,42 @@ fn ExecuteForm() -> impl IntoView {
                     jit_compile.get(),
                     benchmark.get(),
                 ));
+            set_response(send_execution_request.value().get().unwrap());
         }>"Execute"</button>
         <p>"Response:"</p>
-        <p>{move || response.get()}</p>
+        <p>
+            {move || match send_execution_request.value().get() {
+                Some(v) => v,
+                None => "Loading".to_string(),
+            }}
+
+        </p>
+    }
+}
+#[component]
+fn ApplicationDeploy() -> impl IntoView {
+    let deploy_application = create_action(|input: &()| {
+        async move {
+            let _ = bootstrap_application().await;
+        }
+    });
+
+    view! {
+        <div>
+            <text>"Deploy Sensor Station "</text>
+            <button on:click=move |_| {
+                deploy_application
+                    .dispatch(());
+            }>"Deploy"</button>
+        </div>
     }
 }
 
+
+
 #[component]
 fn DeployForm() -> impl IntoView {
-    let (name, set_name) = create_signal("gcoap_temperature.c".to_string());
+    let (name, set_name) = create_signal("display-update-thread.c".to_string());
     let (slot, set_slot) = create_signal(0);
     let (target_vm, set_target_vm) = create_signal("rBPF".to_string());
     let (binary_layout, set_binary_layout) = create_signal("RawObjectFile".to_string());
@@ -255,6 +291,7 @@ pub fn SelectOption(is: &'static str, value: ReadSignal<String>) -> impl IntoVie
     }
 }
 
+
 #[server(DeployRequest, "/deploy")]
 pub async fn deploy(source_file: String, target_vm: String, binary_layout: String, storage_slot: usize) -> Result<(), ServerFnError> {
     use micro_bpf_common::{BinaryFileLayout, TargetVM};
@@ -321,4 +358,83 @@ pub async fn execute(target_vm: String, binary_layout: String, storage_slot: usi
     )
     .await;
     Ok(execution_response.unwrap())
+}
+
+#[server(BootstrapApplication, "/weather-station-deploy")]
+pub async fn bootstrap_application() -> Result<String, ServerFnError> {
+    use micro_bpf_common::*;
+    use micro_bpf_tools::*;
+    let environment: Environment = load_env();
+
+    let target_vm = TargetVM::Rbpf;
+    let binary_layout = BinaryFileLayout::RawObjectFile;
+
+    let application_source = vec![
+        "display-update-thread-bug.c", "sound-light-intensity-update-thread.c", "temperature-humidity-update-thread.c", "gcoap_temperature.c", "gcoap_humidity.c", "gcoap_sound.c", "gcoap_light_intensity.c"
+    ];
+
+    for (i, file) in application_source.iter().enumerate() {
+        let deploy_response = deploy(
+            &format!("{}/{}", &environment.src_dir, file),
+            &environment.out_dir,
+            target_vm,
+            binary_layout,
+            &environment.coap_root_dir,
+            i,
+            &environment.riot_instance_net_if,
+            &environment.riot_instance_ip,
+            &environment.host_net_if,
+            &environment.host_ip,
+            &environment.board_name,
+            Some(&environment.micro_bpf_root_dir),
+            vec![],
+            HelperAccessVerification::PreFlight,
+            HelperAccessListSource::ExecuteRequest,
+            true,
+        )
+        .await;
+
+        match i {
+            0 => {
+              println!("Deploying display update thread...");
+              // This file is large and takes long to deploy.
+            std::thread::sleep(Duration::from_secs(2));
+            },
+            1 => {
+              println!("Deploying sound and light intensity update thread...");
+              std::thread::sleep(Duration::from_millis(500));
+            },
+            2 => {
+              println!("Deploying temperature and humidity update thread...");
+              std::thread::sleep(Duration::from_millis(500));
+            },
+            _ => {}
+        };
+    }
+
+    // Now we send execution requests
+    for (i, file) in application_source.iter().enumerate() {
+        println!("Executing program: {}...", file);
+        let execution_response = execute(
+            &environment.riot_instance_ip,
+            target_vm,
+            binary_layout,
+            i,
+            &environment.host_net_if,
+            ExecutionModel::LongRunning,
+            HelperAccessVerification::PreFlight,
+            HelperAccessListSource::ExecuteRequest,
+            &vec![],
+            false,
+            false,
+            false
+        )
+        .await;
+        if let Ok(r) = execution_response {
+            println!("Execution response: {}", r);
+        }
+    }
+
+    Ok("".to_string())
+
 }

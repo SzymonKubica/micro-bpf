@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "constants.h"
 #include "helpers.h"
 
 #define SHARED_KEY 0x50
@@ -27,7 +28,7 @@ int gcoap_temperature(bpf_coap_ctx_t *gcoap)
     bpf_coap_pkt_t *pkt = gcoap->pkt;
 
     uint32_t temperature = 0;
-    bpf_fetch_global(TEMPERATURE_STORAGE_INDEX, &temperature);
+    bpf_fetch_global(DHT1_TEMP_STORAGE_INDEX, &temperature);
 
     char fmt_buffer[5];
 

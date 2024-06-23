@@ -20,7 +20,7 @@ impl<'a> FemtoContainerVm<'a> {
     }
 }
 
-impl<'a> VirtualMachine<'a> for FemtoContainerVm<'a> {
+impl<'a> VirtualMachine for FemtoContainerVm<'a> {
     fn verify(&self) -> Result<(), String> {
         let Some(program) = self.program else {
             Err("VM not initialised")?

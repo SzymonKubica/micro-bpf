@@ -6,6 +6,7 @@ use alloc::{
 };
 use log::debug;
 use macros::set_env_or_default;
+use micro_bpf_common::BinaryFileLayout;
 use riot_wrappers::{mutex::Mutex, thread};
 
 use crate::infra::local_storage;
@@ -82,6 +83,7 @@ pub fn suit_fetch(
     manifest: &str,
     slot: usize,
     erase: bool,
+    binary_layout: BinaryFileLayout,
 ) -> Result<(), String> {
     let ip_addr = format!("{}\0", ip);
     let suit_manifest = format!("{}\0", manifest);
@@ -112,6 +114,11 @@ pub fn suit_fetch(
         if msg.content.value == SUIT_FETCH_SUCCESS {
             slots[slot] = SuitStorageSlotStatus::Occupied;
             debug!("SUIT fetch successful, marked slot {} as occupied.", slot);
+
+            if binary_layout == BinaryFileLayout::RawObjectFile {
+                let program = load_program_static(slot);
+                micro_bpf_elf_utils::resolve_relocations(program)?;
+            };
             Ok(())
         } else {
             slots[slot] = SuitStorageSlotStatus::Free;

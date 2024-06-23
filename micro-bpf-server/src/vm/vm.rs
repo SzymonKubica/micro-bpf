@@ -13,7 +13,7 @@ use super::{
 
 /// Structs implementing this interface should allow for executing eBPF programs
 /// both raw and with access to the incoming CoAP packet.
-pub trait VirtualMachine<'a> {
+pub trait VirtualMachine {
     /// Loads, verifies, optionally resolves relocations and executes the program.
     fn full_run(&mut self) -> Result<u64, String> {
         self.initialize_vm()?;
@@ -57,7 +57,7 @@ pub trait VirtualMachine<'a> {
 pub fn construct_vm<'a>(
     config: VMConfiguration,
     allowed_helpers: Vec<HelperFunctionID>,
-) -> Result<Box<dyn VirtualMachine<'a> + 'a>, String> {
+) -> Result<Box<dyn VirtualMachine>, String> {
 
     if config.jit {
         return Ok(Box::new(RbpfJIT::new(config, allowed_helpers)));

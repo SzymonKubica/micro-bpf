@@ -104,9 +104,8 @@ fn ExecuteForm() -> impl IntoView {
         <div>
             <input
                 type="checkbox"
-                on:input=move |_| {
-                    set_use_jit(!use_jit.get())
-                }
+                on:input=move |_| { set_use_jit(!use_jit.get()) }
+
                 prop:checked=use_jit
             />
             <text>"Use JIT"</text>
@@ -114,9 +113,8 @@ fn ExecuteForm() -> impl IntoView {
         <div>
             <input
                 type="checkbox"
-                on:input=move |_| {
-                    set_jit_compile(!jit_compile.get())
-                }
+                on:input=move |_| { set_jit_compile(!jit_compile.get()) }
+
                 prop:checked=jit_compile
             />
             <text>"JIT Recompile"</text>
@@ -124,9 +122,8 @@ fn ExecuteForm() -> impl IntoView {
         <div>
             <input
                 type="checkbox"
-                on:input=move |_| {
-                    set_benchmark(!benchmark.get())
-                }
+                on:input=move |_| { set_benchmark(!benchmark.get()) }
+
                 prop:checked=benchmark
             />
             <text>"Benchmark"</text>
@@ -143,7 +140,6 @@ fn ExecuteForm() -> impl IntoView {
                     jit_compile.get(),
                     benchmark.get(),
                 ));
-            set_response(send_execution_request.value().get().unwrap());
         }>"Execute"</button>
         <p>"Response:"</p>
         <p>{move || response.get()}</p>
@@ -152,7 +148,7 @@ fn ExecuteForm() -> impl IntoView {
 
 #[component]
 fn DeployForm() -> impl IntoView {
-    let (name, set_name) = create_signal("file_name.c".to_string());
+    let (name, set_name) = create_signal("gcoap_temperature.c".to_string());
     let (slot, set_slot) = create_signal(0);
     let (target_vm, set_target_vm) = create_signal("rBPF".to_string());
     let (binary_layout, set_binary_layout) = create_signal("RawObjectFile".to_string());
@@ -267,6 +263,10 @@ pub async fn deploy(source_file: String, target_vm: String, binary_layout: Strin
     let environment: Environment = load_env();
 
     println!("Env: {:?}", environment);
+    println!("Source file: {}", source_file);
+    println!("Target VM: {}", target_vm);
+    println!("Binary file layout: {}", binary_layout);
+    println!("Storage slot: {}", storage_slot);
     let deploy_response = deploy(
         &format!("{}/{}", &environment.src_dir, source_file),
         &environment.out_dir,
@@ -295,6 +295,15 @@ pub async fn execute(target_vm: String, binary_layout: String, storage_slot: usi
     use micro_bpf_common::*;
     use micro_bpf_tools::*;
     let environment: Environment = load_env();
+
+    println!("Env: {:?}", environment);
+    println!("Target VM: {}", target_vm);
+    println!("Binary file layout: {}", binary_layout);
+    println!("Storage slot: {}", storage_slot);
+    println!("Execution model: {}", execution_model);
+    println!("Use JIT: {}", use_jit);
+    println!("JIT recompile: {}", jit_compile);
+    println!("Benchmark: {}", benchmark);
 
     let execution_response = execute(
         &environment.riot_instance_ip,

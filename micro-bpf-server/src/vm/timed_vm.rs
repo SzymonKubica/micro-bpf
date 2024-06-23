@@ -6,14 +6,14 @@ use riot_wrappers::gcoap::PacketBuffer;
 
 use super::VirtualMachine;
 
-pub struct TimedVm<'a> {
-    vm: Box<dyn VirtualMachine<'a> + 'a>,
+pub struct TimedVm {
+    vm: Box<dyn VirtualMachine>,
     clock: *mut riot_sys::inline::ztimer_clock_t,
     results: RefCell<BenchmarkResult>,
 }
 
-impl<'a> TimedVm<'a> {
-    pub fn new(vm: Box<dyn VirtualMachine<'a> + 'a>) -> TimedVm<'a> {
+impl TimedVm {
+    pub fn new(vm: Box<dyn VirtualMachine>) -> TimedVm {
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         Self {
             vm,
@@ -32,7 +32,7 @@ impl<'a> TimedVm<'a> {
     }
 }
 
-impl<'a> VirtualMachine<'a> for TimedVm<'a> {
+impl VirtualMachine for TimedVm {
     fn verify(&self) -> Result<(), String> {
         let start = self.time_now();
         let result = self.vm.verify();

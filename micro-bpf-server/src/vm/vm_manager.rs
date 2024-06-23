@@ -24,10 +24,10 @@ use crate::{
 
 // Because of the lifetime rules we need to preallocate the stacks of all of the
 // VM worker threads beforehand as static constants.
-static VM_WORKER_0_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
-static VM_WORKER_1_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
-static VM_WORKER_2_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
-static VM_WORKER_3_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;

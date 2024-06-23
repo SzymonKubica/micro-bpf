@@ -57,7 +57,7 @@ impl<'a> RbpfJIT<'a> {
     }
 }
 
-impl<'a> VirtualMachine<'a> for RbpfJIT<'a> {
+impl<'a> VirtualMachine for RbpfJIT<'a> {
     fn initialize_vm(&mut self) -> Result<(), String> {
         if !self.recompile {
             self.jitted_fn = Some(jit_prog_storage::get_program_from_slot(self.jit_prog_slot).unwrap());

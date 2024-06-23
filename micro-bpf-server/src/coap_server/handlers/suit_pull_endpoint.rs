@@ -62,6 +62,7 @@ impl coap_handler::Handler for SuitPullHandler {
             request.manifest.as_str(),
             config.suit_slot,
             request.erase,
+            config.binary_layout
         );
 
         if let Ok(()) = fetch_result {

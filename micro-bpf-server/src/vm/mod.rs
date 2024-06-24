@@ -11,3 +11,4 @@ pub use timed_vm::TimedVm;
 pub use femtocontainer_vm::FemtoContainerVm;
 pub use vm_manager::VMExecutionManager;
 pub use vm_manager::VM_EXEC_REQUEST;
+pub use vm_manager::RUNNING_WORKERS;

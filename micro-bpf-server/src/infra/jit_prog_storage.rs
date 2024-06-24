@@ -11,7 +11,7 @@ use riot_wrappers::mutex::{Mutex, MutexGuard};
 
 use super::suit_storage::{SUIT_STORAGE_SLOTS, SUIT_STORAGE_SLOT_SIZE};
 
-pub const JIT_STORAGE_SLOTS_NUM: usize = SUIT_STORAGE_SLOTS;
+pub const JIT_STORAGE_SLOTS_NUM: usize = SUIT_STORAGE_SLOTS / 2;
 pub const JIT_SLOT_SIZE: usize = SUIT_STORAGE_SLOT_SIZE;
 
 /// Each slot is a tuple of the program bytes and an offset to the start of the

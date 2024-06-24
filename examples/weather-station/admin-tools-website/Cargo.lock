@@ -1057,6 +1057,8 @@ dependencies = [
  "log",
  "micro-bpf-common",
  "micro-bpf-tools",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
 ]
 

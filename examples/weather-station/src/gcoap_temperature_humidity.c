@@ -20,19 +20,28 @@ typedef struct __attribute__((packed)) {
 } coap_hdr_t;
 
 
+#define TEMPERATURE_STORAGE_INDEX 15
 const unsigned SUCCESS_RESPONSE_CODE = (2 << 5) | 5;
 
-int gcoap_humidity(bpf_coap_ctx_t *gcoap)
+int gcoap_temperature_humidity(bpf_coap_ctx_t *gcoap)
 {
     bpf_coap_pkt_t *pkt = gcoap->pkt;
 
-    uint32_t humidity = 0;
-    bpf_fetch_global(DHT1_HUM_STORAGE_INDEX, &humidity);
+    uint32_t temperature = 0;
+    bpf_fetch_global(DHT1_TEMP_STORAGE_INDEX, &temperature);
 
     char fmt_buffer[5];
 
     // -1 means that there is one decimal point.
-    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, humidity, -1);
+    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, temperature, -1);
+
+    uint32_t humidity = 0;
+    bpf_fetch_global(DHT1_HUM_STORAGE_INDEX, &humidity);
+
+    char fmt_buffer2[5];
+
+    // -1 means that there is one decimal point.
+    size_t humidity_len = bpf_fmt_s16_dfp(fmt_buffer2, humidity, -1);
 
     bpf_printf("Writing response code: %d\n", SUCCESS_RESPONSE_CODE);
     bpf_gcoap_resp_init(gcoap, SUCCESS_RESPONSE_CODE);
@@ -51,18 +60,22 @@ int gcoap_humidity(bpf_coap_ctx_t *gcoap)
 
     bpf_printf("Copying stringified temperature reading payload\n");
     if (pkt->payload_len >= str_len) {
-        char fmt[] = "{\"humidity\": }";
-        int start_len = 13;
+        char fmt[] = "{\"temperature\": , \"humidity\": }";
+        int start_len = 16;
+        int middle_len = 14;
         int end_len = 2;
+
         bpf_memcpy(payload, fmt, start_len);
         bpf_memcpy(payload + start_len, fmt_buffer, str_len);
-        bpf_memcpy(payload + start_len + str_len, fmt + start_len, end_len);
+        bpf_memcpy(payload + start_len + str_len, fmt + start_len, middle_len);
+        bpf_memcpy(payload + start_len + str_len + middle_len, fmt_buffer2, humidity_len);
+        bpf_memcpy(payload + start_len + str_len + middle_len + humidity_len, fmt + start_len + middle_len, end_len);
+
         // It is very important that the programs modifying response packet
         // buffer return the correct length of the payload. This is because this
         // return value is then used by the server to determine which subsection
         // of the buffer was written to and needs to be sent back to the client.
-        return pdu_len + str_len + start_len + end_len;
+        return pdu_len + str_len + start_len + end_len + middle_len + humidity_len;
     }
     return -1;
 }
-

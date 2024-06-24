@@ -1,6 +1,9 @@
+use alloc::format;
 use coap_message::{MutableWritableMessage, ReadableMessage};
-use core::convert::TryInto;
+use core::{convert::TryInto, ops::DerefMut};
 use riot_wrappers::{riot_sys, stdio::println};
+
+use crate::vm::RUNNING_WORKERS;
 
 pub struct RiotBoardHandler;
 impl coap_handler::Handler for RiotBoardHandler {
@@ -27,6 +30,35 @@ impl coap_handler::Handler for RiotBoardHandler {
         let board_name = core::str::from_utf8(riot_sys::RIOT_BOARD)
             .expect("Oddly named board crashed CoAP stack");
         response.set_payload(board_name.as_bytes());
+    }
+}
+
+
+pub struct RunningVMHandler;
+impl coap_handler::Handler for RunningVMHandler {
+    type RequestData = u8;
+
+    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+        if request.code().into() != coap_numbers::code::GET {
+            return coap_numbers::code::METHOD_NOT_ALLOWED;
+        }
+        return coap_numbers::code::VALID;
+    }
+
+    fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
+        1
+    }
+
+    fn build_response(
+        &mut self,
+        response: &mut impl MutableWritableMessage,
+        request: Self::RequestData,
+    ) {
+        response.set_code(request.try_into().map_err(|_| ()).unwrap());
+
+        let mut guard = RUNNING_WORKERS.lock();
+        let running_workers = guard.deref_mut().clone();
+        response.set_payload(format!("{:?}", running_workers).as_bytes());
     }
 }
 

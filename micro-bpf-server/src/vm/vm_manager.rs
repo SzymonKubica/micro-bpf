@@ -1,6 +1,6 @@
 use core::ffi::c_void;
 
-use alloc::{sync::Arc, vec::Vec};
+use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use log::{debug, error, info};
 
 use riot_wrappers::{
@@ -28,6 +28,8 @@ static VM_WORKER_0_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_1_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_2_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 static VM_WORKER_3_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
+
+pub static RUNNING_WORKERS: Mutex<[bool; 4]> = Mutex::new([false; 4]);
 
 /// The unique identifier of the request type used to start the execution of the VM.
 pub const VM_EXEC_REQUEST: u16 = 23;
@@ -120,10 +122,16 @@ impl VMExecutionManager {
             // we always need to know the number of threads at the start.
             // We need to set different priorities for different workers because
             // otherwise they will keep blocking each other.
-            let worker_0 = spawn_thread!(ts, "Worker 0", worker_0_stack, worker_0_main, pri - 4);
-            let worker_1 = spawn_thread!(ts, "Worker 1", worker_1_stack, worker_1_main, pri - 3);
-            let worker_2 = spawn_thread!(ts, "Worker 2", worker_2_stack, worker_2_main, pri - 2);
-            let worker_3 = spawn_thread!(ts, "Worker 3", worker_3_stack, worker_3_main, pri - 1);
+            let worker_0 = spawn_thread!(ts, "Worker 0", worker_0_stack, worker_0_main, pri - 5);
+            let worker_1 = spawn_thread!(ts, "Worker 1", worker_1_stack, worker_1_main, pri - 4);
+            let worker_2 = spawn_thread!(ts, "Worker 2", worker_2_stack, worker_2_main, pri - 3);
+            let worker_3 = spawn_thread!(ts, "Worker 3", worker_3_stack, worker_3_main, pri - 2);
+
+            let mut pid_to_worker_index: BTreeMap<i16, usize> = BTreeMap::new();
+            pid_to_worker_index.insert(worker_0.pid().into(), 0);
+            pid_to_worker_index.insert(worker_1.pid().into(), 1);
+            pid_to_worker_index.insert(worker_2.pid().into(), 2);
+            pid_to_worker_index.insert(worker_3.pid().into(), 3);
 
             let mut free_workers: Vec<i16> = alloc::vec![
                 worker_0.pid().into(),
@@ -137,14 +145,14 @@ impl VMExecutionManager {
 
                 // First process any completion notifications
                 let result = message.decode(&self.notification_receive_port, |_s, notification| {
-                    Self::handle_job_complete_notification(&mut free_workers, &notification)
+                    Self::handle_job_complete_notification(&mut free_workers, &notification, pid_to_worker_index.clone())
                 });
 
                 // Now handle any execution requests
                 let code = if let Err(message) = result {
                     message
                         .decode(&self.request_receive_port, |_s, execution_request| {
-                            Self::handle_execution_request(&mut free_workers, execution_request)
+                            Self::handle_execution_request(&mut free_workers, execution_request, pid_to_worker_index.clone())
                         })
                         .unwrap_or_else(|_m| {
                             error!("Failed to decode message.");
@@ -158,12 +166,15 @@ impl VMExecutionManager {
         });
     }
 
-    pub fn handle_execution_request(workers: &mut Vec<i16>, request: VMExecutionRequestIPC) {
+    pub fn handle_execution_request(workers: &mut Vec<i16>, request: VMExecutionRequestIPC, pid_to_worker_index: BTreeMap<i16, usize>) {
         if workers.is_empty() {
             error!("No free workers to execute the request.");
             return;
         }
         let pid: riot_sys::kernel_pid_t = workers.pop().unwrap();
+
+        let mut guard = RUNNING_WORKERS.lock();
+        guard[pid_to_worker_index[(&pid).into()]] = true;
         info!("Sending execution request to the worker with PID: {}", pid);
         let mut execution_request = *request.request;
         let mut msg: msg_t = Default::default();
@@ -177,13 +188,16 @@ impl VMExecutionManager {
     pub fn handle_job_complete_notification(
         workers: &mut Vec<i16>,
         notification: &VMExecutionCompleteMsg,
+pid_to_worker_index: BTreeMap<i16, usize>
     ) {
         info!(
             "Received notification from worker with PID: {}
             Adding worker back to the pool of free workers.",
             notification.worker_pid
         );
-        workers.push(notification.worker_pid)
+        workers.push(notification.worker_pid);
+        let mut guard = RUNNING_WORKERS.lock();
+        guard[pid_to_worker_index[&notification.worker_pid]] = false;
     }
 }
 

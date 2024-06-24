@@ -77,13 +77,13 @@ DEVELHELP ?= 1
 # Change this to 0 show compiler invocation lines by default:
 QUIET ?= 1
 
-CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 16384)'
+CFLAGS += -DGCOAP_STACK_SIZE='(THREAD_STACKSIZE_DEFAULT+DEBUG_EXTRA_STACKSIZE+sizeof(coap_pkt_t)+ 8096)'
 
 # Default COAP manifest resource location when fetched through gpio trigger
 CFLAGS += -DSUIT_MANIFEST_RESOURCE=\"$(SUIT_COAP_ROOT)/$(SUIT_NOTIFY_MANIFEST)\"
 
 # Config for the SUIT RAM storage
-CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=4 -DCONFIG_SUIT_STORAGE_RAM_SIZE=4096
+CFLAGS += -DCONFIG_SUIT_STORAGE_RAM_REGIONS=5 -DCONFIG_SUIT_STORAGE_RAM_SIZE=4096
 
 
 # config for the wifi adapter

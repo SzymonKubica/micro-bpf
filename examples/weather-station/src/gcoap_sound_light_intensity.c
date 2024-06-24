@@ -22,17 +22,23 @@ typedef struct __attribute__((packed)) {
 
 const unsigned SUCCESS_RESPONSE_CODE = (2 << 5) | 5;
 
-int gcoap_humidity(bpf_coap_ctx_t *gcoap)
+int gcoap_light_intensity(bpf_coap_ctx_t *gcoap)
 {
     bpf_coap_pkt_t *pkt = gcoap->pkt;
 
-    uint32_t humidity = 0;
-    bpf_fetch_global(DHT1_HUM_STORAGE_INDEX, &humidity);
+    uint32_t light_intensity = 0;
+    bpf_fetch_global(LIGHT_INTENSITY_STORAGE_INDEX, &light_intensity);
 
     char fmt_buffer[5];
 
-    // -1 means that there is one decimal point.
-    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, humidity, -1);
+    size_t str_len = bpf_fmt_s16_dfp(fmt_buffer, light_intensity, 0);
+
+    uint32_t sound = 0;
+    bpf_fetch_global(SOUND_INTENSITY_STORAGE_INDEX, &sound);
+
+    char fmt_buffer2[5];
+
+    size_t str_len2 = bpf_fmt_s16_dfp(fmt_buffer2, sound, 0);
 
     bpf_printf("Writing response code: %d\n", SUCCESS_RESPONSE_CODE);
     bpf_gcoap_resp_init(gcoap, SUCCESS_RESPONSE_CODE);
@@ -51,17 +57,22 @@ int gcoap_humidity(bpf_coap_ctx_t *gcoap)
 
     bpf_printf("Copying stringified temperature reading payload\n");
     if (pkt->payload_len >= str_len) {
-        char fmt[] = "{\"humidity\": }";
-        int start_len = 13;
+        char fmt[] = "{\"light_intensity\": , \"sound_volume\": }";
+        int start_len = 20;
+        int middle_len = 18;
         int end_len = 2;
+
         bpf_memcpy(payload, fmt, start_len);
         bpf_memcpy(payload + start_len, fmt_buffer, str_len);
-        bpf_memcpy(payload + start_len + str_len, fmt + start_len, end_len);
+        bpf_memcpy(payload + start_len + str_len, fmt + start_len, middle_len);
+        bpf_memcpy(payload + start_len + str_len + middle_len, fmt_buffer2, str_len2);
+        bpf_memcpy(payload + start_len + str_len + middle_len + str_len2, fmt + start_len + middle_len, end_len);
+
         // It is very important that the programs modifying response packet
         // buffer return the correct length of the payload. This is because this
         // return value is then used by the server to determine which subsection
         // of the buffer was written to and needs to be sent back to the client.
-        return pdu_len + str_len + start_len + end_len;
+        return pdu_len + str_len + start_len + end_len + middle_len + str_len2;
     }
     return -1;
 }

@@ -33,7 +33,6 @@ pub fn App() -> impl IntoView {
 fn WeatherStation() -> impl IntoView {
     view! {
         <h1>"Weather Station"</h1>
-        <img src="/assets/example-application.png" width="600px" alt="Weather Station"/>
         <ApplicationDeploy/>
         <ApplicationStart/>
 
@@ -75,7 +74,7 @@ fn ExecuteForm() -> impl IntoView {
     let (response, set_response) = create_signal("Loading".to_string());
     let (target_vm, set_target_vm) = create_signal("rBPF".to_string());
     let (binary_layout, set_binary_layout) = create_signal("RawObjectFile".to_string());
-    let (execution_model, set_execution_model) = create_signal("LongRunning".to_string());
+    let (execution_model, set_execution_model) = create_signal("ShortLived".to_string());
     let (use_jit, set_use_jit) = create_signal(false);
     let (jit_compile, set_jit_compile) = create_signal(false);
     let (benchmark, set_benchmark) = create_signal(false);
@@ -225,10 +224,10 @@ fn ApplicationStart() -> impl IntoView {
             <button on:click=move |_| {
                 start_application
                     .dispatch(());
-            }>"Refresh"</button>
-            <text>" Collected Data"</text>
+            }>"Start"</button>
+            <text>" Collecting Data"</text>
         </div>
-        <p> Sensor Data </p>
+        <p>"Collected Data"</p>
         <div>
             <text>"Temperature: "</text>
             <text>
@@ -266,33 +265,15 @@ fn ApplicationStart() -> impl IntoView {
             </text>
         </div>
 
-        <p> Application Compartment Status </p>
+        <p> Application Component Status </p>
         <div>
+            <text>"Light Intensity: "</text>
             <text>
                 {move || match start_application.value().get() {
-                    Some(v) => if v.2[3] { "Running" } else {"Crashed"}
+                    Some(v) => if v.2[3] { "Running" } else {"Stopped"}
                     None => "Pending...",
                 }}
             </text>
-            <text>" <- LCD Display Update Application"</text>
-        </div>
-        <div>
-            <text>
-                {move || match start_application.value().get() {
-                    Some(v) => if v.2[2] { "Running" } else {"Crashed"}
-                    None => "Pending...",
-                }}
-            </text>
-            <text>" <- Sound & Light Intensity Measurement"</text>
-        </div>
-        <div>
-            <text>
-                {move || match start_application.value().get() {
-                    Some(v) => if v.2[1] { "Running" } else {"Crashed"}
-                    None => "Pending...",
-                }}
-            </text>
-            <text>" <- Temperature & Humidity Intensity Measurement"</text>
         </div>
     }
 }
@@ -531,19 +512,19 @@ pub async fn bootstrap_application() -> Result<String, ServerFnError> {
             0 => {
               println!("Deploying display update thread...");
               // This file is large and takes long to deploy.
-            std::thread::sleep(Duration::from_secs(2));
+            std::thread::sleep(Duration::from_secs(1));
             },
             1 => {
               println!("Deploying sound and light intensity update thread...");
-              std::thread::sleep(Duration::from_secs(1));
+              std::thread::sleep(Duration::from_millis(500));
             },
             2 => {
               println!("Deploying temperature and humidity update thread...");
-              std::thread::sleep(Duration::from_secs(1));
+              std::thread::sleep(Duration::from_millis(500));
             },
             _ => {
               println!("Deploying query script...");
-              std::thread::sleep(Duration::from_secs(1));
+              std::thread::sleep(Duration::from_millis(500));
             }
         };
     }

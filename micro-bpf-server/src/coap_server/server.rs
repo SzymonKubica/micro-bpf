@@ -14,7 +14,7 @@ use riot_wrappers::{
 use crate::{model::requests::VMExecutionRequestIPC, vm::VM_EXEC_REQUEST};
 
 use super::handlers::{
-    miscellaneous::{ConsoleWriteHandler, RiotBoardHandler},
+    miscellaneous::{ConsoleWriteHandler, RiotBoardHandler, RunningVMHandler},
     suit_pull_endpoint::SuitPullHandler,
     Fletcher16NativeTestHandler, JitTestHandler, TimedHandler, VMExecutionBenchmarkHandler,
     VMExecutionNoDataHandler, VMExecutionOnCoapPktBenchmarkHandler, VMExecutionOnCoapPktHandler,
@@ -31,6 +31,7 @@ pub fn gcoap_server_main(
     // Example handlers
     let mut console_write_handler = GcoapHandler(ConsoleWriteHandler);
     let mut riot_board_handler = GcoapHandler(RiotBoardHandler);
+    let mut running_vm_handler = GcoapHandler(RunningVMHandler);
     let mut suit_pull_handler = GcoapHandler(SuitPullHandler::new());
 
     let mut coap_pkt_execution_handler = VMExecutionOnCoapPktHandler;
@@ -47,6 +48,12 @@ pub fn gcoap_server_main(
         cstr!("/console/write"),
         riot_sys::COAP_POST,
         &mut console_write_handler,
+    );
+
+    let mut running_vm_listener = SingleHandlerListener::new(
+        cstr!("/running_vm"),
+        riot_sys::COAP_GET,
+        &mut running_vm_handler,
     );
 
     let mut jit_listener =
@@ -109,6 +116,7 @@ pub fn gcoap_server_main(
         greg.register(&mut coap_pkt_vm_listener);
         greg.register(&mut jit_listener);
         greg.register(&mut fletcher16_listener);
+        greg.register(&mut running_vm_listener);
         greg.register(&mut vm_listener);
         greg.register(&mut benchmark_listener);
         greg.register(&mut benchmark_on_coap_listener);

@@ -56,12 +56,9 @@ impl<'a> VirtualMachine for FemtoContainerVm<'a> {
         // For some reason the static stack allocation in the c file doesn't work.
         let mut stack: [u8; 512] = [0; 512];
 
-        let result = unsafe { test_printf() };
-        /*
         unsafe {
             execute_fc_vm(&mut stack as *mut u8, &mut result as *mut i64);
         }
-        */
         Ok(result as u64)
     }
 

@@ -1,8 +1,9 @@
-use std::str::FromStr;
+use std::{process::Command, str::FromStr, time::Duration};
 
 use leptos::*;
 use leptos_meta::*;
 use leptos_router::*;
+use serde::Deserialize;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -19,19 +20,18 @@ pub fn App() -> impl IntoView {
         <Router>
             <main>
                 <Routes>
-                    <Route path="" view=HomePage/>
-                    <Route path="/*any" view=NotFound/>
+                    <Route path="" view=PlaygroundPage/>
+                    <Route path="/*" view=NotFound/>
                 </Routes>
             </main>
         </Router>
     }
 }
 
-/// Renders the home page of your application.
 #[component]
-fn HomePage() -> impl IntoView {
+fn PlaygroundPage() -> impl IntoView {
     view! {
-        <h1>"µBPF Admin Tools"</h1>
+        <h1>"µBPF Playground"</h1>
         <DeployForm/>
         <ExecuteForm/>
     }
@@ -61,9 +61,9 @@ fn NotFound() -> impl IntoView {
 fn ExecuteForm() -> impl IntoView {
     let (slot, set_slot) = create_signal(0);
     let (response, set_response) = create_signal("Loading".to_string());
-    let (target_vm, set_target_vm) = create_signal("rbpf".to_string());
-    let (binary_layout, set_binary_layout) = create_signal("OnlyTextSection".to_string());
-    let (execution_model, set_execution_model) = create_signal("ShortLived".to_string());
+    let (target_vm, set_target_vm) = create_signal("rBPF".to_string());
+    let (binary_layout, set_binary_layout) = create_signal("RawObjectFile".to_string());
+    let (execution_model, set_execution_model) = create_signal("LongRunning".to_string());
     let (use_jit, set_use_jit) = create_signal(false);
     let (jit_compile, set_jit_compile) = create_signal(false);
     let (benchmark, set_benchmark) = create_signal(false);
@@ -101,6 +101,33 @@ fn ExecuteForm() -> impl IntoView {
             <ExecutionModelSelector execution_model set_execution_model/>
             <text>"< Binary format"</text>
         </div>
+        <div>
+            <input
+                type="checkbox"
+                on:input=move |_| { set_use_jit(!use_jit.get()) }
+
+                prop:checked=use_jit
+            />
+            <text>"Use JIT"</text>
+        </div>
+        <div>
+            <input
+                type="checkbox"
+                on:input=move |_| { set_jit_compile(!jit_compile.get()) }
+
+                prop:checked=jit_compile
+            />
+            <text>"JIT Recompile"</text>
+        </div>
+        <div>
+            <input
+                type="checkbox"
+                on:input=move |_| { set_benchmark(!benchmark.get()) }
+
+                prop:checked=benchmark
+            />
+            <text>"Benchmark"</text>
+        </div>
 
         <button on:click=move |_| {
             let _ = send_execution_request
@@ -116,16 +143,22 @@ fn ExecuteForm() -> impl IntoView {
             set_response(send_execution_request.value().get().unwrap());
         }>"Execute"</button>
         <p>"Response:"</p>
-        <p>{response}</p>
+        <p>
+            {move || match send_execution_request.value().get() {
+                Some(v) => v,
+                None => "Loading".to_string(),
+            }}
+
+        </p>
     }
 }
 
 #[component]
 fn DeployForm() -> impl IntoView {
-    let (name, set_name) = create_signal("file_name.c".to_string());
+    let (name, set_name) = create_signal("display-update-thread.c".to_string());
     let (slot, set_slot) = create_signal(0);
-    let (target_vm, set_target_vm) = create_signal("rbpf".to_string());
-    let (binary_layout, set_binary_layout) = create_signal("OnlyTextSection".to_string());
+    let (target_vm, set_target_vm) = create_signal("rBPF".to_string());
+    let (binary_layout, set_binary_layout) = create_signal("RawObjectFile".to_string());
 
 
     let send_deploy_request = create_action(|input: &(String, String, String, usize)| {
@@ -136,7 +169,7 @@ fn DeployForm() -> impl IntoView {
     });
 
     view! {
-        <p>"Deployment request form"</p>
+        <p>"Please specify the program that you want to deploy."</p>
         <div>
             <input
                 type="text"
@@ -148,7 +181,7 @@ fn DeployForm() -> impl IntoView {
                 // rather than an attribute.
                 prop:value=name
             />
-            <text>"< File name"</text>
+            <text>"< File name (ensure that the .env file correctly specifies the sources directory)"</text>
         </div>
         <div>
             <input
@@ -163,7 +196,7 @@ fn DeployForm() -> impl IntoView {
         </div>
         <div>
             <TargetVMSelector target_vm set_target_vm/>
-            <text>"< Target VM"</text>
+            <text>"< Target VM implementation"</text>
         </div>
         <div>
             <BinaryLayoutSelector binary_layout set_binary_layout/>
@@ -237,6 +270,10 @@ pub async fn deploy(source_file: String, target_vm: String, binary_layout: Strin
     let environment: Environment = load_env();
 
     println!("Env: {:?}", environment);
+    println!("Source file: {}", source_file);
+    println!("Target VM: {}", target_vm);
+    println!("Binary file layout: {}", binary_layout);
+    println!("Storage slot: {}", storage_slot);
     let deploy_response = deploy(
         &format!("{}/{}", &environment.src_dir, source_file),
         &environment.out_dir,
@@ -266,6 +303,15 @@ pub async fn execute(target_vm: String, binary_layout: String, storage_slot: usi
     use micro_bpf_tools::*;
     let environment: Environment = load_env();
 
+    println!("Env: {:?}", environment);
+    println!("Target VM: {}", target_vm);
+    println!("Binary file layout: {}", binary_layout);
+    println!("Storage slot: {}", storage_slot);
+    println!("Execution model: {}", execution_model);
+    println!("Use JIT: {}", use_jit);
+    println!("JIT recompile: {}", jit_compile);
+    println!("Benchmark: {}", benchmark);
+
     let execution_response = execute(
         &environment.riot_instance_ip,
         TargetVM::from_str(&target_vm).unwrap(),
@@ -283,3 +329,4 @@ pub async fn execute(target_vm: String, binary_layout: String, storage_slot: usi
     .await;
     Ok(execution_response.unwrap())
 }
+

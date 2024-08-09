@@ -14,13 +14,14 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/admin-tools-website.css"/>
 
         // sets the document title
-        <Title text="µBPF Admin Tools"/>
+        <Title text="µBPF Playground"/>
 
         // content for this welcome page
         <Router>
             <main>
                 <Routes>
                     <Route path="" view=PlaygroundPage/>
+                    <Route path="/help" view=HelpPage/>
                     <Route path="/*" view=NotFound/>
                 </Routes>
             </main>
@@ -32,8 +33,17 @@ pub fn App() -> impl IntoView {
 fn PlaygroundPage() -> impl IntoView {
     view! {
         <h1>"µBPF Playground"</h1>
+        <img src="/assets/logo-square-shadow.png" width="200" alt="µBPF Logo"/>
         <DeployForm/>
         <ExecuteForm/>
+    }
+}
+
+fn HelpPage() -> impl IntoView {
+    view! {
+        <h1> Help </h1>
+        <p> This page explains the settings that are available on the main playground page. </p>
+
     }
 }
 

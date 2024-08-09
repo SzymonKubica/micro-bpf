@@ -1,4 +1,9 @@
 - [ ] quickstart instructions
 - [ ] refactor and document server code
 - [ ] test running documentation
+- [ ] playground website (setup and startup info)
 - [ ] migrate onto the new rbpf
+- [ ] add lots of reminders that you need to have python .env set up.
+- [ ] fix pc-relative calls (testcase pc_relative_calls fails for the raw_object_file binary layout)
+      - looks like it is caused by incorrect handling of the static strings.
+      - need a way to extract all .rodata.str.x sections from the elf file.

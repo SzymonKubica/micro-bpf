@@ -60,7 +60,7 @@ impl VirtualMachine for TimedVm {
         result
     }
 
-    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
+    fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
         let start = self.time_now();
         let result = self.vm.execute_on_coap_pkt(pkt);
         let end = self.time_now();
@@ -80,7 +80,7 @@ impl VirtualMachine for TimedVm {
     }
     fn full_run_on_coap_pkt(
         &mut self,
-        pkt: &mut PacketBuffer,
+        pkt: PacketBuffer,
     ) -> Result<u64, String> {
         let start = self.time_now();
         self.initialize_vm()?;

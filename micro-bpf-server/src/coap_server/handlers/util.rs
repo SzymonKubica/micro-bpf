@@ -25,7 +25,7 @@ impl<'a> TimedHandler<'a> {
 }
 
 impl riot_wrappers::gcoap::Handler for TimedHandler<'_> {
-    fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
+    fn handle(&mut self, pkt: PacketBuffer) -> isize {
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
         let start: u32 = unsafe { riot_sys::inline::ztimer_now(clock) };
 
@@ -43,6 +43,21 @@ impl riot_wrappers::gcoap::Handler for TimedHandler<'_> {
 /// CoAP protocol is limited and we need to use a custom data format that is
 /// more compact.
 pub fn preprocess_request_raw<'a>(request: &'a impl ReadableMessage) -> Result<String, u8> {
+    if request.code().into() != coap_numbers::code::POST {
+        return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
+    }
+
+    let Ok(s) = core::str::from_utf8(request.payload()) else {
+        return Err(coap_numbers::code::BAD_REQUEST);
+    };
+
+    debug!("Request payload received: {}", s);
+    Ok(s.to_string())
+}
+
+/// This was added to get around the API changes in the PacketBuffer struct.
+/// TODO: clean up
+pub fn preprocess_request_concrete_impl<'a>(request: impl ReadableMessage) -> Result<String, u8> {
     if request.code().into() != coap_numbers::code::POST {
         return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
     }

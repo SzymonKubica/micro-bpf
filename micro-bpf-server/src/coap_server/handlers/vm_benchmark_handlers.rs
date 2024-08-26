@@ -9,9 +9,7 @@ use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys}
 use coap_message::{MutableWritableMessage, ReadableMessage};
 
 use crate::{
-    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
-    model::requests::VMExecutionRequestIPC,
-    vm::{construct_vm, timed_vm::BenchmarkResult, TimedVm},
+    coap_server::handlers::util::preprocess_request_concrete_impl, infra::suit_storage::SUIT_STORAGE_SLOT_SIZE, model::requests::VMExecutionRequestIPC, vm::{construct_vm, timed_vm::BenchmarkResult, TimedVm}
 };
 
 use micro_bpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
@@ -126,7 +124,7 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
     fn handle_benchmark_execution(
         &mut self,
         request: VMExecutionRequest,
-        pkt: &mut PacketBuffer,
+        pkt: PacketBuffer,
     ) -> isize {
         let Ok(mut vm) = construct_vm(
             request.configuration,
@@ -153,8 +151,8 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
 }
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktBenchmarkHandler {
-    fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
-        let Ok(request_str) = preprocess_request_raw(pkt) else {
+    fn handle(&mut self, pkt: PacketBuffer) -> isize {
+        let Ok(request_str) = preprocess_request_concrete_impl(pkt) else {
             return Self::NO_BYTES_WRITTEN;
         };
 

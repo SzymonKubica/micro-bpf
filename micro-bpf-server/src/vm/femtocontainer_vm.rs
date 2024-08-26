@@ -62,7 +62,7 @@ impl<'a> VirtualMachine for FemtoContainerVm<'a> {
         Ok(result as u64)
     }
 
-    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
+    fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
         debug!("Starting FemtoContainer VM execution.");
         let Some(program) = self.program else {
             Err("VM not initialised")?

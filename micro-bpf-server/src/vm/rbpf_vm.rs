@@ -126,13 +126,13 @@ impl<'a> VirtualMachine for RbpfVm<'a> {
             Err("VM not initialised".to_string())
         }
     }
-    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
+    fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
         /// Coap context struct containing information about the buffer,
         /// packet and its length. It is passed into the VM as the main buffer
         /// on which the program operates.
         let coap_context: &mut [u8] = unsafe {
             const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();
-            let ctx = pkt as *mut _ as *mut CoapContext;
+            let ctx = &pkt as *mut _ as *mut CoapContext;
             debug!("CoAP context: {:?}", *ctx);
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };

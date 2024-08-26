@@ -140,4 +140,8 @@ impl coap_handler::Handler for SuitPullHandler {
         };
         response.set_payload(res.as_bytes());
     }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
 }

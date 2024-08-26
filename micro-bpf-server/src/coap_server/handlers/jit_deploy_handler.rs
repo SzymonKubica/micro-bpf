@@ -58,8 +58,33 @@ static PROGRAM_COPY_BUFFER: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT
 impl coap_handler::Handler for JitTestHandler {
     type RequestData = u8;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
+        1
+    }
+
+    fn build_response<M: MutableWritableMessage>(
+        &mut self,
+        response: &mut M,
+        request: Self::RequestData,
+    ) -> Result<(), Self::BuildResponseError<M>> {
+        response.set_code(request.try_into().map_err(|_| ()).unwrap());
+        let resp = format!(
+            "{{\"prog_size\": {}, \"jit_prog_size\": {}, \"jit_comp_time\": {}, \"run_time\": {}, \"result\": {}}}",
+            self.prog_size, self.jit_prog_size, self.jit_compilation_time, self.execution_time, self.result
+        );
+        response.set_payload(resp.as_bytes())
+    }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
+
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         /*
+        TODO: clean this up.
         let request_data = match preprocess_request_raw(request) {
             Ok(request_data) => request_data,
             Err(code) => return code,
@@ -132,19 +157,7 @@ impl coap_handler::Handler for JitTestHandler {
         jit_prog_storage::free_storage_slot(jit_slot);
         debug!("JIT execution successful: {}", ret);
         */
-        coap_numbers::code::CHANGED
+        Ok(coap_numbers::code::CHANGED)
     }
 
-    fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
-        1
-    }
-
-    fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
-        response.set_code(request.try_into().map_err(|_| ()).unwrap());
-        let resp = format!(
-            "{{\"prog_size\": {}, \"jit_prog_size\": {}, \"jit_comp_time\": {}, \"run_time\": {}, \"result\": {}}}",
-            self.prog_size, self.jit_prog_size, self.jit_compilation_time, self.execution_time, self.result
-        );
-        response.set_payload(resp.as_bytes());
-    }
 }

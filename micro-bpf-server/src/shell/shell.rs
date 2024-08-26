@@ -26,6 +26,7 @@ pub fn shell_main(
     // TODO: add the command to execute loaded bpf programs
     let commands = riot_shell_commands::all();
 
+    use riot_wrappers::shell::CommandList;
     let bpf_handler = bpf_command::VMExecutionShellCommandHandler::new(execution_send.clone());
 
     let commands = trait_identity(commands).and(
@@ -43,6 +44,7 @@ pub fn shell_main(
     );
 
     trait_identity(commands).run_forever_with_buf(&mut line_buf);
+    Ok(())
 }
 
 // Workaround for a bug described here: https://github.com/RIOT-OS/rust-riot-wrappers/issues/76

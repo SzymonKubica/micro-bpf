@@ -9,28 +9,36 @@ pub struct RiotBoardHandler;
 impl coap_handler::Handler for RiotBoardHandler {
     type RequestData = u8;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         if request.code().into() != coap_numbers::code::GET {
-            return coap_numbers::code::METHOD_NOT_ALLOWED;
+            return Ok(coap_numbers::code::METHOD_NOT_ALLOWED);
         }
-        return coap_numbers::code::VALID;
+        return Ok(coap_numbers::code::VALID);
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
         1
     }
 
-    fn build_response(
+    fn build_response<M: MutableWritableMessage>(
         &mut self,
-        response: &mut impl MutableWritableMessage,
+        response: &mut M,
         request: Self::RequestData,
-    ) {
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         println!("Request for the riot board name received");
         let board_name = core::str::from_utf8(riot_sys::RIOT_BOARD)
             .expect("Oddly named board crashed CoAP stack");
-        response.set_payload(board_name.as_bytes());
+        response.set_payload(board_name.as_bytes())
     }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
+
 }
 
 
@@ -38,44 +46,56 @@ pub struct RunningVMHandler;
 impl coap_handler::Handler for RunningVMHandler {
     type RequestData = u8;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         if request.code().into() != coap_numbers::code::GET {
-            return coap_numbers::code::METHOD_NOT_ALLOWED;
+            return Ok(coap_numbers::code::METHOD_NOT_ALLOWED);
         }
-        return coap_numbers::code::VALID;
+        return Ok(coap_numbers::code::VALID);
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
         1
     }
 
-    fn build_response(
+    fn build_response<M: MutableWritableMessage>(
         &mut self,
-        response: &mut impl MutableWritableMessage,
+        response: &mut M,
         request: Self::RequestData,
-    ) {
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
 
         let mut guard = RUNNING_WORKERS.lock();
         let running_workers = guard.deref_mut().clone();
-        response.set_payload(format!("{:?}", running_workers).as_bytes());
+        response.set_payload(format!("{:?}", running_workers).as_bytes())
     }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
+
+
 }
 
 pub struct ConsoleWriteHandler;
 impl coap_handler::Handler for ConsoleWriteHandler {
     type RequestData = u8;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         if request.code().into() != coap_numbers::code::POST {
-            return coap_numbers::code::METHOD_NOT_ALLOWED;
+            return Ok(coap_numbers::code::METHOD_NOT_ALLOWED);
         }
         match core::str::from_utf8(request.payload()) {
             Ok(s) => {
                 println!("{}", s);
-                coap_numbers::code::CHANGED
+                Ok(coap_numbers::code::CHANGED)
             }
-            _ => coap_numbers::code::BAD_REQUEST,
+            _ => Ok(coap_numbers::code::BAD_REQUEST),
         }
     }
 
@@ -83,13 +103,18 @@ impl coap_handler::Handler for ConsoleWriteHandler {
         1
     }
 
-    fn build_response(
+    fn build_response<M: MutableWritableMessage>(
         &mut self,
-        response: &mut impl MutableWritableMessage,
+        response: &mut M,
         request: Self::RequestData,
-    ) {
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let result = "Success";
-        response.set_payload(result.as_bytes());
+        response.set_payload(result.as_bytes())
     }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
+
 }

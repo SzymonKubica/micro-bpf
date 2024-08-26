@@ -29,7 +29,7 @@ use super::util;
 pub struct VMExecutionOnCoapPktHandler;
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
-    fn handle(&mut self, pkt: &mut PacketBuffer) -> isize {
+    fn handle(&mut self, pkt: PacketBuffer) -> isize {
         /// Given that the gcoap::Handler needs to return the length of the
         /// payload + PDU that was written into the packet buffer, in case
         /// of error we need to return 0. It is crucial that all eBPF programs
@@ -38,7 +38,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
         /// and sent back to the client.
         const NO_BYTES_WRITTEN: isize = 0;
 
-        let Ok(request_str) = preprocess_request_raw(pkt) else {
+        let Ok(request_str) = preprocess_request_raw(&pkt) else {
             return NO_BYTES_WRITTEN;
         };
 
@@ -98,14 +98,17 @@ impl VMExecutionNoDataHandler {
 impl coap_handler::Handler for VMExecutionNoDataHandler {
     type RequestData = u8;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.unwrap_err();
+            return Err(parsing_result.unwrap_err());
         };
         match self.handle_vm_execution(request) {
-            Ok(code) => code,
-            Err(code) => code,
+            Ok(code) => Ok(code),
+            Err(code) => Ok(code),
         }
     }
 
@@ -118,4 +121,8 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         let resp = format!("{{\"result\": {}}}", self.result);
         response.set_payload(resp.as_bytes());
     }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
 }

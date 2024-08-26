@@ -49,14 +49,17 @@ extern "C" {
 impl coap_handler::Handler for Fletcher16NativeTestHandler {
     type RequestData = u8;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let request_data = match preprocess_request_raw(request) {
             Ok(request_data) => request_data,
-            Err(code) => return code,
+            Err(code) => return Ok(code),
         };
 
         let Ok(request) = VMExecutionRequest::decode(request_data) else {
-            return coap_numbers::code::BAD_REQUEST;
+            return Ok(coap_numbers::code::BAD_REQUEST);
         };
 
         // We use a quick hack here where the size of checksummed data
@@ -73,7 +76,7 @@ impl coap_handler::Handler for Fletcher16NativeTestHandler {
             6 => fletcher_16_2560B,
             _ => {
             debug!("Invalid data size: {}", data_size);
-            return coap_numbers::code::BAD_REQUEST;
+            return Ok(coap_numbers::code::BAD_REQUEST);
             }
         };
 
@@ -87,19 +90,29 @@ impl coap_handler::Handler for Fletcher16NativeTestHandler {
         debug!("JIT execution successful: {}", ret);
         self.result = ret as i64;
 
-        coap_numbers::code::CHANGED
+        Ok(coap_numbers::code::CHANGED)
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
         1
     }
 
-    fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
+    fn build_response<M: MutableWritableMessage>(
+        &mut self,
+        response: &mut M,
+        request: Self::RequestData,
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!(
             "{{\"execution_time\": {}, \"result\": {}}}",
             self.execution_time, self.result
         );
-        response.set_payload(resp.as_bytes());
+        response.set_payload(resp.as_bytes())
     }
+
+    type ExtractRequestError;
+
+    type BuildResponseError<M: MinimalWritableMessage>;
+
+
 }

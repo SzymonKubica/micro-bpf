@@ -146,7 +146,7 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
         Ok(ret as u64)
     }
 
-    fn execute_on_coap_pkt(&mut self, pkt: &mut PacketBuffer) -> Result<u64, String> {
+    fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
         let coap_context: &mut [u8] = unsafe {
             const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();
             let ctx = pkt as *mut _ as *mut CoapContext;

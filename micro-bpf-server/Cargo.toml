@@ -19,13 +19,13 @@ codegen-units = 1
 opt-level = 3
 
 [dependencies]
-riot-wrappers = { version = "0.8.2", features = [ "set_panic_handler", "panic_handler_format", "with_coap_message", "with_coap_handler", "with_embedded_nal", "with_msg_v2", ] }
+riot-wrappers = { version = "0.9.0", features = [ "set_panic_handler", "panic_handler_format", "with_coap_message", "with_coap_handler", "with_embedded_nal", "with_msg_v2", ] }
 riot-sys = { version = "0.7.10" }
 coap-message-demos = { git = "https://gitlab.com/chrysn/coap-message-demos/", default-features = false }
-coap-message = "0.2"
+coap-message = "0.3.2"
 coap-handler-implementations = "0.4"
 coap-numbers = { version = "*", default-features = false }
-coap-handler = "0.1.6"
+coap-handler = "0.2.0"
 riot-coap-handler-demos = { git = "https://gitlab.com/etonomy/riot-module-examples/", features = [ "vfs" ] }
 riot-shell-commands = { git = "https://gitlab.com/etonomy/riot-module-examples", features = ["ztimer"] }
 serde = { version = "1.0", default-features = false, features = ["alloc"] }

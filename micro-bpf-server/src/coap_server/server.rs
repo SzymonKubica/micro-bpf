@@ -9,6 +9,7 @@ use riot_wrappers::{
     riot_sys,
     stdio::println,
     thread, ztimer,
+    ztimer::Ticks,
 };
 
 use crate::{model::requests::VMExecutionRequestIPC, vm::VM_EXEC_REQUEST};
@@ -128,7 +129,7 @@ pub fn gcoap_server_main(
         );
 
         let sectimer = ztimer::Clock::sec();
-        sectimer.sleep_ticks(2);
+        sectimer.sleep(Ticks(2));
         print_network_interfaces();
 
         // Sending main thread to sleep; can't return or the Gcoap handler would need to be

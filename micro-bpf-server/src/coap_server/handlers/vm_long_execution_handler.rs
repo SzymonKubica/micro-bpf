@@ -6,7 +6,7 @@ use log::{debug, error, info};
 
 use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys};
 
-use coap_message::{MutableWritableMessage, ReadableMessage};
+use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 
 use crate::{
     infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
@@ -22,7 +22,7 @@ use crate::{
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 
-use super::util;
+use super::{jit_deploy_handler::GenericRequestError, util};
 
 pub struct VMLongExecutionHandler {
     execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,
@@ -42,11 +42,16 @@ impl VMLongExecutionHandler {
 
 impl coap_handler::Handler for VMLongExecutionHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.unwrap_err();
+            return parsing_result.err();
         };
 
         let message = VMExecutionRequestIPC {
@@ -56,11 +61,11 @@ impl coap_handler::Handler for VMLongExecutionHandler {
         if let Ok(()) = self.execution_send.lock().try_send(message) {
             info!("VM execution request sent successfully");
             self.last_request_successful = true;
-            coap_numbers::code::CHANGED
+            Ok(coap_numbers::code::CHANGED)
         } else {
             error!("Failed to send execution request message.");
             self.last_request_successful = false;
-            coap_numbers::code::INTERNAL_SERVER_ERROR
+            Err(coap_numbers::code::INTERNAL_SERVER_ERROR)
         }
     }
 
@@ -68,12 +73,16 @@ impl coap_handler::Handler for VMLongExecutionHandler {
         1
     }
 
-    fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
+    fn build_response<M: MutableWritableMessage>(
+        &mut self,
+        response: &mut M,
+        request: Self::RequestData,
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         if self.last_request_successful {
-            response.set_payload(b"VM Execution request sent successfully!");
+            response.set_payload(b"VM Execution request sent successfully!")
         } else {
-            response.set_payload(b"Failed to send VM Execution request");
+            response.set_payload(b"Failed to send VM Execution request")
         }
     }
 }

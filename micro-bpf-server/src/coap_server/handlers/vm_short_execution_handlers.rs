@@ -6,7 +6,7 @@ use log::{debug, error, info};
 
 use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys};
 
-use coap_message::{MutableWritableMessage, ReadableMessage};
+use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 
 use crate::{
     infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
@@ -22,7 +22,7 @@ use crate::{
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 
-use super::util;
+use super::{jit_deploy_handler::GenericRequestError, util};
 
 /// Executes a chosen eBPF VM while passing in a pointer to the incoming packet
 /// to the executed program. The eBPF script can access the CoAP packet data.
@@ -48,10 +48,7 @@ impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktHandler {
 
         debug!("Received VM Execution Request: {:?}", request.configuration);
 
-        let init_result = construct_vm(
-            request.configuration,
-            request.allowed_helpers,
-        );
+        let init_result = construct_vm(request.configuration, request.allowed_helpers);
 
         let Ok(mut vm) = init_result else {
             error!(
@@ -84,11 +81,8 @@ impl VMExecutionNoDataHandler {
     }
 
     fn handle_vm_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
-        let mut vm = construct_vm(
-            request.configuration,
-            request.allowed_helpers,
-        )
-        .map_err(util::internal_server_error)?;
+        let mut vm = construct_vm(request.configuration, request.allowed_helpers)
+            .map_err(util::internal_server_error)?;
 
         self.result = vm.full_run().unwrap() as i64;
         Ok(coap_numbers::code::CHANGED)
@@ -97,6 +91,8 @@ impl VMExecutionNoDataHandler {
 
 impl coap_handler::Handler for VMExecutionNoDataHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -116,13 +112,13 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
         1
     }
 
-    fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
+    fn build_response<M: MutableWritableMessage>(
+        &mut self,
+        response: &mut M,
+        request: Self::RequestData,
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let resp = format!("{{\"result\": {}}}", self.result);
-        response.set_payload(resp.as_bytes());
+        response.set_payload(resp.as_bytes())
     }
-
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
 }

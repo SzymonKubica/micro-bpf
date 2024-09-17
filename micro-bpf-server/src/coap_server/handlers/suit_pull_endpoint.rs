@@ -11,14 +11,14 @@ use micro_bpf_common::{
 };
 use micro_bpf_elf_utils::extract_allowed_helpers;
 
-use coap_message::{MutableWritableMessage, ReadableMessage};
+use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 
 use crate::{
     infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
     vm::{middleware::helpers::HelperAccessList, rbpf_vm},
 };
 
-use super::util::preprocess_request_raw;
+use super::{jit_deploy_handler::GenericRequestError, util::preprocess_request_raw};
 
 pub struct SuitPullHandler {
     /// Status of the last processed request, if successful it will contain
@@ -36,17 +36,22 @@ impl SuitPullHandler {
 
 impl coap_handler::Handler for SuitPullHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let preprocessing_result: Result<String, u8> = preprocess_request_raw(request);
 
         let Ok(request_str) = preprocessing_result else {
-            return preprocessing_result.err().unwrap();
+            return preprocessing_result.err();
         };
 
         let parsed_request = SuitPullRequest::decode(request_str);
         let Ok(request) = parsed_request else {
-            return coap_numbers::code::BAD_REQUEST;
+            Err(coap_numbers::code::BAD_REQUEST);
         };
 
         let config = VMConfiguration::decode(request.config);
@@ -62,7 +67,7 @@ impl coap_handler::Handler for SuitPullHandler {
             request.manifest.as_str(),
             config.suit_slot,
             request.erase,
-            config.binary_layout
+            config.binary_layout,
         );
 
         if let Ok(()) = fetch_result {
@@ -71,7 +76,7 @@ impl coap_handler::Handler for SuitPullHandler {
             let err = format!("SUIT fetch failed: {:?}", fetch_result.err().unwrap());
             debug!("{}", err);
             self.last_request_status = Err(err);
-            return coap_numbers::code::BAD_REQUEST;
+            Err(coap_numbers::code::BAD_REQUEST)?
         }
 
         if config.helper_access_verification == HelperAccessVerification::LoadTime {
@@ -95,7 +100,7 @@ impl coap_handler::Handler for SuitPullHandler {
                         error!("{}", error_msg);
                         self.last_request_status = Err(error_msg.to_string());
                         let _ = suit_storage::suit_erase(config.suit_slot);
-                        return coap_numbers::code::BAD_REQUEST;
+                        Err(coap_numbers::code::BAD_REQUEST)?
                     }
                 }
             };
@@ -108,23 +113,23 @@ impl coap_handler::Handler for SuitPullHandler {
                 error!("{}", e);
                 self.last_request_status = Err(e);
                 let _ = suit_storage::suit_erase(config.suit_slot);
-                return coap_numbers::code::BAD_REQUEST;
+                Err(coap_numbers::code::BAD_REQUEST)?
             }
         }
 
         self.last_request_status = Ok(String::from(request.manifest));
-        coap_numbers::code::CHANGED
+        Ok(coap_numbers::code::CHANGED)
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
         1
     }
 
-    fn build_response(
+    fn build_response<M: MutableWritableMessage>(
         &mut self,
-        response: &mut impl MutableWritableMessage,
+        response: &mut M,
         request: Self::RequestData,
-    ) {
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
 
         let res = match &self.last_request_status {
@@ -139,9 +144,6 @@ impl coap_handler::Handler for SuitPullHandler {
             }
         };
         response.set_payload(res.as_bytes());
+        Ok(())
     }
-
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
 }

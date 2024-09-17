@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use riot_wrappers::{
-    coap_handler::GcoapHandler,
+    coap_handler::v0_2::GcoapHandler,
     cstr::cstr,
     gcoap::{self, SingleHandlerListener},
     gnrc,

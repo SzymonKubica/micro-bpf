@@ -55,8 +55,25 @@ static JIT_MEMORY: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 /// are substantially smaller.
 static PROGRAM_COPY_BUFFER: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 
+/// Quick hack to make the request errors compile.
+#[derive(Debug)]
+pub struct GenericRequestError(u8);
+
+impl coap_message::error::RenderableOnMinimal for GenericRequestError {
+    type Error<IE: coap_message::error::RenderableOnMinimal + core::fmt::Debug> = core::convert::Infallible;
+
+    fn render<M: coap_message::MinimalWritableMessage>(
+        self,
+        message: &mut M,
+    ) -> Result<(), Self::Error<M::UnionError>> {
+        message.set_payload(&[self.0])
+    }
+}
+
 impl coap_handler::Handler for JitTestHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: coap_message::MinimalWritableMessage> = GenericRequestError;
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
         1
@@ -74,10 +91,6 @@ impl coap_handler::Handler for JitTestHandler {
         );
         response.set_payload(resp.as_bytes())
     }
-
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -159,5 +172,4 @@ impl coap_handler::Handler for JitTestHandler {
         */
         Ok(coap_numbers::code::CHANGED)
     }
-
 }

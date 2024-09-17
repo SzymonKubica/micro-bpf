@@ -6,10 +6,13 @@ use log::{debug, error, info};
 
 use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys};
 
-use coap_message::{MutableWritableMessage, ReadableMessage};
+use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 
 use crate::{
-    coap_server::handlers::util::preprocess_request_concrete_impl, infra::suit_storage::SUIT_STORAGE_SLOT_SIZE, model::requests::VMExecutionRequestIPC, vm::{construct_vm, timed_vm::BenchmarkResult, TimedVm}
+    coap_server::handlers::util::preprocess_request_concrete_impl,
+    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
+    model::requests::VMExecutionRequestIPC,
+    vm::{construct_vm, timed_vm::BenchmarkResult, TimedVm},
 };
 
 use micro_bpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
@@ -20,7 +23,7 @@ use crate::{
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 
-use super::util;
+use super::{jit_deploy_handler::GenericRequestError, util};
 
 /// Responsible for benchmarking the VM execution by measuring program size,
 /// verification time, (optionally relocation resolution time) and execution time.
@@ -40,12 +43,8 @@ impl VMExecutionBenchmarkHandler {
     }
 
     fn handle_benchmark_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
-
-        let mut vm = construct_vm(
-            request.configuration,
-            request.allowed_helpers,
-        )
-        .map_err(util::internal_server_error)?;
+        let mut vm = construct_vm(request.configuration, request.allowed_helpers)
+            .map_err(util::internal_server_error)?;
 
         let mut vm = TimedVm::new(vm);
 
@@ -59,17 +58,19 @@ impl VMExecutionBenchmarkHandler {
 
 impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
-    fn extract_request_data(&mut self, request: &impl ReadableMessage) -> Self::RequestData {
+    fn extract_request_data<M: ReadableMessage>(
+        &mut self,
+        request: &M,
+    ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.unwrap_err();
+            return parsing_result.err();
         };
 
-        match self.handle_benchmark_execution(request) {
-            Ok(code) => code,
-            Err(code) => code,
-        }
+        self.handle_benchmark_execution(request)
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
@@ -126,10 +127,7 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
         request: VMExecutionRequest,
         pkt: PacketBuffer,
     ) -> isize {
-        let Ok(mut vm) = construct_vm(
-            request.configuration,
-            request.allowed_helpers,
-        ) else {
+        let Ok(mut vm) = construct_vm(request.configuration, request.allowed_helpers) else {
             return Self::NO_BYTES_WRITTEN;
         };
 

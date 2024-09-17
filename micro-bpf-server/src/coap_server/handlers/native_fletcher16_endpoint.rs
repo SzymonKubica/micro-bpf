@@ -4,7 +4,7 @@ use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;
-use coap_message::{MutableWritableMessage, ReadableMessage};
+use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use log::debug;
 use micro_bpf_common::{BinaryFileLayout, VMExecutionRequest};
@@ -37,6 +37,8 @@ use crate::coap_server::handlers::util::preprocess_request_raw;
 use crate::vm::middleware;
 use crate::vm::middleware::helpers::HelperFunction;
 
+use super::jit_deploy_handler::GenericRequestError;
+
 extern "C" {
     fn fletcher_16_80B() -> u32;
     fn fletcher_16_160B() -> u32;
@@ -48,6 +50,8 @@ extern "C" {
 
 impl coap_handler::Handler for Fletcher16NativeTestHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -110,9 +114,6 @@ impl coap_handler::Handler for Fletcher16NativeTestHandler {
         response.set_payload(resp.as_bytes())
     }
 
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
 
 
 }

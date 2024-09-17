@@ -1,13 +1,17 @@
 use alloc::format;
-use coap_message::{MutableWritableMessage, ReadableMessage};
+use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 use core::{convert::TryInto, ops::DerefMut};
 use riot_wrappers::{riot_sys, stdio::println};
 
 use crate::vm::RUNNING_WORKERS;
 
+use super::jit_deploy_handler::GenericRequestError;
+
 pub struct RiotBoardHandler;
 impl coap_handler::Handler for RiotBoardHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -34,17 +38,13 @@ impl coap_handler::Handler for RiotBoardHandler {
             .expect("Oddly named board crashed CoAP stack");
         response.set_payload(board_name.as_bytes())
     }
-
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
-
 }
-
 
 pub struct RunningVMHandler;
 impl coap_handler::Handler for RunningVMHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -72,16 +72,13 @@ impl coap_handler::Handler for RunningVMHandler {
         response.set_payload(format!("{:?}", running_workers).as_bytes())
     }
 
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
-
-
 }
 
 pub struct ConsoleWriteHandler;
 impl coap_handler::Handler for ConsoleWriteHandler {
     type RequestData = u8;
+    type ExtractRequestError = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -113,8 +110,5 @@ impl coap_handler::Handler for ConsoleWriteHandler {
         response.set_payload(result.as_bytes())
     }
 
-    type ExtractRequestError;
-
-    type BuildResponseError<M: MinimalWritableMessage>;
 
 }

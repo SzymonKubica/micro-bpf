@@ -43,7 +43,8 @@ impl VMLongExecutionHandler {
 impl coap_handler::Handler for VMLongExecutionHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -51,7 +52,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
     ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.err();
+            Err(parsing_result.unwrap_err())?
         };
 
         let message = VMExecutionRequestIPC {
@@ -65,7 +66,7 @@ impl coap_handler::Handler for VMLongExecutionHandler {
         } else {
             error!("Failed to send execution request message.");
             self.last_request_successful = false;
-            Err(coap_numbers::code::INTERNAL_SERVER_ERROR)
+            Err(GenericRequestError(coap_numbers::code::INTERNAL_SERVER_ERROR))
         }
     }
 

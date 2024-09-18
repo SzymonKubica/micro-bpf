@@ -46,12 +46,12 @@ impl coap_handler::Handler for SuitPullHandler {
         let preprocessing_result: Result<String, u8> = preprocess_request_raw(request);
 
         let Ok(request_str) = preprocessing_result else {
-            return preprocessing_result.err();
+            return Err(GenericRequestError(preprocessing_result.unwrap_err()));
         };
 
         let parsed_request = SuitPullRequest::decode(request_str);
         let Ok(request) = parsed_request else {
-            Err(coap_numbers::code::BAD_REQUEST);
+            Err(coap_numbers::code::BAD_REQUEST)?
         };
 
         let config = VMConfiguration::decode(request.config);

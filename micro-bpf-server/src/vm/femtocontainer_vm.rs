@@ -1,6 +1,6 @@
 use core::ffi::c_void;
 
-use alloc::{format, string::String};
+use alloc::{boxed::Box, format, string::String};
 use log::debug;
 use riot_wrappers::{gcoap::PacketBuffer, println};
 
@@ -68,6 +68,7 @@ impl<'a> VirtualMachine for FemtoContainerVm<'a> {
             Err("VM not initialised")?
         };
 
+        let mut pkt_box = Box::new(pkt);
         unsafe {
             let mut result: i64 = 0;
             // We need to define the stack here and pass it into the VM.
@@ -75,7 +76,7 @@ impl<'a> VirtualMachine for FemtoContainerVm<'a> {
             let mut stack: [u8; 512] = [0; 512];
             execute_fc_vm_on_coap_pkt(
                 &mut stack as *mut u8,
-                pkt as *mut PacketBuffer as *mut c_void,
+                pkt_box.as_mut() as *mut PacketBuffer as *mut c_void,
                 &mut result as *mut i64,
             );
             return Ok(result as u64);

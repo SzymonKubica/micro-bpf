@@ -59,7 +59,8 @@ impl VMExecutionBenchmarkHandler {
 impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -67,17 +68,22 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
     ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return parsing_result.err();
+            Err(GenericRequestError(parsing_result.unwrap_err()))?
         };
 
         self.handle_benchmark_execution(request)
+            .map_err(|err| GenericRequestError(err))
     }
 
     fn estimate_length(&mut self, _request: &Self::RequestData) -> usize {
         1
     }
 
-    fn build_response(&mut self, response: &mut impl MutableWritableMessage, request: u8) {
+    fn build_response<M: MutableWritableMessage>(
+        &mut self,
+        response: &mut M,
+        request: Self::RequestData,
+    ) -> Result<(), Self::BuildResponseError<M>> {
         response.set_code(request.try_into().map_err(|_| ()).unwrap());
         let results = self.time_results;
         let resp = format!(
@@ -89,7 +95,7 @@ impl coap_handler::Handler for VMExecutionBenchmarkHandler {
             self.program_size,
             self.result
         );
-        response.set_payload(resp.as_bytes());
+        response.set_payload(resp.as_bytes())
     }
 }
 
@@ -150,7 +156,7 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
 
 impl riot_wrappers::gcoap::Handler for VMExecutionOnCoapPktBenchmarkHandler {
     fn handle(&mut self, pkt: PacketBuffer) -> isize {
-        let Ok(request_str) = preprocess_request_concrete_impl(pkt) else {
+        let Ok(request_str) = preprocess_request_concrete_impl(&pkt) else {
             return Self::NO_BYTES_WRITTEN;
         };
 

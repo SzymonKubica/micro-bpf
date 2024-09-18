@@ -147,9 +147,10 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
     }
 
     fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
+        let mut pkt_box = alloc::boxed::Box::new(pkt);
         let coap_context: &mut [u8] = unsafe {
             const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();
-            let ctx = pkt as *mut _ as *mut CoapContext;
+            let ctx = pkt_box.as_mut() as *mut _ as *mut CoapContext;
             debug!("CoAP context: {:?}", *ctx);
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };

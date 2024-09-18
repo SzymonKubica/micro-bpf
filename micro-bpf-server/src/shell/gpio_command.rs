@@ -65,10 +65,9 @@ pub fn handle_command(stdio: &mut riot_wrappers::stdio::Stdio, args: riot_wrappe
                     let result = pin.configure_as_output(gpio::OutputMode::Out);
                     if let Ok(mut out_pin) = result {
                         writeln!(stdio, "Toggling GPIO port: {} pin: {}", port, pin_num).unwrap();
-                        if let Ok(_) = out_pin.toggle() {
-                            let pin_state = unsafe { riot_sys::gpio_read(out_pin.to_c()) };
-                            writeln!(stdio, "Pin state: {}", pin_state).unwrap();
-                        }
+                        out_pin.toggle();
+                        let pin_state = unsafe { riot_sys::gpio_read(out_pin.to_c()) };
+                        writeln!(stdio, "Pin state: {}", pin_state).unwrap();
                     }
                 }
                 _ => {}

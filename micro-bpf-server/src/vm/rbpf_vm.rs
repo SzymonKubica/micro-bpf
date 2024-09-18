@@ -3,10 +3,7 @@ use crate::{
     vm::{middleware, VirtualMachine},
 };
 use alloc::{
-    format,
-    rc::Rc,
-    string::{String, ToString},
-    vec::Vec,
+    boxed::Box, format, rc::Rc, string::{String, ToString}, vec::Vec
 };
 use log::debug;
 use core::{ops::DerefMut, slice::from_raw_parts_mut};
@@ -130,22 +127,23 @@ impl<'a> VirtualMachine for RbpfVm<'a> {
         /// Coap context struct containing information about the buffer,
         /// packet and its length. It is passed into the VM as the main buffer
         /// on which the program operates.
+        let mut pkt_box = Box::new(pkt);
         let coap_context: &mut [u8] = unsafe {
             const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();
-            let ctx = &pkt as *mut _ as *mut CoapContext;
+            let ctx = pkt_box.as_mut() as *mut _ as *mut CoapContext;
             debug!("CoAP context: {:?}", *ctx);
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };
 
         // Actual packet struct
         let mem = unsafe {
-            let ctx = pkt as *mut _ as *mut CoapContext;
+            let ctx = pkt_box.as_mut() as *mut _ as *mut CoapContext;
             debug!("CoAP context: {:?}", *ctx);
             from_raw_parts_mut((*ctx).pkt as *mut u8, (*ctx).len)
         };
 
         let pkt_buffer_region: (u64, u64) = unsafe {
-            let ctx = pkt as *mut _ as *mut CoapContext;
+            let ctx = pkt_box.as_mut() as *mut _ as *mut CoapContext;
             ((*ctx).buf as *const u8 as u64, (*ctx).len as u64)
         };
 

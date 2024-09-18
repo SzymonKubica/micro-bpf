@@ -92,7 +92,8 @@ impl VMExecutionNoDataHandler {
 impl coap_handler::Handler for VMExecutionNoDataHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -100,7 +101,7 @@ impl coap_handler::Handler for VMExecutionNoDataHandler {
     ) -> Result<Self::RequestData, Self::ExtractRequestError> {
         let parsing_result = util::parse_request(request);
         let Ok(request) = parsing_result else {
-            return Err(parsing_result.unwrap_err());
+            return Err(GenericRequestError(parsing_result.unwrap_err()));
         };
         match self.handle_vm_execution(request) {
             Ok(code) => Ok(code),

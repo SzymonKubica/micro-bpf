@@ -11,7 +11,8 @@ pub struct RiotBoardHandler;
 impl coap_handler::Handler for RiotBoardHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -44,7 +45,8 @@ pub struct RunningVMHandler;
 impl coap_handler::Handler for RunningVMHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -71,14 +73,14 @@ impl coap_handler::Handler for RunningVMHandler {
         let running_workers = guard.deref_mut().clone();
         response.set_payload(format!("{:?}", running_workers).as_bytes())
     }
-
 }
 
 pub struct ConsoleWriteHandler;
 impl coap_handler::Handler for ConsoleWriteHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,
@@ -109,6 +111,4 @@ impl coap_handler::Handler for ConsoleWriteHandler {
         let result = "Success";
         response.set_payload(result.as_bytes())
     }
-
-
 }

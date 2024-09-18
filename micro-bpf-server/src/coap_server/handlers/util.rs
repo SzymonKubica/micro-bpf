@@ -57,7 +57,7 @@ pub fn preprocess_request_raw<'a>(request: &'a impl ReadableMessage) -> Result<S
 
 /// This was added to get around the API changes in the PacketBuffer struct.
 /// TODO: clean up
-pub fn preprocess_request_concrete_impl<'a>(request: impl ReadableMessage) -> Result<String, u8> {
+pub fn preprocess_request_concrete_impl<'a>(request: &impl ReadableMessage) -> Result<String, u8> {
     if request.code().into() != coap_numbers::code::POST {
         return Err(coap_numbers::code::METHOD_NOT_ALLOWED);
     }

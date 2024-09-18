@@ -51,7 +51,8 @@ extern "C" {
 impl coap_handler::Handler for Fletcher16NativeTestHandler {
     type RequestData = u8;
     type ExtractRequestError = GenericRequestError;
-    type BuildResponseError<M: MinimalWritableMessage> = GenericRequestError;
+    type BuildResponseError<M: MinimalWritableMessage> =
+        <M as coap_message::MinimalWritableMessage>::SetPayloadError;
 
     fn extract_request_data<M: ReadableMessage>(
         &mut self,

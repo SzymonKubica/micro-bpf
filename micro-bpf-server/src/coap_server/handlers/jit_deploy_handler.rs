@@ -1,6 +1,5 @@
 //! This module contains and endpoint responsible for testing out the JIT.
 
-use alloc::collections::BTreeMap;
 use alloc::format;
 use alloc::string::String;
 use alloc::vec::Vec;

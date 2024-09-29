@@ -14,7 +14,7 @@ use micro_bpf_common::{
 };
 use micro_bpf_elf_utils::extract_allowed_helpers;
 
-use rbpf::without_std::Error;
+use rbpf::lib::Error;
 
 use riot_sys;
 use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};

@@ -117,7 +117,12 @@ pub fn suit_fetch(
 
             if binary_layout == BinaryFileLayout::RawObjectFile {
                 let program = load_program_static(slot);
-                micro_bpf_elf_utils::resolve_relocations(program)?;
+                // TODO: figure out how to fix this. We cannot resolve relocations
+                // here as it messes up the bytecode before it is jit compiled.
+                // Doing the relocation of the loaded program here causes the jit
+                // compiler to have incorrect initial immedidate offsets (not zero as they should be)
+                // Enable the below functionality once a fix is found.
+                // micro_bpf_elf_utils::resolve_relocations(program)?;
             };
             Ok(())
         } else {

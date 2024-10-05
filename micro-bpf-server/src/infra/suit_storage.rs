@@ -84,6 +84,7 @@ pub fn suit_fetch(
     slot: usize,
     erase: bool,
     binary_layout: BinaryFileLayout,
+    for_jit: bool,
 ) -> Result<(), String> {
     let ip_addr = format!("{}\0", ip);
     let suit_manifest = format!("{}\0", manifest);
@@ -115,14 +116,17 @@ pub fn suit_fetch(
             slots[slot] = SuitStorageSlotStatus::Occupied;
             debug!("SUIT fetch successful, marked slot {} as occupied.", slot);
 
-            if binary_layout == BinaryFileLayout::RawObjectFile {
+
+            // If we are loading a program with the RawObjectFile that isn't
+            // intended to be jit compiled, then we need to resolve relocations
+            // so that it doesn't need to be done every time we execute the program
+            // that is loaded into the SUIT slot. If we are loading a program with
+            // the intent of jit-compiling it, we cannot resolve relocations
+            // as that would mess up the offsets that need to be blank before the
+            // jit compiler processes the bytecode.
+            if binary_layout == BinaryFileLayout::RawObjectFile && !for_jit {
                 let program = load_program_static(slot);
-                // TODO: figure out how to fix this. We cannot resolve relocations
-                // here as it messes up the bytecode before it is jit compiled.
-                // Doing the relocation of the loaded program here causes the jit
-                // compiler to have incorrect initial immedidate offsets (not zero as they should be)
-                // Enable the below functionality once a fix is found.
-                // micro_bpf_elf_utils::resolve_relocations(program)?;
+                micro_bpf_elf_utils::resolve_relocations(program)?;
             };
             Ok(())
         } else {

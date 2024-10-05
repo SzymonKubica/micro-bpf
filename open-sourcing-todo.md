@@ -1,4 +1,5 @@
 - [ ] fix relocation resolution for raw object file binaries
+- [ ] fix jit helper function call args passing
 - [ ] refactor and document server code
 - [ ] update RIOT version
 - [ ] quickstart instructions

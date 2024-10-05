@@ -37,7 +37,7 @@ use crate::coap_server::handlers::util::preprocess_request_raw;
 use crate::vm::middleware;
 use crate::vm::middleware::helpers::HelperFunction;
 
-use super::jit_deploy_handler::GenericRequestError;
+use super::generic_request_error::GenericRequestError;
 
 extern "C" {
     fn fletcher_16_80B() -> u32;

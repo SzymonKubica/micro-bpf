@@ -5,7 +5,7 @@ use riot_wrappers::{riot_sys, stdio::println};
 
 use crate::vm::RUNNING_WORKERS;
 
-use super::jit_deploy_handler::GenericRequestError;
+use super::generic_request_error::GenericRequestError;
 
 pub struct RiotBoardHandler;
 impl coap_handler::Handler for RiotBoardHandler {

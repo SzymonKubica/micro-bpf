@@ -18,7 +18,7 @@ use crate::{
     vm::{middleware::helpers::HelperAccessList, rbpf_vm},
 };
 
-use super::{jit_deploy_handler::GenericRequestError, util::preprocess_request_raw};
+use super::{generic_request_error::GenericRequestError, util::preprocess_request_raw};
 
 pub struct SuitPullHandler {
     /// Status of the last processed request, if successful it will contain

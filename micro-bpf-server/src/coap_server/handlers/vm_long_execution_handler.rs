@@ -22,7 +22,7 @@ use crate::{
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 
-use super::{jit_deploy_handler::GenericRequestError, util};
+use super::{generic_request_error::GenericRequestError, util};
 
 pub struct VMLongExecutionHandler {
     execution_send: Arc<Mutex<msg::SendPort<VMExecutionRequestIPC, { VM_EXEC_REQUEST }>>>,

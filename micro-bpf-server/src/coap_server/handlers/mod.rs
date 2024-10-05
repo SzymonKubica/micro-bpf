@@ -1,4 +1,5 @@
 mod jit_deploy_handler;
+mod generic_request_error;
 pub mod miscellaneous;
 mod native_fletcher16_endpoint;
 pub mod suit_pull_endpoint;

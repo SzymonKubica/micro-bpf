@@ -40,6 +40,8 @@ use crate::coap_server::handlers::util::preprocess_request_raw;
 use crate::vm::middleware;
 use crate::vm::middleware::helpers::HelperFunction;
 
+use super::generic_request_error::GenericRequestError;
+
 static JIT_MEMORY: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 /// Before we can jit-compile the program we need to adjust all .data and .rodata
 /// relocations so that they point to the sections that were copied over into the
@@ -53,29 +55,6 @@ static JIT_MEMORY: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
 /// eBPF program after we jit-compile it and thus save memory as jitted programs
 /// are substantially smaller.
 static PROGRAM_COPY_BUFFER: Mutex<[u8; JIT_SLOT_SIZE]> = Mutex::new([0; JIT_SLOT_SIZE]);
-
-/// Quick hack to make the request errors compile.
-#[derive(Debug)]
-pub struct GenericRequestError(pub u8);
-
-impl From<u8> for GenericRequestError {
-    fn from(value: u8) -> Self {
-        GenericRequestError(value)
-    }
-}
-
-impl coap_message::error::RenderableOnMinimal for GenericRequestError {
-    type Error<IE: coap_message::error::RenderableOnMinimal + core::fmt::Debug> =
-        core::convert::Infallible;
-
-    fn render<M: coap_message::MinimalWritableMessage>(
-        self,
-        message: &mut M,
-    ) -> Result<(), Self::Error<M::UnionError>> {
-        message.set_payload(&[self.0]);
-        Ok(())
-    }
-}
 
 impl coap_handler::Handler for JitTestHandler {
     type RequestData = u8;

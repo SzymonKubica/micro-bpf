@@ -23,7 +23,7 @@ use crate::{
     vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
 };
 
-use super::{jit_deploy_handler::GenericRequestError, util};
+use super::{generic_request_error::GenericRequestError, util};
 
 /// Responsible for benchmarking the VM execution by measuring program size,
 /// verification time, (optionally relocation resolution time) and execution time.

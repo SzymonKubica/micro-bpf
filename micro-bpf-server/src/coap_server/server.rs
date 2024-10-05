@@ -8,8 +8,7 @@ use riot_wrappers::{
     mutex::Mutex,
     riot_sys,
     stdio::println,
-    thread, ztimer,
-    ztimer::Ticks,
+    thread, ztimer::{self, Ticks},
 };
 
 use crate::{model::requests::VMExecutionRequestIPC, vm::VM_EXEC_REQUEST};

@@ -1,6 +1,7 @@
-- [ ] fix relocation resolution for raw object file binaries
-- [ ] fix jit helper function call args passing
+- [x] fix relocation resolution for raw object file binaries
 - [ ] refactor and document server code
+- [ ] separate testing endpoints from the main server
+- [ ] fix jit helper function call args passing
 - [ ] update RIOT version
 - [ ] quickstart instructions
 - [ ] test running documentation

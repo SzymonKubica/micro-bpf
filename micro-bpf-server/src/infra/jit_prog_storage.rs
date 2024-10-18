@@ -1,9 +1,13 @@
 //! This module is responsible for providing access to global storage for
 //! jitted programs. Its interface is designed to be similar to the [`super::suit_storage`].
+//!
 //! The idea is that we have a number of jit storage slots of fixed size which
 //! are statically allocated. Then the clients who want to store jitted programs
-//! will obtain a mutable reference to the contents of one of the slots,
+//! need to  obtain a mutable reference to the contents of one of the slots,
 //! write the program there and then execute it by casting into a function pointer.
+//!
+//! Note that by default the number of JIT storage slots is half of the number
+//! of actual SUIT storage slots to save memory.
 
 use alloc::{format, string::String};
 use log::debug;
@@ -15,10 +19,18 @@ pub const JIT_STORAGE_SLOTS_NUM: usize = SUIT_STORAGE_SLOTS / 2;
 pub const JIT_SLOT_SIZE: usize = SUIT_STORAGE_SLOT_SIZE;
 
 /// Each slot is a tuple of the program bytes and an offset to the start of the
-/// .text section inside of the program
+/// .text section inside of the program. This offset is needed so that when we
+/// execute the program we don't call into the start address of the compiled
+/// program but call into the specific offset to ensure that we start executing
+/// from the first instruction in the program and not from e.g. some contents
+/// of the .data or .rodata sections.
 static JIT_PROGRAM_SLOTS: [Mutex<([u8; JIT_SLOT_SIZE], usize)>; JIT_STORAGE_SLOTS_NUM] =
     [EMPTY_SLOT; JIT_STORAGE_SLOTS_NUM];
 
+/// Default empty slot in the JIT program storage, it needs to be protected by
+/// a mutex as it can be accessed by multiple threads but only one at the time
+/// can be writing a program to it (multiple threads can execute a single program
+/// as it is a read-only operation).
 const EMPTY_SLOT: Mutex<([u8; JIT_SLOT_SIZE], usize)> = Mutex::new(([0; JIT_SLOT_SIZE], 0));
 
 // We globally maintain whether a slot is in use or not

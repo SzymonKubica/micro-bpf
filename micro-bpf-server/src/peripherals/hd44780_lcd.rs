@@ -1,8 +1,8 @@
 use alloc::ffi::CString;
 
-//! HD44780 LCD display wrapper for rust.
-//! This module delegates all calls to the C bindings via ffi.
-//! It is needed for implementing the eBPF helpers for accessing the LCD display.
+/// HD44780 LCD display wrapper for rust.
+/// This module delegates all calls to the C bindings via ffi.
+/// It is needed for implementing the eBPF helpers for accessing the LCD display.
 
 pub struct HD44780LCD {
     dev: *mut hd44780_t,

@@ -1,4 +1,3 @@
-mod jit_deploy_handler;
 mod generic_request_error;
 pub mod miscellaneous;
 mod native_fletcher16_endpoint;
@@ -8,7 +7,6 @@ mod vm_benchmark_handlers;
 mod vm_long_execution_handler;
 mod vm_short_execution_handlers;
 
-pub use jit_deploy_handler::JitTestHandler;
 pub use native_fletcher16_endpoint::Fletcher16NativeTestHandler;
 pub use util::TimedHandler;
 pub use vm_benchmark_handlers::{VMExecutionBenchmarkHandler, VMExecutionOnCoapPktBenchmarkHandler};

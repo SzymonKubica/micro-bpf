@@ -29,6 +29,7 @@ mod vm;
 // stack memory size needs to be appropriately larger.
 // The threading setup was adapted from here: https://gitlab.com/etonomy/riot-examples/-/tree/master/shell_threads?ref_type=heads
 static COAP_THREAD_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+static COAP_TESTING_SERVER_THREAD_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
 static SHELL_THREAD_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
 riot_main!(main);
@@ -63,18 +64,27 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
         let mut shell_stack = SHELL_THREAD_STACK.lock();
         let mut gcoap_stack = COAP_THREAD_STACK.lock();
+        let mut gcoap_testing_stack = COAP_TESTING_SERVER_THREAD_STACK.lock();
 
         // Because of the implementation details of the thread scope below, we
         // need to declare the main closures of the threads here instead of
         // inlining them.
         let mut gcoap_main = || coap_server::gcoap_server_main(&send_port).unwrap();
+        let mut gcoap_testing_main = || coap_server::gcoap_server_testing().unwrap();
         let mut shell_main = || shell::shell_main(&send_port).unwrap();
 
         let pri = riot_sys::THREAD_PRIORITY_MAIN;
 
         thread::scope(|scope| {
             let _gcoapthread =
-                spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 1);
+                spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 2);
+            let _gcoaptestingthread = spawn_thread!(
+                scope,
+                "CoAP testing server",
+                gcoap_testing_stack,
+                gcoap_testing_main,
+                pri - 1
+            );
             let _shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
             vm_manager.start();
         });

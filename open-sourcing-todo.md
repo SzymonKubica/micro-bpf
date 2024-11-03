@@ -1,8 +1,9 @@
 - [x] fix relocation resolution for raw object file binaries
-- [ ] separate testing endpoints from the main server
+- [x] separate testing endpoints from the main server
       this one is quite important, the testing endpoints should only be loaded
       into the server code if a correct build flag / feature is set. It doesn't
       make sense to have all of those endpoint intermingled with the actual useful ones.
+- [ ] add conditonal compilation for the testing endpoints
 - [ ] remove all comp time warnings
 - [ ] refactor and document server code
 - [ ] fix jit helper function call args passing

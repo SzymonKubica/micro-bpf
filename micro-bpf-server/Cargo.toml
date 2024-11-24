@@ -50,3 +50,7 @@ macros = { path = "../tools/macros" }
 # its own top-level Rust crate to include rust_riotmodules from inside
 # RIOTBASE.
 rust_riotmodules = { path = "../RIOT/sys/rust_riotmodules/" }
+
+[features]
+default = []
+dev_endpoints = []

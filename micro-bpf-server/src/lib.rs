@@ -70,14 +70,21 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
         // need to declare the main closures of the threads here instead of
         // inlining them.
         let mut gcoap_main = || coap_server::gcoap_server_main(&send_port).unwrap();
-        let mut gcoap_testing_main = || coap_server::gcoap_server_testing().unwrap();
         let mut shell_main = || shell::shell_main(&send_port).unwrap();
+
+        // The testing gcoap server endpoints aren't enabled by default to
+        // minimize system requirements.
+        #[cfg(feature = "dev_endpoints")]
+        let mut gcoap_testing_main = || coap_server::gcoap_server_testing().unwrap();
 
         let pri = riot_sys::THREAD_PRIORITY_MAIN;
 
         thread::scope(|scope| {
             let _gcoapthread =
                 spawn_thread!(scope, "CoAP server", gcoap_stack, gcoap_main, pri - 2);
+            let _shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
+            vm_manager.start();
+            #[cfg(feature = "dev_endpoints")]
             let _gcoaptestingthread = spawn_thread!(
                 scope,
                 "CoAP testing server",
@@ -85,8 +92,6 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
                 gcoap_testing_main,
                 pri - 1
             );
-            let _shellthread = spawn_thread!(scope, "Shell", shell_stack, shell_main, pri + 2);
-            vm_manager.start();
         });
         unreachable!();
     });

@@ -3,9 +3,10 @@
       this one is quite important, the testing endpoints should only be loaded
       into the server code if a correct build flag / feature is set. It doesn't
       make sense to have all of those endpoint intermingled with the actual useful ones.
+- [x] refactor and document server code
 - [ ] remove all comp time warnings
-- [ ] add conditonal compilation for the testing endpoints
-- [ ] refactor and document server code
+- [x] add conditonal compilation for the testing endpoints
+- [ ] add convenient shell utils for managing programs
 - [ ] fix jit helper function call args passing
 - [ ] big one: add stack simulated 64 bit registers
 - [ ] update RIOT version

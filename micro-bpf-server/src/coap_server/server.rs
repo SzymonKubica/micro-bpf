@@ -110,6 +110,7 @@ pub fn gcoap_server_main(
 /// Main entrpoint of the server responsible for handling various testing-related
 /// endpoints. This is defined separately to ensure that when running a production
 /// deployment, one does not expose handlers that are only meant for debugging.
+#[cfg(feature = "dev_endpoints")]
 pub fn gcoap_server_testing() -> Result<(), ()> {
     // Each endpoint needs a request handler defined as its own struct implementing
     // the Handler trait. Then we need to initialise a listener for that endpoint

@@ -4,8 +4,11 @@
       into the server code if a correct build flag / feature is set. It doesn't
       make sense to have all of those endpoint intermingled with the actual useful ones.
 - [x] refactor and document server code
-- [ ] remove all comp time warnings
 - [x] add conditonal compilation for the testing endpoints
+- [x] add correct handling of spill / scratch registers for ISA incompatibilities
+- [ ] refactor jit compiler code
+- [ ] remove all comp time warnings
+- [ ] Note: ensure that python env is enabled when building and flashing the image
 - [ ] add convenient shell utils for managing programs
 - [ ] fix jit helper function call args passing
 - [ ] big one: add stack simulated 64 bit registers

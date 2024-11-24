@@ -29,6 +29,7 @@ mod vm;
 // stack memory size needs to be appropriately larger.
 // The threading setup was adapted from here: https://gitlab.com/etonomy/riot-examples/-/tree/master/shell_threads?ref_type=heads
 static COAP_THREAD_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
+#[cfg(feature = "dev_endpoints")]
 static COAP_TESTING_SERVER_THREAD_STACK: Mutex<[u8; 8192]> = Mutex::new([0; 8192]);
 static SHELL_THREAD_STACK: Mutex<[u8; 4096]> = Mutex::new([0; 4096]);
 
@@ -64,6 +65,7 @@ fn main(token: thread::StartToken) -> ((), thread::EndToken) {
 
         let mut shell_stack = SHELL_THREAD_STACK.lock();
         let mut gcoap_stack = COAP_THREAD_STACK.lock();
+        #[cfg(feature = "dev_endpoints")]
         let mut gcoap_testing_stack = COAP_TESTING_SERVER_THREAD_STACK.lock();
 
         // Because of the implementation details of the thread scope below, we

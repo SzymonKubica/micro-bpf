@@ -1,16 +1,11 @@
 //! This module contains and endpoint responsible for testing out the JIT.
 
-use alloc::collections::BTreeMap;
 use alloc::format;
-use alloc::string::String;
-use alloc::vec::Vec;
 use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
 use core::convert::TryInto;
 use log::debug;
-use micro_bpf_common::{BinaryFileLayout, VMExecutionRequest};
-use riot_wrappers::mutex::Mutex;
+use micro_bpf_common::VMExecutionRequest;
 
-use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
 /// This handler is responsible for executing a requested fletcher 16 checksumming
 /// program. It is used for benchmarking the interpreters and the JIT against the
 /// native baseline.
@@ -34,8 +29,6 @@ impl Fletcher16NativeTestHandler {
 }
 
 use crate::coap_server::handlers::util::preprocess_request_raw;
-use crate::vm::middleware;
-use crate::vm::middleware::helpers::HelperFunction;
 
 use super::generic_request_error::GenericRequestError;
 

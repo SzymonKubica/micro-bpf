@@ -13,7 +13,7 @@ use riot_wrappers::gpio;
 use riot_wrappers::stdio::println;
 
 use crate::{
-    infra::local_storage::{self, local_storage_store},
+    infra::local_storage::{self},
     peripherals::{hd44780_lcd::{hd44780_t, HD44780LCD}, keypad_shield_buttons::KeypadShieldButtons},
 };
 

@@ -1,33 +1,29 @@
-use crate::vm::{middleware, VirtualMachine};
+use crate::vm::VirtualMachine;
 use alloc::{
     collections::BTreeMap,
     format,
-    rc::Rc,
-    string::{String, ToString},
+    string::String,
     vec::Vec,
 };
-use core::{cell::RefCell, ops::DerefMut, slice::from_raw_parts_mut};
+use core::{cell::RefCell, slice::from_raw_parts_mut};
 use log::debug;
 use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
     VMConfiguration,
 };
-use micro_bpf_elf_utils::extract_allowed_helpers;
 
-use rbpf::lib::Error;
 
-use riot_sys;
-use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
+use riot_wrappers::gcoap::PacketBuffer;
 
 use super::{
     middleware::{
-        helpers::{HelperAccessList, HelperFunction},
+        helpers::HelperAccessList,
         CoapContext,
     },
     rbpf_vm::map_interpreter,
 };
-use crate::infra::jit_prog_storage::{self, JIT_SLOT_SIZE};
-use crate::infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE};
+use crate::infra::jit_prog_storage::{self};
+use crate::infra::suit_storage::{self};
 
 pub struct RbpfJIT<'a> {
     pub program: Option<RefCell<&'a mut [u8]>>,

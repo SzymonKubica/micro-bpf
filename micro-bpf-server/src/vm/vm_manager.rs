@@ -1,12 +1,11 @@
 use core::ffi::c_void;
 
 use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
-use log::{debug, error, info};
+use log::{error, info};
 
 use riot_wrappers::{
     msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort},
     mutex::Mutex,
-    stdio::println,
     thread::{self},
 };
 
@@ -16,7 +15,7 @@ use riot_sys::msg_t;
 use micro_bpf_common::VMExecutionRequest;
 
 use crate::{
-    infra::suit_storage::{self, SUIT_STORAGE_SLOT_SIZE},
+    infra::suit_storage::{self},
     model::requests::{VMExecutionCompleteMsg, VMExecutionRequestIPC},
     spawn_thread,
     vm::construct_vm,

@@ -1,5 +1,4 @@
 use core::fmt::Write;
-use embedded_hal::digital::v2::ToggleableOutputPin;
 use riot_wrappers::gpio;
 
 pub fn handle_command(stdio: &mut riot_wrappers::stdio::Stdio, args: riot_wrappers::shell::Args) {

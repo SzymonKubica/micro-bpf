@@ -25,7 +25,7 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use log::{debug, error};
 use riot_wrappers::{mutex::Mutex, thread};
 
-use super::suit_storage::{self, SUIT_STORAGE_SLOTS};
+use super::suit_storage::SUIT_STORAGE_SLOTS;
 
 const EMPTY_MAP: BTreeMap<usize, i32> = BTreeMap::new();
 /// Each SUIT storage slot has its associated BTreeMap storage.

@@ -1,27 +1,14 @@
-use alloc::{boxed::Box, format, string::String, sync::Arc, vec::Vec};
+use alloc::{boxed::Box, sync::Arc};
 use core::convert::TryInto;
-use micro_bpf_elf_utils::resolve_relocations;
-
-use log::{debug, error, info};
-
-use riot_wrappers::{gcoap::PacketBuffer, msg::v2 as msg, mutex::Mutex, riot_sys};
-
+use log::{error, info};
+use riot_wrappers::{msg::v2 as msg, mutex::Mutex};
 use coap_message::{MinimalWritableMessage, MutableWritableMessage, ReadableMessage};
-
-use crate::{
-    infra::suit_storage::SUIT_STORAGE_SLOT_SIZE,
-    model::requests::VMExecutionRequestIPC,
-    vm::{construct_vm, timed_vm::BenchmarkResult, TimedVm},
-};
-
-use micro_bpf_common::{BinaryFileLayout, TargetVM, VMExecutionRequest};
-
-use crate::{
-    coap_server::handlers::util::preprocess_request_raw,
-    infra::suit_storage,
-    vm::{middleware, FemtoContainerVm, RbpfVm, VirtualMachine, VM_EXEC_REQUEST},
-};
-
+use crate::
+    model::requests::VMExecutionRequestIPC
+;
+use crate::
+    vm::VM_EXEC_REQUEST
+;
 use super::{generic_request_error::GenericRequestError, util};
 
 pub struct VMLongExecutionHandler {

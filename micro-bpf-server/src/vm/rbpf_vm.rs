@@ -3,23 +3,20 @@ use crate::{
     vm::{middleware, VirtualMachine},
 };
 use alloc::{
-    boxed::Box, format, rc::Rc, string::{String, ToString}, vec::Vec
+    boxed::Box, format, string::{String, ToString}, vec::Vec
 };
 use log::debug;
-use core::{ops::DerefMut, slice::from_raw_parts_mut};
+use core::slice::from_raw_parts_mut;
 use micro_bpf_common::{
     BinaryFileLayout, HelperAccessListSource, HelperAccessVerification, HelperFunctionID,
     VMConfiguration,
 };
 use micro_bpf_elf_utils::extract_allowed_helpers;
 
-use rbpf::lib::Error;
-
-use riot_sys;
-use riot_wrappers::{gcoap::PacketBuffer, mutex::Mutex, stdio::println};
+use riot_wrappers::gcoap::PacketBuffer;
 
 use super::middleware::{
-    helpers::{HelperAccessList, HelperFunction},
+    helpers::HelperAccessList,
     CoapContext,
 };
 
@@ -124,9 +121,9 @@ impl<'a> VirtualMachine for RbpfVm<'a> {
         }
     }
     fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
-        /// Coap context struct containing information about the buffer,
-        /// packet and its length. It is passed into the VM as the main buffer
-        /// on which the program operates.
+        // Coap context struct containing information about the buffer,
+        // packet and its length. It is passed into the VM as the main buffer
+        // on which the program operates.
         let mut pkt_box = Box::new(pkt);
         let coap_context: &mut [u8] = unsafe {
             const CONTEXT_SIZE: usize = core::mem::size_of::<CoapContext>();

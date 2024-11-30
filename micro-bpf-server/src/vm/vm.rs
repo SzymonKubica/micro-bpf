@@ -1,14 +1,11 @@
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{boxed::Box, string::String, vec::Vec};
 use micro_bpf_common::{
-    BinaryFileLayout, HelperAccessVerification, HelperFunctionID, TargetVM, VMConfiguration,
+    HelperFunctionID, TargetVM, VMConfiguration,
 };
-use micro_bpf_elf_utils::{extract_allowed_helpers, resolve_relocations};
 use riot_wrappers::gcoap::PacketBuffer;
 
-use crate::infra::{local_storage, suit_storage};
-
 use super::{
-    middleware::helpers::HelperAccessList, rbpf_jit::RbpfJIT, rbpf_vm, FemtoContainerVm, RbpfVm,
+    rbpf_jit::RbpfJIT, FemtoContainerVm, RbpfVm,
 };
 
 /// Structs implementing this interface should allow for executing eBPF programs

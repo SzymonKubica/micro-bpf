@@ -15,12 +15,13 @@ use riot_wrappers::{
 use crate::{model::requests::VMExecutionRequestIPC, vm::VM_EXEC_REQUEST};
 
 use super::handlers::{
-    miscellaneous::{ConsoleWriteHandler, RiotBoardHandler, RunningVMHandler},
+    miscellaneous::RunningVMHandler,
     suit_pull_endpoint::SuitPullHandler,
-    Fletcher16NativeTestHandler, TimedHandler, VMExecutionBenchmarkHandler,
-    VMExecutionNoDataHandler, VMExecutionOnCoapPktBenchmarkHandler, VMExecutionOnCoapPktHandler,
+    TimedHandler,
+    VMExecutionOnCoapPktHandler,
     VMLongExecutionHandler,
 };
+use super::handlers::VMExecutionNoDataHandler;
 
 /// The main entrypoint of the gCoAP server. It is responsible for handling
 /// requests from the deployment frame work to load / execute programs.

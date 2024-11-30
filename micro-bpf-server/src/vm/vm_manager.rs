@@ -4,9 +4,7 @@ use alloc::{collections::BTreeMap, sync::Arc, vec::Vec};
 use log::{error, info};
 
 use riot_wrappers::{
-    msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort},
-    mutex::Mutex,
-    thread::{self},
+    msg::v2::{MessageSemantics, NoConfiguredMessages, Processing, ReceivePort, SendPort}, mutex::Mutex, println, thread
 };
 
 use riot_sys;

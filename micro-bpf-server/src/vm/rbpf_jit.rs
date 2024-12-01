@@ -25,6 +25,7 @@ use super::{
 use crate::infra::jit_prog_storage::{self};
 use crate::infra::suit_storage::{self};
 
+#[allow(dead_code)]
 pub struct RbpfJIT<'a> {
     pub program: Option<RefCell<&'a mut [u8]>>,
     pub layout: BinaryFileLayout,
@@ -76,6 +77,7 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
         }
 
         let jit_slot = self.jit_prog_slot;
+        let text_offset: usize;
 
         // Here we acquire a pointer to global storage where the jitted
         // program will be written. The additional scope is introduced so
@@ -83,12 +85,10 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
         // and so the lock is released. (RAII)
         {
             let mut slot_guard = jit_prog_storage::acquire_storage_slot(jit_slot).unwrap();
-            let mut text_offset = 0;
-
             let program_cell = RefCell::new(program);
             {
                 let mut program_mut = program_cell.borrow_mut();
-                let mut jit_memory = rbpf::JitMemory::new(
+                let jit_memory = rbpf::JitMemory::new(
                     &mut program_mut,
                     slot_guard.0.as_mut(),
                     &helpers_map,
@@ -117,7 +117,12 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
         let prog_ref_cell = self.program.as_ref().unwrap();
         let prog_ref = prog_ref_cell.borrow();
         let interpreter = map_interpreter(self.layout);
-        rbpf::EbpfVmMbuff::verify_program(interpreter, prog_ref.as_ref());
+
+        // Vefiy the program and abort if failed
+        let Ok(()) = rbpf::EbpfVmMbuff::verify_program(interpreter, prog_ref.as_ref())
+        else {
+            Err("Program verification failed")?
+        };
 
         if self.helper_access_verification == HelperAccessVerification::PreFlight {
             let helpers_idxs = self
@@ -132,7 +137,7 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
     }
 
     fn execute(&mut self) -> Result<u64, String> {
-        let mut ret = 0;
+        let ret: u32;
         unsafe {
             // We don't pass any meaningful arguments here as the program doesn't
             // work on a COAP message packet buffer.
@@ -151,7 +156,7 @@ impl<'a> VirtualMachine for RbpfJIT<'a> {
             from_raw_parts_mut(ctx as *mut u8, CONTEXT_SIZE)
         };
 
-        let mut ret = 0;
+        let ret: u32;
         unsafe {
             // We don't pass any meaningful arguments here as the program doesn't
             // work on a COAP message packet buffer.

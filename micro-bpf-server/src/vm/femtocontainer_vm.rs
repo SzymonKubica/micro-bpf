@@ -2,7 +2,7 @@ use core::ffi::c_void;
 
 use alloc::{boxed::Box, format, string::String};
 use log::debug;
-use riot_wrappers::{gcoap::PacketBuffer, println};
+use riot_wrappers::gcoap::PacketBuffer;
 
 use crate::{infra::suit_storage, vm::VirtualMachine};
 
@@ -48,7 +48,9 @@ impl<'a> VirtualMachine for FemtoContainerVm<'a> {
 
     fn execute(&mut self) -> Result<u64, String> {
         debug!("Starting FemtoContainer VM execution.");
-        let Some(program) = self.program else {
+        // The program is not used because the femto container VM execution
+        // handles getting the program buffer internally.
+        let Some(_program) = self.program else {
             Err("VM not initialised")?
         };
         let mut result: i64 = 0;
@@ -64,7 +66,7 @@ impl<'a> VirtualMachine for FemtoContainerVm<'a> {
 
     fn execute_on_coap_pkt(&mut self, pkt: PacketBuffer) -> Result<u64, String> {
         debug!("Starting FemtoContainer VM execution.");
-        let Some(program) = self.program else {
+        let Some(_program) = self.program else {
             Err("VM not initialised")?
         };
 
@@ -100,7 +102,10 @@ extern "C" {
     fn initialize_fc_vm(program: *const u8, program_len: usize) -> u32;
     fn execute_fc_vm(stack: *mut u8, result: *mut i64) -> u32;
     fn verify_fc_program(program: *const u8, program_len: usize) -> u32;
+    #[allow(dead_code)]
     fn sensor_processing_from_storage() -> u32;
+    #[allow(dead_code)]
     fn temperature_read() -> u32;
+    #[allow(dead_code)]
     fn test_printf() -> u32;
 }

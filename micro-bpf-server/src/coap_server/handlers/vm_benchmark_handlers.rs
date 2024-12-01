@@ -27,6 +27,7 @@ pub struct VMExecutionBenchmarkHandler {
 }
 
 impl VMExecutionBenchmarkHandler {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             time_results: Default::default(),
@@ -36,7 +37,7 @@ impl VMExecutionBenchmarkHandler {
     }
 
     fn handle_benchmark_execution(&mut self, request: VMExecutionRequest) -> Result<u8, u8> {
-        let mut vm = construct_vm(request.configuration, request.allowed_helpers)
+        let vm = construct_vm(request.configuration, request.allowed_helpers)
             .map_err(util::internal_server_error)?;
 
         let mut vm = TimedVm::new(vm);
@@ -108,6 +109,7 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
     /// they have written so that the response can be formatted correctly
     /// and sent back to the client.
     const NO_BYTES_WRITTEN: isize = 0;
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             time_results: Default::default(),
@@ -126,7 +128,7 @@ impl VMExecutionOnCoapPktBenchmarkHandler {
         request: VMExecutionRequest,
         pkt: PacketBuffer,
     ) -> isize {
-        let Ok(mut vm) = construct_vm(request.configuration, request.allowed_helpers) else {
+        let Ok(vm) = construct_vm(request.configuration, request.allowed_helpers) else {
             return Self::NO_BYTES_WRITTEN;
         };
 

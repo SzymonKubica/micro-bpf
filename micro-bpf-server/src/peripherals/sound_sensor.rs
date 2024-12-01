@@ -4,6 +4,7 @@ pub struct SoundSensor {
     adc_index: u8,
 }
 
+#[allow(dead_code)]
 impl SoundSensor {
     pub fn new(adc_index: u8) -> Result<Self, String> {
         unsafe {

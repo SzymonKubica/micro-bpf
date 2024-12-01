@@ -38,6 +38,7 @@ static JIT_SLOT_STATE: Mutex<[bool; JIT_STORAGE_SLOTS_NUM]> =
     Mutex::new([false; JIT_STORAGE_SLOTS_NUM]);
 
 // Global dictionary of the offsets to the .text sections in the jitted programs
+#[allow(dead_code)]
 static JIT_SLOT_TEXT_OFFSETS: Mutex<[usize; JIT_STORAGE_SLOTS_NUM]> =
     Mutex::new([0; JIT_STORAGE_SLOTS_NUM]);
 
@@ -83,7 +84,7 @@ pub fn get_program_from_slot(
 ) -> Result<unsafe fn(*mut u8, usize, *mut u8, usize) -> u32, String> {
     validate_slot_index(slot_index)?;
 
-    let mut slot_states = JIT_SLOT_STATE.lock();
+    let slot_states = JIT_SLOT_STATE.lock();
     let slot_occupied = slot_states[slot_index];
 
     if !slot_occupied {
@@ -103,6 +104,7 @@ pub fn get_program_from_slot(
     ))
 }
 
+#[allow(dead_code)]
 fn log_program_contents(program: &[u8], length: usize) {
     let mut prog_str: String = String::new();
     for (i, b) in program.iter().take(length).enumerate() {

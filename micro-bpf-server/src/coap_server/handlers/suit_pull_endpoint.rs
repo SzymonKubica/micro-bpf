@@ -144,7 +144,9 @@ impl coap_handler::Handler for SuitPullHandler {
                 format!("SUIT pull request failed: {}", e)
             }
         };
-        response.set_payload(res.as_bytes());
+        // Explicitly ignore the returned result type because of error variant
+        // incompatibility
+        let _ = response.set_payload(res.as_bytes());
         Ok(())
     }
 }

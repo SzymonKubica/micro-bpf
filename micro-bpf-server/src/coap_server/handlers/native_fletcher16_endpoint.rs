@@ -15,6 +15,7 @@ pub struct Fletcher16NativeTestHandler {
 }
 
 impl Fletcher16NativeTestHandler {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             execution_time: 0,
@@ -79,7 +80,7 @@ impl coap_handler::Handler for Fletcher16NativeTestHandler {
         };
 
         let clock = unsafe { riot_sys::ZTIMER_USEC as *mut riot_sys::inline::ztimer_clock_t };
-        let mut ret: u32;
+        let ret: u32;
         let start: u32 = Self::time_now(clock);
         unsafe {
             ret = test_fn();

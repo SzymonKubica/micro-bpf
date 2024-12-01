@@ -8,6 +8,7 @@ pub struct HD44780LCD {
     dev: *mut hd44780_t,
 }
 
+#[allow(dead_code)]
 impl HD44780LCD {
     pub fn new() -> Self {
         unsafe {
@@ -139,6 +140,7 @@ pub struct hd44780_t {
 
 /// State of the HD44780 display.
 #[allow(non_camel_case_types)]
+#[allow(dead_code)]
 #[repr(C)]
 pub enum hd44780_state_t {
     HD44780_OFF, /* disable feature */

@@ -6,8 +6,9 @@
 - [x] refactor and document server code
 - [x] add conditonal compilation for the testing endpoints
 - [x] add correct handling of spill / scratch registers for ISA incompatibilities
+- [ ] remove all comp time warnings (currently in progress)
+- [ ] remove all comp time warnings (C side)
 - [ ] refactor jit compiler code
-- [ ] remove all comp time warnings
 - [ ] Note: ensure that python env is enabled when building and flashing the image
 - [ ] add convenient shell utils for managing programs
 - [ ] fix jit helper function call args passing

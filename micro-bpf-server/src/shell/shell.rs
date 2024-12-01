@@ -16,6 +16,7 @@ pub fn shell_main(
 
     extern "C" {
         fn init_message_queue();
+        #[allow(dead_code)]
         fn bpf_store_init();
     }
 
@@ -44,6 +45,7 @@ pub fn shell_main(
     );
 
     trait_identity(commands).run_forever_with_buf(&mut line_buf);
+    #[allow(unreachable_code)]
     Ok(())
 }
 

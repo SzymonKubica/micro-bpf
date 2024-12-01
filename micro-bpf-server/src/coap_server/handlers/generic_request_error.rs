@@ -18,7 +18,7 @@ impl coap_message::error::RenderableOnMinimal for GenericRequestError {
         self,
         message: &mut M,
     ) -> Result<(), Self::Error<M::UnionError>> {
-        message.set_payload(&[self.0]);
+        let _ = message.set_payload(&[self.0]);
         Ok(())
     }
 }

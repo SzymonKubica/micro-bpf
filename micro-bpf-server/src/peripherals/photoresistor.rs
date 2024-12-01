@@ -7,6 +7,7 @@ pub struct Photoresistor {
 }
 
 
+#[allow(dead_code)]
 impl Photoresistor {
     pub fn new(adc_index: u8) -> Result<Self, String> {
         unsafe {

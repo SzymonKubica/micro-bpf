@@ -86,6 +86,7 @@ pub fn bad_request(e: String) -> u8 {
     coap_numbers::code::BAD_REQUEST
 }
 
+#[allow(dead_code)]
 pub fn preprocess_request<'a, T>(request: &'a impl ReadableMessage) -> Result<T, u8>
 where
     T: serde::de::Deserialize<'a>,
